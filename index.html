@@ -161,41 +161,62 @@
         const Move = createLucideIcon('Move');
         const Umbrella = createLucideIcon('Umbrella');
 
-        // --- KONFIGURATION ---
-        
-        // HÄR KAN DU ÄNDRA STORLEKAR (Tailwind klasser)
-        const SIZE_CONFIG = {
-            // Logotypens höjd
-            logoHeightMobile: "h-12",
-            logoHeightDesktop: "h-35",
-            
-            // Klockans textstorlek
-            clockSizeMobile: "text-6xl",
-            clockSizeDesktop: "text-9xl",
-            
-            // Datumets textstorlek
-            dateSizeMobile: "text-xl",
-            dateSizeDesktop: "text-3xl",
-            
-            // Väder-temperatur textstorlek (Topp)
-            weatherTempMobile: "text-6xl",
-            weatherTempDesktop: "text-11xl",
-            
-            // "Going on at Crisp" rubrik (om logga saknas)
-            headerTitleMobile: "text-4xl",
-            headerTitleDesktop: "text-7xl"
+        // ==========================================
+        // --- MASTER CONFIGURATION ---
+        // Här styr du allt!
+        // ==========================================
+        const DASHBOARD_CONFIG = {
+            // ÅRTAL - Ändra detta när det blir nytt år (t.ex. "2026")
+            // Detta påverkar rubriker OCH vilken data som hämtas från ClickUp (mappar som börjar på 25, 26 etc)
+            year: "2025",
+
+            // STORLEKAR & DESIGN (Tailwind klasser)
+            design: {
+                // Symbolen (Crisp-Symbol-White.png)
+                logoSymbolHeightMobile: "h-12",
+                logoSymbolHeightDesktop: "h-16", // Ändra till t.ex "h-20" för större
+
+                // Texten (Crisp_text-logo_white.png) - NU KOPPLAD!
+                logoTextHeightMobile: "h-6",
+                logoTextHeightDesktop: "h-8",    // Ändra till t.ex "h-12" för större
+
+                // Klockan
+                clockSizeMobile: "text-6xl",
+                clockSizeDesktop: "text-9xl",
+
+                // Datum
+                dateSizeMobile: "text-xl",
+                dateSizeDesktop: "text-3xl",
+
+                // Väder-temperatur (Stora siffran)
+                weatherTempMobile: "text-6xl",
+                weatherTempDesktop: "text-7xl",
+
+                // Rubriker (t.ex. "Produktion 202X")
+                headersMobile: "text-xl",
+                headersDesktop: "text-2xl",
+
+                // Fallback text om loggor saknas
+                fallbackHeaderMobile: "text-4xl",
+                fallbackHeaderDesktop: "text-7xl"
+            },
+
+            // API NYCKLAR & IDn
+            api: {
+                clickUpToken: "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9",
+                clickUpSpaceId: "90155050040",
+                clickUpBirthdayListId: "901517968972",
+                clickUpProjectsListId: "901515357300",
+                googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv"
+            }
         };
 
-        const CLICKUP_API_TOKEN = "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9";
-        const CLICKUP_SPACE_ID = "90155050040"; 
-        const CLICKUP_BIRTHDAY_LIST_ID = "901517968972";
-        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv"; 
-        const START_DATE_TIMESTAMP = new Date('2025-01-01').getTime();
-        const CLICKUP_PROJECTS_LIST_ID = "901515357300";
-
-        // LOGGOR
+        // Loggor (Ligger i samma mapp)
         const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
+
+        // Schema för uppdatering
+        const UPDATE_SCHEDULE = ['07:00', '12:30', '16:00'];
 
         // --- MODULER ---
 
@@ -215,13 +236,12 @@
                                 <MapPin size={12} /> Stockholm
                             </div>
                             <div className="flex items-center gap-4">
-                                <div className={`font-bold tracking-tighter text-white leading-none ${SIZE_CONFIG.weatherTempMobile} md:${SIZE_CONFIG.weatherTempDesktop}`}>
+                                <div className={`font-bold tracking-tighter text-white leading-none ${DASHBOARD_CONFIG.design.weatherTempMobile} md:${DASHBOARD_CONFIG.design.weatherTempDesktop}`}>
                                     {data?.temp !== undefined ? Math.round(data.temp) : "--"}°
                                 </div>
                                 <div className="flex flex-col">
                                      <div className="text-lg md:text-xl text-slate-200 font-bold leading-tight">{statusText}</div>
                                      <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase mt-1">
-                                        {/* Wind now correctly in m/s from API */}
                                         <span className="flex items-center gap-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</span>
                                      </div>
                                 </div>
@@ -282,27 +302,29 @@
                 <div className="h-full p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
                     <div className="flex items-center gap-3 mb-2">
                         <Trophy className="text-orange-400" size={32} />
-                        <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wide text-white">Produktion 2025</h2>
+                        <h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>
+                            Produktion {DASHBOARD_CONFIG.year}
+                        </h2>
                     </div>
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-blue-400 tracking-tighter">{loading ? "-" : stats?.activeProjects}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Igång Nu</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
                         </div>
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center">
-                             <span className="text-3xl md:text-4xl font-black text-purple-400 tracking-tighter">{loading ? "-" : stats?.totalProjects2025}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt 2025</span>
+                             <span className="text-3xl md:text-4xl font-black text-purple-400 tracking-tighter">{loading ? "-" : stats?.totalProjectsCurrentYear}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt {DASHBOARD_CONFIG.year}</span>
                         </div>
 
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter">{loading ? "-" : stats?.year}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Lev. Tasks</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererade projekt</span>
                         </div>
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-orange-400 tracking-tighter">{loading ? "-" : stats?.occasions}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Insp. Dagar</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Antal inspelningar</span>
                         </div>
                     </div>
 
@@ -329,7 +351,7 @@
              <div className="h-full p-6 md:p-8 flex flex-col">
                 <div className="flex items-center gap-3 mb-6 text-pink-400">
                     <PartyPopper size={28} />
-                    <h3 className="text-lg md:text-xl font-bold uppercase tracking-widest text-white">Fyller år (30 dagar)</h3>
+                    <h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Birthdays coming up!</h3>
                 </div>
                 <div className="space-y-4 overflow-y-auto no-scrollbar flex-grow">
                     {birthdays?.length > 0 ? birthdays.map((b, i) => (
@@ -396,7 +418,7 @@
                                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2">
                                     <Image size={14} /> Life at Crisp
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Creating Magic</h2>
+                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Every frame counts</h2>
                             </div>
                         </>
                     ) : (
@@ -413,7 +435,7 @@
         const TimelineModule = ({ items, loading }) => (
             <div className="h-full p-6 md:p-8 flex flex-col">
                 <div className="flex items-center justify-between mb-8">
-                    <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Händer Framöver</h2>
+                    <h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Händer Framöver</h2>
                     {loading && <RefreshCw className="animate-spin text-slate-600" size={24}/>}
                 </div>
                 <div className="flex-grow space-y-4 overflow-y-auto no-scrollbar pr-2">
@@ -597,25 +619,25 @@
                                 <img 
                                     src={LOGO_SYMBOL} 
                                     alt="Crisp" 
-                                    className={`${SIZE_CONFIG.logoHeightMobile} md:${SIZE_CONFIG.logoHeightDesktop} w-auto object-contain`}
+                                    className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`}
                                     onError={(e) => e.target.style.display = 'none'}
                                 />
                                 <img 
                                     src={LOGO_TEXT} 
                                     alt="Crisp Film" 
-                                    className="h-6 md:h-8 w-auto object-contain mt-2" 
+                                    className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-2`}
                                     onError={(e) => e.target.style.display = 'none'}
                                 />
                              </div>
                              {/* Fallback text if logos miss */}
                              <div className="hidden">
-                                <h1 className={`${SIZE_CONFIG.headerTitleMobile} md:${SIZE_CONFIG.headerTitleDesktop} font-bold tracking-tighter text-white leading-none mb-2`}>Going on at Crisp</h1>
+                                <h1 className={`${DASHBOARD_CONFIG.design.fallbackHeaderMobile} md:${DASHBOARD_CONFIG.design.fallbackHeaderDesktop} font-bold tracking-tighter text-white leading-none mb-2`}>Going on at Crisp</h1>
                             </div>
                             <p className="text-slate-400 text-lg md:text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-6 md:mt-0">
-                            <div className={`${SIZE_CONFIG.clockSizeMobile} md:${SIZE_CONFIG.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div>
-                            <div className={`text-slate-400 ${SIZE_CONFIG.dateSizeMobile} md:${SIZE_CONFIG.dateSizeDesktop} capitalize font-medium mt-2`}>{dateStr}</div>
+                            <div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div>
+                            <div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-2`}>{dateStr}</div>
                         </div>
                     </header>
 
@@ -752,9 +774,9 @@
 
         // --- API ---
         async function getGoogleSheetEvents() {
-            if (!GOOGLE_SHEET_CSV_URL) return [];
+            if (!DASHBOARD_CONFIG.api.googleSheetCsvUrl) return [];
             try {
-                const url = `${GOOGLE_SHEET_CSV_URL}&t=${Date.now()}`;
+                const url = `${DASHBOARD_CONFIG.api.googleSheetCsvUrl}&t=${Date.now()}`;
                 const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
                 if (!res.ok) return [];
                 const txt = await res.text();
@@ -795,18 +817,21 @@
         }
 
         async function getClickUpData() {
-            if (!CLICKUP_SPACE_ID) return {};
-            const headers = { 'Authorization': CLICKUP_API_TOKEN };
+            if (!DASHBOARD_CONFIG.api.clickUpSpaceId) return {};
+            const headers = { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken };
             const proxy = "https://corsproxy.io/?";
             try {
                 const teamRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers });
                 const teamId = (await teamRes.json()).teams[0].id;
                 
+                // Use Dynamic Year for start timestamp: Jan 1st of Config Year
+                const dynamicStartTimestamp = new Date(`${DASHBOARD_CONFIG.year}-01-01`).getTime();
+
                 const getAllTasks = async (archived) => {
                     let all = []; let page = 0;
                     while(page < 40) {
                         try {
-                            const url = `${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${CLICKUP_SPACE_ID}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${START_DATE_TIMESTAMP}&page=${page}`;
+                            const url = `${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${dynamicStartTimestamp}&page=${page}`;
                             const res = await fetch(url, { headers });
                             const json = await res.json();
                             if(!json.tasks || json.tasks.length === 0) break;
@@ -819,10 +844,10 @@
 
                 const getProjectTasks = async () => {
                     let all = []; let page = 0;
-                    if (!CLICKUP_PROJECTS_LIST_ID) return [];
+                    if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return [];
                     while(page < 5) {
                          try {
-                            const url = `${proxy}https://api.clickup.com/api/v2/list/${CLICKUP_PROJECTS_LIST_ID}/task?include_closed=true&date_updated_gt=${START_DATE_TIMESTAMP}&page=${page}`;
+                            const url = `${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${dynamicStartTimestamp}&page=${page}`;
                             const res = await fetch(url, { headers });
                             const json = await res.json();
                             if(!json.tasks || json.tasks.length === 0) break;
@@ -840,15 +865,19 @@
                 ]);
 
                 const tasksMap = new Map(); [...active, ...archived].forEach(t => tasksMap.set(t.id, t));
+                
+                // Filter tasks based on Config Year short code (e.g., "25" for "2025")
+                const shortYear = DASHBOARD_CONFIG.year.slice(-2);
+                
                 let tasks = Array.from(tasksMap.values()).filter(t => {
                      const folderName = t.folder ? t.folder.name : "";
                      const listName = t.list ? t.list.name : "";
-                     return folderName.startsWith("25") || listName.startsWith("25");
+                     return folderName.startsWith(shortYear) || listName.startsWith(shortYear);
                 });
 
-                const validProjects = projects.filter(t => t.name.startsWith("25"));
+                const validProjects = projects.filter(t => t.name.startsWith(shortYear));
                 const activeProjects = validProjects.filter(t => t.status.status.toLowerCase() === 'production').length;
-                const totalProjects2025 = validProjects.filter(t => {
+                const totalProjectsCurrentYear = validProjects.filter(t => {
                     const s = t.status.status.toLowerCase();
                     return s === 'production' || s === 'delivered';
                 }).length;
@@ -878,25 +907,25 @@
                     if(finalRec.length >= 5) break;
                 }
 
-                const delTasks = tasks.filter(t => {
-                    const n = t.name.toLowerCase();
-                    const s = t.status.status.toLowerCase();
-                    return n.includes("leverans") && !n.includes("inspelning") && (s==='complete'||s==='closed'||s==='done'||s==='klar');
-                });
-                const recentDel = delTasks
-                    .sort((a,b) => parseInt(b.date_closed||0) - parseInt(a.date_closed||0))
-                    .slice(0,5)
+                // --- NEW LOGIC: Count DELIVERED PROJECTS instead of "Leverans" tasks ---
+                const deliveredProjects = validProjects.filter(t => t.status.status.toLowerCase() === 'delivered');
+                const deliveredCount = deliveredProjects.length;
+
+                const recentDel = deliveredProjects
+                    .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
+                    .slice(0,9)
                     .map(t => {
-                        let n = "Projekt";
-                        if(t.folder) n = t.folder.name; else if(t.list) n = t.list.name;
-                        n = n.length > 6 && n.includes('_') ? n.substring(6).replace(/_/g,' ') : n;
                         const ts = parseInt(t.date_closed||t.date_updated||0);
-                        return { name: n, date: ts > 0 ? new Date(ts).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) : "-" };
+                        return { 
+                            name: t.name, 
+                            date: ts > 0 ? new Date(ts).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) : "-" 
+                        };
                     });
+
                 let birthdays = [];
-                if(CLICKUP_BIRTHDAY_LIST_ID) {
+                if(DASHBOARD_CONFIG.api.clickUpBirthdayListId) {
                      try {
-                        const bdRes = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${CLICKUP_BIRTHDAY_LIST_ID}/task`, { headers });
+                        const bdRes = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpBirthdayListId}/task`, { headers });
                         const bdJson = await bdRes.json();
                         birthdays = (bdJson.tasks || [])
                             .map(t => {
@@ -914,13 +943,13 @@
                 }
                 return {
                     stats: { 
-                        year: delTasks.length, 
+                        year: deliveredCount, // Uses new logic
                         occasions: recTasks.length,
                         activeProjects: activeProjects,
-                        totalProjects2025: totalProjects2025
+                        totalProjectsCurrentYear: totalProjectsCurrentYear
                     },
                     recordings: finalRec,
-                    recentDeliveries: recentDel,
+                    recentDeliveries: recentDel, // Uses new logic
                     birthdays: birthdays
                 };
             } catch(e) { return {}; }
