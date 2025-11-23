@@ -385,7 +385,7 @@
 
             useEffect(() => {
                 if (validImages.length === 0) return;
-                const timer = setInterval(() => setIndex((prev) => (prev + 1) % validImages.length), 8000);
+                const timer = setInterval(() => setIndex((prev) => (prev + 1) % validImages.length), 20000);
                 return () => clearInterval(timer);
             }, [validImages]);
 
