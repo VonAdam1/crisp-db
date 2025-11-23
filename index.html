@@ -14,13 +14,24 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
+        /* Base styles */
         body { 
             font-family: 'Outfit', sans-serif; 
             background-color: #050505; 
             color: #f5f5f7; 
-            overflow: hidden; 
+            margin: 0;
+            /* Allow scrolling by default (mobile), we lock it for desktop in CSS below */
+            min-height: 100vh;
             background: radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000000 80%);
-            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* DESKTOP ONLY: Lock scrolling to create the Kiosk/Dashboard feel */
+        @media (min-width: 768px) {
+            body {
+                overflow: hidden;
+                height: 100vh;
+            }
         }
         
         /* Premium Glass */
@@ -38,16 +49,18 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
-        .glass-card:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7);
-            z-index: 10;
-            cursor: grab;
-        }
-
-        .glass-card:active {
-            cursor: grabbing;
-            transform: scale(0.99);
+        /* Hover effects only on Desktop */
+        @media (min-width: 768px) {
+            .glass-card:hover {
+                border-color: rgba(255, 255, 255, 0.2);
+                box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7);
+                z-index: 10;
+                cursor: grab;
+            }
+            .glass-card:active {
+                cursor: grabbing;
+                transform: scale(0.99);
+            }
         }
 
         .glass-card.dragging {
@@ -58,6 +71,7 @@
             cursor: grabbing;
         }
 
+        /* Resize Handle - Hidden on Mobile */
         .resize-handle {
             position: absolute;
             bottom: 0;
@@ -68,8 +82,14 @@
             z-index: 50;
             opacity: 0;
             transition: opacity 0.2s;
+            display: none; /* Hidden by default */
         }
-        .glass-card:hover .resize-handle { opacity: 1; }
+        
+        /* Show resize handle only on Desktop */
+        @media (min-width: 768px) {
+            .resize-handle { display: block; }
+            .glass-card:hover .resize-handle { opacity: 1; }
+        }
         
         .resize-handle::after {
             content: '';
@@ -148,7 +168,7 @@
         const START_DATE_TIMESTAMP = new Date('2025-01-01').getTime();
         const CLICKUP_PROJECTS_LIST_ID = "901515357300";
 
-        // LOGGOR - Måste ligga i samma mapp som denna fil
+        // LOGGOR
         const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
 
@@ -158,34 +178,31 @@
         // --- MODULER ---
 
         const WeatherModule = ({ data, w, h }) => {
-            const isCompact = h < 2;
             return (
-                <div className="h-full flex flex-col justify-between relative overflow-hidden p-6 md:p-8 cursor-grab active:cursor-grabbing">
+                <div className="h-full flex flex-col justify-between relative overflow-hidden p-6 md:p-8">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
                             <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-2">
                                 <MapPin size={14} /> Stockholm
                             </div>
-                            <div className={`font-bold tracking-tighter text-white leading-none ${isCompact ? 'text-6xl' : 'text-8xl'}`}>
+                            {/* Responsive text size: 7xl on mobile, 8xl on desktop */}
+                            <div className={`font-bold tracking-tighter text-white leading-none text-7xl md:text-8xl`}>
                                 {data?.temp || "--"}°
                             </div>
-                            {!isCompact && (
-                                <div className="mt-3">
-                                    <div className="text-xl text-slate-300 font-medium mt-2">{data?.condition}</div>
-                                    <div className="flex items-center gap-3 mt-1 text-sm text-slate-400 font-medium">
-                                        <span className="flex items-center gap-1"><Thermometer size={14}/> Känns som {data?.feelsLike}°</span>
-                                    </div>
+                            <div className="mt-3">
+                                <div className="text-xl text-slate-300 font-medium mt-2">{data?.condition}</div>
+                                <div className="flex items-center gap-3 mt-1 text-sm text-slate-400 font-medium">
+                                    <span className="flex items-center gap-1"><Thermometer size={14}/> Känns som {data?.feelsLike}°</span>
                                 </div>
-                            )}
+                            </div>
                         </div>
-                        <div className={`bg-white/5 rounded-full border border-white/10 shadow-2xl flex items-center justify-center ${isCompact ? 'p-3' : 'p-5'}`}>
-                            {data?.condition === "Soligt" ? <Sun size={isCompact?40:64} className="text-yellow-400"/> : <CloudRain size={isCompact?40:64} className="text-blue-400"/>}
+                        <div className={`bg-white/5 rounded-full border border-white/10 shadow-2xl flex items-center justify-center p-4 md:p-5`}>
+                            {data?.condition === "Soligt" ? <Sun size={56} className="text-yellow-400"/> : <CloudRain size={56} className="text-blue-400"/>}
                         </div>
                     </div>
 
-                    {!isCompact && (
-                        <div className="animate-in">
+                    <div className="animate-in mt-6 md:mt-0">
                              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/10 relative z-10">
                                 {data?.forecast?.map((day, i) => (
                                     <div key={i} className="flex flex-col items-center text-center p-3 rounded-2xl bg-white/5">
@@ -196,7 +213,6 @@
                                 ))}
                             </div>
                         </div>
-                    )}
                 </div>
             );
         };
@@ -231,22 +247,20 @@
                     </div>
 
                     {/* Recent List */}
-                    {h >= 3 && (
-                        <div className="flex-grow flex flex-col min-h-0 animate-in pt-4 border-t border-white/5">
-                            <div className="flex items-center gap-3 mb-4 text-emerald-400 mt-2">
-                                <PackageCheck size={18} />
-                                <h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3>
-                            </div>
-                            <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
-                                {recent?.length > 0 ? recent.slice(0, h > 3 ? 6 : 3).map((del, i) => (
-                                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
-                                        <span className="text-white font-medium text-sm truncate mr-2">{del.name}</span>
-                                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span>
-                                    </div>
-                                )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
-                            </div>
+                    <div className="flex-grow flex flex-col min-h-0 animate-in pt-4 border-t border-white/5">
+                        <div className="flex items-center gap-3 mb-4 text-emerald-400 mt-2">
+                            <PackageCheck size={18} />
+                            <h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3>
                         </div>
-                    )}
+                        <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
+                            {recent?.length > 0 ? recent.slice(0, 6).map((del, i) => (
+                                <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
+                                    <span className="text-white font-medium text-sm truncate mr-2">{del.name}</span>
+                                    <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span>
+                                </div>
+                            )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -273,12 +287,10 @@
              </div>
         );
 
-        // LOKAL BILDKONTROLL
         const SlideshowModule = () => {
             const [index, setIndex] = useState(0);
             const [validImages, setValidImages] = useState([]);
             
-            // 1. Generera lista på möjliga bilder (1.jpg, 1.png... upp till 20)
             useEffect(() => {
                 const possibleImages = [];
                 for (let i = 1; i <= 20; i++) {
@@ -286,18 +298,15 @@
                     possibleImages.push(`bilder/${i}.png`);
                     possibleImages.push(`bilder/${i}.jpeg`);
                 }
-                // Vi sätter alla som "potentiella". Om de failar, tas de bort.
                 setValidImages(possibleImages);
             }, []);
 
-            // 2. Rotera bilder
             useEffect(() => {
                 if (validImages.length === 0) return;
                 const timer = setInterval(() => setIndex((prev) => (prev + 1) % validImages.length), 8000);
                 return () => clearInterval(timer);
             }, [validImages]);
 
-            // 3. Hantera trasiga bilder (404)
             const handleImageError = (badSrc) => {
                 setValidImages(prev => prev.filter(src => src !== badSrc));
             };
@@ -308,7 +317,6 @@
                 <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing">
                     {validImages.length > 0 ? (
                         <>
-                            {/* Vi renderar bara aktiv och nästa bild för prestanda, eller alla om få */}
                             {validImages.map((img, i) => (
                                 <img 
                                     key={img}
@@ -332,7 +340,6 @@
                             </div>
                         </>
                     ) : (
-                        // Fallback om inga bilder hittas
                         <div className="h-full flex flex-col items-center justify-center text-slate-600">
                             <Image size={48} />
                             <p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p>
@@ -397,8 +404,10 @@
             const [draggedId, setDraggedId] = useState(null);
             const [resizingId, setResizingId] = useState(null);
 
-            // --- Drag & Drop ---
+            // --- Drag & Drop (Only for Desktop) ---
             const onDragStart = (e, id) => {
+                // Ignore if screen is small (mobile)
+                if (window.innerWidth < 768) return; 
                 if (resizingId) { e.preventDefault(); return; }
                 setDraggedId(id);
                 e.dataTransfer.effectAllowed = "move";
@@ -411,6 +420,7 @@
             };
 
             const onDrop = (targetId) => {
+                if (window.innerWidth < 768) return;
                 if (!draggedId || draggedId === targetId) return;
                 const newModules = [...modules];
                 const dIdx = newModules.findIndex(m => m.id === draggedId);
@@ -422,8 +432,9 @@
                 setDraggedId(null);
             };
 
-            // --- Resize ---
+            // --- Resize (Only for Desktop) ---
             const handleResizeStart = (e, id) => {
+                if (window.innerWidth < 768) return;
                 e.preventDefault();
                 e.stopPropagation();
                 setResizingId(id);
@@ -472,7 +483,7 @@
                  const allUpcoming = [
                     ...(data?.events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
                     ...(data?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: 'Inspelning' }))
-                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, mod.rowSpan * 2); 
+                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
 
                 switch(mod.component) {
                     case 'WeatherModule': return <WeatherModule data={weather} w={mod.colSpan} h={mod.rowSpan} />;
@@ -501,10 +512,8 @@
                     setLoading(false);
                 };
                 
-                // KÖR DIREKT VID START
                 fetchData();
 
-                // SCHEMALAGD UPPDATERING: Varje minut kollar vi klockan
                 const interval = setInterval(() => {
                     const now = new Date();
                     const h = now.getHours().toString().padStart(2,'0');
@@ -515,7 +524,7 @@
                         console.log("Schemalagd uppdatering:", currentTime);
                         fetchData();
                     }
-                }, 60000); // Check every minute
+                }, 60000); 
 
                 return () => { clearInterval(timer); clearInterval(interval); };
             }, []);
@@ -524,38 +533,39 @@
             const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
             return (
-                <div className="min-h-screen p-8 flex flex-col h-screen">
-                    <header className="flex justify-between items-end mb-8 px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-[160px]">
+                <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden">
+                    <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[160px]">
                          <div className="flex flex-col">
                              {/* LOGGOR HÄR */}
                              <div className="flex items-center gap-4 mb-3">
                                 <img 
                                     src={LOGO_SYMBOL} 
                                     alt="Crisp" 
-                                    className="h-16 w-auto object-contain"
+                                    className="h-10 md:h-16 w-auto object-contain"
                                     onError={(e) => e.target.style.display = 'none'}
                                 />
                                 <img 
                                     src={LOGO_TEXT} 
                                     alt="Crisp Film" 
-                                    className="h-8 w-auto object-contain mt-2" 
+                                    className="h-6 md:h-8 w-auto object-contain mt-2" 
                                     onError={(e) => e.target.style.display = 'none'}
                                 />
                              </div>
-                             {/* Visas bara om loggor saknas, som fallback */}
+                             {/* Fallback text if logos miss */}
                              <div className="hidden">
-                                <h1 className="text-7xl font-bold tracking-tighter text-white leading-none mb-2">Going on at Crisp</h1>
+                                <h1 className="text-4xl md:text-7xl font-bold tracking-tighter text-white leading-none mb-2">Going on at Crisp</h1>
                             </div>
-                            <p className="text-slate-400 text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
+                            <p className="text-slate-400 text-lg md:text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
-                        <div className="text-right">
-                            <div className="text-9xl font-semibold text-white tracking-tighter leading-none">{timeStr}</div>
-                            <div className="text-slate-400 text-3xl capitalize font-medium mt-2">{dateStr}</div>
+                        <div className="text-left md:text-right mt-6 md:mt-0">
+                            <div className="text-6xl md:text-9xl font-semibold text-white tracking-tighter leading-none">{timeStr}</div>
+                            <div className="text-slate-400 text-xl md:text-3xl capitalize font-medium mt-2">{dateStr}</div>
                         </div>
                     </header>
 
                     {/* BENTO GRID */}
-                    <div className="grid grid-cols-12 auto-rows-[160px] gap-6 flex-grow pb-6 grid-flow-dense relative z-10">
+                    {/* On mobile: grid-cols-1, auto-rows. On Desktop: grid-cols-12, fixed rows */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[160px] gap-4 md:gap-6 flex-grow pb-6 grid-flow-dense relative z-10">
                         {modules.map((mod) => (
                             <div 
                                 key={mod.id}
@@ -564,7 +574,14 @@
                                 onDragEnd={onDragEnd}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={() => onDrop(mod.id)}
-                                className={`glass-card animate-in col-span-${mod.colSpan} row-span-${mod.rowSpan} ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}
+                                className={`
+                                    glass-card animate-in 
+                                    col-span-1 md:col-span-${mod.colSpan} 
+                                    md:row-span-${mod.rowSpan} 
+                                    min-h-[350px] md:min-h-0
+                                    ${draggedId === mod.id ? 'dragging' : ''} 
+                                    ${resizingId === mod.id ? 'resizing' : ''}
+                                `}
                             >
                                 {renderModuleContent(mod)}
                                 
@@ -580,7 +597,7 @@
             );
         };
 
-        // --- API (Samma som tidigare) ---
+        // --- API ---
         async function getGoogleSheetEvents() {
             if (!GOOGLE_SHEET_CSV_URL) return [];
             try {
