@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crisp Production Dashboard</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.292.0"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body { 
+            font-family: 'Outfit', sans-serif; 
+            background-color: #050505; 
+            color: #f5f5f7; 
+            overflow: hidden; 
+            background: radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000000 80%);
+            user-select: none;
+        }
+        
+        /* Premium Glass */
+        .glass-card { 
+            background: rgba(20, 20, 22, 0.7); 
+            backdrop-filter: blur(50px); 
+            -webkit-backdrop-filter: blur(50px);
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
+            border-radius: 1.5rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+            cursor: grab;
+        }
+
+        .glass-card:active {
+            cursor: grabbing;
+            transform: scale(0.99);
+        }
+
+        .glass-card.dragging {
+            opacity: 0.5;
+            border: 2px dashed rgba(255,255,255,0.3);
+            background: transparent;
+            box-shadow: none;
+            cursor: grabbing;
+        }
+        
+        .glass-card.resizing {
+            border-color: rgba(255, 165, 0, 0.5);
+            z-index: 20;
+        }
+
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 30px;
+            height: 30px;
+            cursor: nwse-resize;
+            z-index: 50;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .glass-card:hover .resize-handle { opacity: 1; }
+        
+        .resize-handle::after {
+            content: '';
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-bottom: 2px solid rgba(255,255,255,0.4);
+            border-right: 2px solid rgba(255,255,255,0.4);
+            border-radius: 1px;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .animate-in { animation: fadeIn 0.6s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- IKONER ---
+        const createLucideIcon = (name) => {
+            if (!window.lucide || !window.lucide.icons) return () => null;
+            const iconData = window.lucide.icons[name];
+            if (!iconData) return () => null;
+            return ({ size = 24, className = "", color = "currentColor", ...props }) => {
+                if (!Array.isArray(iconData)) return null;
+                const [tag, defaultAttrs, children = []] = iconData;
+                const toCamel = (s) => s.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                const processAttrs = (attrs) => {
+                    const newAttrs = {};
+                    for (const [k, v] of Object.entries(attrs || {})) {
+                        const key = k === 'class' ? 'className' : toCamel(k);
+                        newAttrs[key] = v;
+                    }
+                    return newAttrs;
+                };
+                const combinedAttrs = { ...processAttrs(defaultAttrs), width: size, height: size, stroke: color, className: `lucide lucide-${name.toLowerCase()} ${className}`, ...props };
+                const childElements = Array.isArray(children) ? children.map(([childTag, childAttrs], idx) => React.createElement(childTag, { ...processAttrs(childAttrs), key: idx })) : [];
+                return React.createElement(tag, combinedAttrs, ...childElements);
+            };
+        };
+
+        const CloudRain = createLucideIcon('CloudRain');
+        const Sun = createLucideIcon('Sun');
+        const CloudSun = createLucideIcon('CloudSun');
+        const Cloud = createLucideIcon('Cloud');
+        const Snowflake = createLucideIcon('Snowflake');
+        const CloudLightning = createLucideIcon('CloudLightning');
+        const CheckSquare = createLucideIcon('CheckSquare');
+        const Cake = createLucideIcon('Cake');
+        const Wind = createLucideIcon('Wind');
+        const Droplets = createLucideIcon('Droplets');
+        const Video = createLucideIcon('Video');
+        const Trophy = createLucideIcon('Trophy');
+        const Calendar = createLucideIcon('Calendar');
+        const MapPin = createLucideIcon('MapPin');
+        const ArrowRight = createLucideIcon('ArrowRight');
+        const PackageCheck = createLucideIcon('PackageCheck');
+        const Star = createLucideIcon('Star');
+        const Image = createLucideIcon('Image');
+        const RefreshCw = createLucideIcon('RefreshCw');
+        const PartyPopper = createLucideIcon('PartyPopper');
+        const Thermometer = createLucideIcon('Thermometer');
+        const Eye = createLucideIcon('Eye');
+        const Move = createLucideIcon('Move');
+
+        // --- KONFIGURATION ---
+        const CLICKUP_API_TOKEN = "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9";
+        const CLICKUP_SPACE_ID = "90155050040"; 
+        const CLICKUP_BIRTHDAY_LIST_ID = "901517968972";
+        const CLICKUP_PROJECTS_LIST_ID = "901515357300"; 
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv"; 
+        const START_DATE_TIMESTAMP = new Date('2025-01-01').getTime();
+        const UPDATE_SCHEDULE = ['07:00', '12:30', '16:00'];
+
+        const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
+        const LOGO_TEXT = "./Crisp_text-logo_white.png";
+        
+        const SLIDESHOW_IMAGES = [
+            "https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=1200&auto=format&fit=crop",
+            "https://images.unsplash.com/photo-1601506521937-244b01c844eb?q=80&w=1200&auto=format&fit=crop"
+        ];
+
+        // --- MODULER ---
+
+        const WeatherModule = ({ data, w, h }) => {
+            const isCompact = h < 2;
+
+            const getWeatherIcon = (code, size, className) => {
+                if (code === 0) return <Sun size={size} className={`text-yellow-400 ${className}`} />;
+                if (code >= 1 && code <= 3) return <CloudSun size={size} className={`text-white ${className}`} />;
+                if (code >= 45 && code <= 48) return <Cloud size={size} className={`text-slate-400 ${className}`} />;
+                if (code >= 51 && code <= 67) return <CloudRain size={size} className={`text-blue-400 ${className}`} />;
+                if (code >= 71 && code <= 77) return <Snowflake size={size} className={`text-cyan-200 ${className}`} />;
+                if (code >= 95) return <CloudLightning size={size} className={`text-purple-400 ${className}`} />;
+                return <CloudSun size={size} className={`text-white ${className}`} />;
+            };
+
+            return (
+                <div className="h-full flex flex-col justify-between relative overflow-hidden p-6 md:p-8">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
+                    
+                    <div className="relative z-10 flex justify-between items-start">
+                        <div>
+                            <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-2">
+                                <MapPin size={14} /> Stockholm
+                            </div>
+                            <div className={`font-bold tracking-tighter text-white leading-none ${isCompact ? 'text-6xl' : 'text-8xl'}`}>
+                                {data?.temp !== undefined ? Math.round(data.temp) : "--"}°
+                            </div>
+                            
+                            {!isCompact && (
+                                <div className="mt-3">
+                                    <div className="text-xl text-slate-300 font-medium mt-2">{data?.condition}</div>
+                                    <div className="flex items-center gap-3 mt-1 text-sm text-slate-400 font-medium">
+                                        <span className="flex items-center gap-1"><Thermometer size={14}/> Känns som {data?.feelsLike !== undefined ? Math.round(data.feelsLike) : "-"}°</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className={`bg-white/5 rounded-full border border-white/10 shadow-2xl flex items-center justify-center ${isCompact ? 'p-3' : 'p-5'}`}>
+                            {getWeatherIcon(data?.code, isCompact?40:64, "")}
+                        </div>
+                    </div>
+
+                    {!isCompact && (
+                        <div className="animate-in flex flex-col gap-4">
+                             {/* Tim-prognos */}
+                             {data?.hourly && data.hourly.length > 0 && (
+                                 <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                                     {data.hourly.slice(0, 4).map((h, i) => (
+                                         <div key={i} className="flex flex-col items-center text-center gap-1">
+                                             <span className="text-slate-500 text-[10px] font-bold">{h.time}</span>
+                                             {getWeatherIcon(h.code, 18, "")}
+                                             <span className="text-white text-xs font-bold">{Math.round(h.temp)}°</span>
+                                         </div>
+                                     ))}
+                                 </div>
+                             )}
+
+                             {/* Dags-prognos */}
+                             {data?.forecast && data.forecast.length > 0 && (
+                                <div className="grid grid-cols-3 gap-2 pt-2 relative z-10">
+                                    {data.forecast.map((day, i) => (
+                                        <div key={i} className="flex flex-col items-center text-center p-2 rounded-xl bg-white/5">
+                                            <span className="text-slate-400 text-[10px] font-bold uppercase mb-1">{day.day}</span>
+                                            {getWeatherIcon(day.code, 20, "mb-1")}
+                                            <span className="text-white font-bold text-sm">{Math.round(day.temp)}°</span>
+                                        </div>
+                                    ))}
+                                </div>
+                             )}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const ProductionModule = ({ stats, recent, loading, h }) => {
+            return (
+                <div className="h-full p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
+                    <div className="flex items-center gap-3 mb-2">
+                        <Trophy className="text-orange-400" size={32} />
+                        <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wide text-white">Produktion 2025</h2>
+                    </div>
+
+                    <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
+                        <div className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center">
+                             <span className="text-3xl md:text-4xl font-black text-blue-400 tracking-tighter">{loading ? "-" : stats?.activeProjects}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Igång Nu</span>
+                        </div>
+                        <div className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center">
+                             <span className="text-3xl md:text-4xl font-black text-purple-400 tracking-tighter">{loading ? "-" : stats?.totalProjects2025}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt 2025</span>
+                        </div>
+                        <div className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center">
+                             <span className="text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter">{loading ? "-" : stats?.year}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Lev. Tasks</span>
+                        </div>
+                        <div className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center">
+                             <span className="text-3xl md:text-4xl font-black text-orange-400 tracking-tighter">{loading ? "-" : stats?.occasions}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Insp. Dagar</span>
+                        </div>
+                    </div>
+
+                    {(h >= 3 || window.innerWidth < 1024) && (
+                        <div className="flex-grow flex flex-col min-h-0 animate-in pt-4 border-t border-white/5">
+                            <div className="flex items-center gap-3 mb-4 text-emerald-400 mt-2">
+                                <PackageCheck size={18} />
+                                <h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3>
+                            </div>
+                            <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
+                                {recent?.length > 0 ? recent.slice(0, 6).map((del, i) => (
+                                    <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
+                                        <span className="text-white font-medium text-sm truncate mr-2">{del.name}</span>
+                                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span>
+                                    </div>
+                                )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const BirthdaysModule = ({ birthdays }) => (
+             <div className="h-full p-6 md:p-8 flex flex-col">
+                <div className="flex items-center gap-3 mb-6 text-pink-400">
+                    <PartyPopper size={28} />
+                    <h3 className="text-lg md:text-xl font-bold uppercase tracking-widest text-white">Fyller år (30 dagar)</h3>
+                </div>
+                <div className="space-y-4 overflow-y-auto no-scrollbar flex-grow">
+                    {birthdays?.length > 0 ? birthdays.map((b, i) => (
+                        <div key={i} className="flex items-center gap-5 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
+                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg shrink-0">
+                                {b.name.charAt(0)}
+                            </div>
+                            <div>
+                                <div className="text-white text-xl md:text-2xl font-bold">{b.name}</div>
+                                <div className="text-pink-300 text-sm md:text-base font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div>
+                            </div>
+                        </div>
+                    )) : <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">Inga födelsedagar nära.</div>}
+                </div>
+             </div>
+        );
+
+        const SlideshowModule = ({ customImages }) => {
+            const hasImages = customImages && customImages.length > 0;
+            const images = hasImages ? customImages : SLIDESHOW_IMAGES;
+            
+            const [index, setIndex] = useState(0);
+            useEffect(() => {
+                if (images.length <= 1) return;
+                const timer = setInterval(() => setIndex((prev) => (prev + 1) % images.length), 8000);
+                return () => clearInterval(timer);
+            }, [images]);
+
+            return (
+                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing">
+                    {images.map((img, i) => (
+                        <div key={i} className="absolute inset-0 bg-cover transition-all duration-[2000ms] ease-in-out transform"
+                            style={{ 
+                                backgroundImage: `url('${img}')`, 
+                                backgroundPosition: 'center center', 
+                                opacity: index === i ? 1 : 0, 
+                                transform: index === i ? 'scale(1)' : 'scale(1.05)' 
+                            }} />
+                    ))}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-8 left-8 pointer-events-none">
+                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2">
+                            <Image size={14} /> Life at Crisp
+                        </div>
+                        <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Creating Magic</h2>
+                    </div>
+                </div>
+            );
+        };
+
+        const TimelineModule = ({ items, loading }) => (
+            <div className="h-full p-6 md:p-8 flex flex-col">
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Händer Framöver</h2>
+                    {loading && <RefreshCw className="animate-spin text-slate-600" size={24}/>}
+                </div>
+                <div className="flex-grow space-y-4 overflow-y-auto no-scrollbar pr-2">
+                    {items.length > 0 ? items.map((item, idx) => {
+                         const isRec = item.type === 'recording';
+                         return (
+                            <div key={idx} className="flex items-center gap-5 md:gap-6 p-4 md:p-5 bg-white/5 rounded-3xl border border-white/5 transition-all hover:bg-white/10">
+                                <div className={`flex flex-col items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                    <span className="font-bold text-2xl md:text-3xl leading-none">{item.dateMain}</span>
+                                    <span className="text-[10px] md:text-xs font-bold uppercase mt-0.5">{item.dateSub}</span>
+                                </div>
+                                <div className="flex-grow min-w-0">
+                                    <h3 className="text-lg md:text-2xl font-semibold text-white truncate leading-tight">{item.title}</h3>
+                                    <div className="flex items-center gap-3 mt-1.5">
+                                         {isRec ? <Video size={16} className="text-red-400"/> : <Star size={16} className="text-indigo-400"/>}
+                                         <span className="text-xs md:text-base font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
+                                    </div>
+                                </div>
+                            </div>
+                         );
+                    }) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50">
+                            <Calendar size={64} strokeWidth={1} />
+                            <p className="mt-4 text-xl font-medium">Kalendern är tom</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+
+        // --- APP ---
+
+        const App = () => {
+            const [time, setTime] = useState(new Date());
+            const [data, setData] = useState(null);
+            const [weather, setWeather] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [images, setImages] = useState([]);
+
+            // INITIAL LAYOUT
+            const [modules, setModules] = useState([
+                { id: 'weather',    colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
+                { id: 'birthdays',  colSpan: 4, rowSpan: 2, component: 'BirthdaysModule' },
+                { id: 'production', colSpan: 12, rowSpan: 4, component: 'ProductionModule' }, 
+                { id: 'timeline',   colSpan: 12, rowSpan: 3, component: 'TimelineModule' },
+                { id: 'slideshow',  colSpan: 12, rowSpan: 2, component: 'SlideshowModule' },
+            ]);
+
+            const [draggedId, setDraggedId] = useState(null);
+            const [resizingId, setResizingId] = useState(null);
+
+            // Drag & Drop
+            const onDragStart = (e, id) => {
+                if (resizingId) { e.preventDefault(); return; }
+                setDraggedId(id);
+                e.dataTransfer.effectAllowed = "move";
+                e.currentTarget.classList.add('dragging');
+            };
+            const onDragEnd = (e) => {
+                setDraggedId(null);
+                e.currentTarget.classList.remove('dragging');
+            };
+            const onDrop = (targetId) => {
+                if (!draggedId || draggedId === targetId) return;
+                const newModules = [...modules];
+                const dIdx = newModules.findIndex(m => m.id === draggedId);
+                const tIdx = newModules.findIndex(m => m.id === targetId);
+                const temp = newModules[dIdx];
+                newModules.splice(dIdx, 1);
+                newModules.splice(tIdx, 0, temp);
+                setModules(newModules);
+                setDraggedId(null);
+            };
+
+            // Resize
+            const handleResizeStart = (e, id) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setResizingId(id);
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const moduleIdx = modules.findIndex(m => m.id === id);
+                const startCol = modules[moduleIdx].colSpan;
+                const startRow = modules[moduleIdx].rowSpan;
+                const gridWidth = window.innerWidth - 64; 
+                const cellWidth = gridWidth / 12; 
+                const cellHeight = 160 + 24; 
+
+                const onMouseMove = (moveEvent) => {
+                    const dx = moveEvent.clientX - startX;
+                    const dy = moveEvent.clientY - startY;
+                    const colChange = Math.round(dx / cellWidth);
+                    const rowChange = Math.round(dy / cellHeight);
+
+                    if (colChange !== 0 || rowChange !== 0) {
+                        setModules(prev => {
+                            const next = [...prev];
+                            const m = next[moduleIdx];
+                            const newCol = Math.max(3, Math.min(12, startCol + colChange));
+                            const newRow = Math.max(1, Math.min(6, startRow + rowChange));
+                            if (m.colSpan !== newCol || m.rowSpan !== newRow) {
+                                next[moduleIdx] = { ...m, colSpan: newCol, rowSpan: newRow };
+                                return next;
+                            }
+                            return prev;
+                        });
+                    }
+                };
+
+                const onMouseUp = () => {
+                    setResizingId(null);
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            const renderModuleContent = (mod) => {
+                 const allUpcoming = [
+                    ...(data?.events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
+                    ...(data?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: 'Inspelning' }))
+                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, mod.rowSpan * 2); 
+
+                switch(mod.component) {
+                    case 'WeatherModule': return <WeatherModule data={weather} w={mod.colSpan} h={mod.rowSpan} />;
+                    case 'ProductionModule': return <ProductionModule stats={data?.stats} recent={data?.recentDeliveries} loading={loading} h={mod.rowSpan} />;
+                    case 'SlideshowModule': return <SlideshowModule customImages={images} />;
+                    case 'TimelineModule': return <TimelineModule items={allUpcoming} loading={loading} />;
+                    case 'BirthdaysModule': return <BirthdaysModule birthdays={data?.birthdays} />;
+                    default: return null;
+                }
+            };
+
+            const scanLocalImages = async () => {
+                const candidates = [];
+                for (let i = 1; i <= 20; i++) {
+                    candidates.push(`bilder/${i}.jpg`);
+                    candidates.push(`bilder/${i}.png`);
+                    candidates.push(`bilder/${i}.jpeg`);
+                }
+                const valid = [];
+                for (const src of candidates) {
+                    try {
+                        const res = await new Promise((resolve) => {
+                            const img = new Image();
+                            img.onload = () => resolve(src);
+                            img.onerror = () => resolve(null);
+                            img.src = src;
+                        });
+                        if (res) valid.push(res);
+                    } catch(e) {}
+                }
+                return valid;
+            };
+
+            // Weather API
+            const fetchOpenMeteoData = async () => {
+                try {
+                    const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max&timezone=Europe%2FBerlin");
+                    const json = await res.json();
+                    
+                    const getCondition = (code) => {
+                        if (code === 0) return "Soligt";
+                        if (code <= 3) return "Molnigt";
+                        if (code <= 48) return "Dimma";
+                        if (code <= 67) return "Regn";
+                        if (code <= 77) return "Snö";
+                        return "Ostadigt";
+                    };
+
+                    const current = {
+                        temp: json.current.temperature_2m,
+                        feelsLike: json.current.apparent_temperature,
+                        wind: json.current.wind_speed_10m,
+                        humidity: json.current.relative_humidity_2m,
+                        condition: getCondition(json.current.weather_code),
+                        code: json.current.weather_code
+                    };
+
+                    const hourly = [];
+                    const nowHour = new Date().getHours();
+                    [1, 4, 7].forEach(offset => {
+                        const idx = nowHour + offset;
+                        if (idx < 24) {
+                            hourly.push({
+                                time: `${idx}:00`,
+                                temp: json.hourly.temperature_2m[idx],
+                                code: json.hourly.weather_code[idx]
+                            });
+                        }
+                    });
+
+                    const daysMap = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
+                    const forecast = [];
+                    for(let i=1; i<=3; i++) {
+                        const d = new Date();
+                        d.setDate(d.getDate() + i);
+                        forecast.push({
+                            day: daysMap[d.getDay()],
+                            temp: json.daily.temperature_2m_max[i],
+                            code: json.daily.weather_code[i]
+                        });
+                    }
+
+                    return { ...current, hourly, forecast };
+                } catch(e) { return null; }
+            };
+
+            useEffect(() => {
+                const timer = setInterval(() => setTime(new Date()), 1000);
+                const fetchData = async () => {
+                    setLoading(true);
+                    
+                    const weatherData = await fetchOpenMeteoData();
+                    
+                    try {
+                        const clickUpData = await getClickUpData();
+                        const sheetData = await getGoogleSheetEvents();
+                        
+                        setData({ ...clickUpData, events: sheetData.events });
+                        
+                        let finalImages = [];
+                        if (sheetData.images && sheetData.images.length > 0) {
+                            finalImages = sheetData.images;
+                        } else {
+                            const locals = await scanLocalImages();
+                            finalImages = locals;
+                        }
+                        setImages(finalImages);
+                        
+                        if(weatherData) setWeather(weatherData);
+                    } catch(e) {}
+                    setLoading(false);
+                };
+                
+                fetchData();
+                
+                const interval = setInterval(() => {
+                    const now = new Date();
+                    const h = now.getHours().toString().padStart(2,'0');
+                    const m = now.getMinutes().toString().padStart(2,'0');
+                    const currentTime = `${h}:${m}`;
+                    if (UPDATE_SCHEDULE.includes(currentTime)) fetchData();
+                }, 60000);
+
+                return () => { clearInterval(timer); clearInterval(interval); };
+            }, []);
+
+            const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+
+            return (
+                <div className="min-h-screen p-8 flex flex-col h-screen">
+                    <header className="flex justify-between items-end mb-8 px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-[160px]">
+                         <div className="flex flex-col">
+                             <div className="flex items-center gap-4 mb-3">
+                                <img src={LOGO_SYMBOL} alt="Crisp" className="h-16 w-auto object-contain" onError={(e) => e.target.style.display = 'none'}/>
+                                <img src={LOGO_TEXT} alt="Crisp Film" className="h-8 w-auto object-contain mt-2" onError={(e) => e.target.style.display = 'none'}/>
+                             </div>
+                            <h1 className="text-7xl font-bold tracking-tighter text-white leading-none mb-2 hidden">Going on at Crisp</h1>
+                            <p className="text-slate-400 text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-9xl font-semibold text-white tracking-tighter leading-none">{timeStr}</div>
+                            <div className="text-slate-400 text-3xl capitalize font-medium mt-2">{dateStr}</div>
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-12 auto-rows-[160px] gap-6 flex-grow pb-6 grid-flow-dense relative z-10 mt-[200px] mx-8 h-[calc(100%-240px)]">
+                        {modules.map((mod) => (
+                            <div 
+                                key={mod.id}
+                                draggable={!resizingId} 
+                                onDragStart={(e) => onDragStart(e, mod.id)}
+                                onDragEnd={onDragEnd}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={() => onDrop(mod.id)}
+                                className={`glass-card animate-in col-span-${mod.colSpan} row-span-${mod.rowSpan} ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}
+                            >
+                                {renderModuleContent(mod)}
+                                
+                                <div 
+                                    className="resize-handle"
+                                    onMouseDown={(e) => handleResizeStart(e, mod.id)}
+                                    title="Dra för att ändra storlek"
+                                ></div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- API ---
+        async function getGoogleSheetEvents() {
+            if (!GOOGLE_SHEET_CSV_URL) return { events: [], images: [] };
+            try {
+                const url = `${GOOGLE_SHEET_CSV_URL}&t=${Date.now()}`;
+                const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+                if (!res.ok) return { events: [], images: [] };
+                const txt = await res.text();
+                const rows = txt.split(/\r\n|\n/);
+                const events = [];
+                const images = []; 
+                const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0);
+                
+                const parseDateRobustly = (dateStr) => {
+                    if (!dateStr) return null;
+                    let cleanStr = dateStr.trim();
+                    let d = new Date(cleanStr);
+                    if (!isNaN(d.getTime())) return d;
+                    cleanStr = cleanStr.split(' ')[0];
+                    d = new Date(cleanStr);
+                    if (!isNaN(d.getTime())) return d;
+                    const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+                    if (parts) return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                    return null;
+                };
+
+                rows.forEach((row, i) => {
+                    if(i===0) return;
+                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if(cols.length < 3) return; 
+                    const name = cols[2].replace(/^"|"$/g, '').trim();
+                    const dateStr = cols[3].replace(/^"|"$/g, '').trim();
+                    if (cols.length > 4) {
+                        let imgUrl = cols[4].replace(/^"|"$/g, '').trim();
+                        if (imgUrl && (imgUrl.startsWith('http') || imgUrl.startsWith('data:image'))) images.push(imgUrl);
+                    }
+                    if(name && dateStr) {
+                        const d = parseDateRobustly(dateStr);
+                        if(d && d >= yest) {
+                            events.push({
+                                name, sortDate: d.getTime(),
+                                dateMain: d.getDate(),
+                                dateSub: d.toLocaleDateString('sv-SE', {month:'short'}).toUpperCase()
+                            });
+                        }
+                    }
+                });
+                return { events, images }; 
+            } catch(e) { return { events: [], images: [] }; }
+        }
+
+        async function getClickUpData() {
+            if (!CLICKUP_SPACE_ID) return {};
+            const headers = { 'Authorization': CLICKUP_API_TOKEN };
+            const proxy = "https://corsproxy.io/?";
+            try {
+                const teamRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers });
+                const teamId = (await teamRes.json()).teams[0].id;
+                
+                const getAllTasks = async (archived) => {
+                    let all = []; let page = 0;
+                    while(page < 40) {
+                        try {
+                            const url = `${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${CLICKUP_SPACE_ID}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${START_DATE_TIMESTAMP}&page=${page}`;
+                            const res = await fetch(url, { headers });
+                            const json = await res.json();
+                            if(!json.tasks || json.tasks.length === 0) break;
+                            all = [...all, ...json.tasks];
+                            page++;
+                        } catch(e) { break; }
+                    }
+                    return all;
+                };
+
+                const getProjectTasks = async () => {
+                    let all = []; let page = 0;
+                    if (!CLICKUP_PROJECTS_LIST_ID) return [];
+                    while(page < 5) {
+                         try {
+                            const url = `${proxy}https://api.clickup.com/api/v2/list/${CLICKUP_PROJECTS_LIST_ID}/task?include_closed=true&date_updated_gt=${START_DATE_TIMESTAMP}&page=${page}`;
+                            const res = await fetch(url, { headers });
+                            const json = await res.json();
+                            if(!json.tasks || json.tasks.length === 0) break;
+                            all = [...all, ...json.tasks];
+                            page++;
+                         } catch(e) { break; }
+                    }
+                    return all;
+                };
+
+                const [active, archived, projects] = await Promise.all([getAllTasks(false), getAllTasks(true), getProjectTasks()]);
+                const tasksMap = new Map(); [...active, ...archived].forEach(t => tasksMap.set(t.id, t));
+                let tasks = Array.from(tasksMap.values()).filter(t => {
+                     const folderName = t.folder ? t.folder.name : "";
+                     const listName = t.list ? t.list.name : "";
+                     return folderName.startsWith("25") || listName.startsWith("25");
+                });
+
+                const validProjects = projects.filter(t => t.name.startsWith("25"));
+                const activeProjects = validProjects.filter(t => t.status.status.toLowerCase() === 'production').length;
+                const totalProjects2025 = validProjects.filter(t => {
+                    const s = t.status.status.toLowerCase();
+                    return s === 'production' || s === 'delivered';
+                }).length;
+
+                const recTasks = tasks.filter(t => t.name.trim().toLowerCase() === "inspelning");
+                const upcomingRec = recTasks
+                    .filter(t => {
+                        const d = parseInt(t.start_date||t.due_date||0);
+                        const s = t.status.status.toLowerCase();
+                        return d >= Date.now() - 86400000 && s!=='complete' && s!=='closed' && s!=='klar' && s!=='done';
+                    })
+                    .sort((a,b) => (a.start_date||0) - (b.start_date||0));
+                const seen = new Set(); const finalRec = [];
+                for(const t of upcomingRec) {
+                    let n = "Projekt";
+                    if(t.folder) n = t.folder.name; else if(t.list) n = t.list.name;
+                    n = n.length > 6 && n.includes('_') ? n.substring(6).replace(/_/g,' ') : n;
+                    if(!seen.has(n)) {
+                        seen.add(n);
+                        const d = parseInt(t.start_date||t.due_date);
+                        finalRec.push({
+                            id: t.id, project: n, sortDate: d,
+                            dateMain: new Date(d).getDate(),
+                            dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase()
+                        });
+                    }
+                    if(finalRec.length >= 5) break;
+                }
+
+                const delTasks = tasks.filter(t => {
+                    const n = t.name.toLowerCase();
+                    const s = t.status.status.toLowerCase();
+                    return n.includes("leverans") && !n.includes("inspelning") && (s==='complete'||s==='closed'||s==='done'||s==='klar');
+                });
+                const recentDel = delTasks
+                    .sort((a,b) => parseInt(b.date_closed||0) - parseInt(a.date_closed||0))
+                    .slice(0,5)
+                    .map(t => {
+                        let n = "Projekt";
+                        if(t.folder) n = t.folder.name; else if(t.list) n = t.list.name;
+                        n = n.length > 6 && n.includes('_') ? n.substring(6).replace(/_/g,' ') : n;
+                        const ts = parseInt(t.date_closed||t.date_updated||0);
+                        return { name: n, date: ts > 0 ? new Date(ts).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) : "-" };
+                    });
+                let birthdays = [];
+                if(CLICKUP_BIRTHDAY_LIST_ID) {
+                     try {
+                        const bdRes = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${CLICKUP_BIRTHDAY_LIST_ID}/task`, { headers });
+                        const bdJson = await bdRes.json();
+                        birthdays = (bdJson.tasks || [])
+                            .map(t => {
+                                const d = new Date(parseInt(t.due_date));
+                                const today = new Date();
+                                let next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
+                                if(next < today) next.setFullYear(today.getFullYear()+1);
+                                const diff = Math.ceil((next - today)/(1000*60*60*24));
+                                return { name: t.name, dateStr: next.toLocaleDateString('sv-SE', {day:'numeric', month:'short'}), diff, isSoon: diff < 14 };
+                            })
+                            .filter(b => b.diff < 40)
+                            .sort((a,b) => a.diff - b.diff)
+                            .slice(0,3);
+                    } catch(e) {}
+                }
+                return {
+                    stats: { 
+                        year: delTasks.length, 
+                        occasions: recTasks.length,
+                        activeProjects: activeProjects,
+                        totalProjects2025: totalProjects2025
+                    },
+                    recordings: finalRec,
+                    recentDeliveries: recentDel,
+                    birthdays: birthdays
+                };
+            } catch(e) { return {}; }
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
