@@ -19,72 +19,75 @@
             background-color: #050505; 
             color: #f5f5f7; 
             overflow: hidden; 
-            background: radial-gradient(circle at 50% -20%, #1a1a1a 0%, #000000 60%);
+            background: radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000000 80%);
             user-select: none;
         }
         
         /* Premium Glass */
         .glass-card { 
-            background: rgba(20, 20, 20, 0.75); 
-            backdrop-filter: blur(60px); 
-            -webkit-backdrop-filter: blur(60px);
+            background: rgba(20, 20, 22, 0.7); 
+            backdrop-filter: blur(50px); 
+            -webkit-backdrop-filter: blur(50px);
             border: 1px solid rgba(255, 255, 255, 0.08); 
-            box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.8);
-            position: absolute;
+            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
+            border-radius: 1.5rem;
+            overflow: hidden;
             display: flex;
             flex-direction: column;
-            border-radius: 2rem;
-            overflow: hidden;
-            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+            position: relative;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
         .glass-card:hover {
-            border-color: rgba(255, 255, 255, 0.3);
-            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.9);
-            z-index: 50; 
-        }
-        
-        /* När kortet dras */
-        .glass-card.dragging {
-            cursor: grabbing;
-            z-index: 9999 !important;
-            border-color: rgba(255, 255, 255, 0.5);
-            box-shadow: 0 50px 120px -30px black;
-            transition: none; 
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7);
+            z-index: 10;
+            cursor: grab;
         }
 
-        /* Resize Handle */
+        .glass-card:active {
+            cursor: grabbing;
+            transform: scale(0.99);
+        }
+
+        .glass-card.dragging {
+            opacity: 0.5;
+            border: 2px dashed rgba(255,255,255,0.3);
+            background: transparent;
+            box-shadow: none;
+            cursor: grabbing;
+        }
+
         .resize-handle {
             position: absolute;
             bottom: 0;
             right: 0;
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             cursor: nwse-resize;
-            z-index: 60;
+            z-index: 50;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s;
         }
+        .glass-card:hover .resize-handle { opacity: 1; }
         
         .resize-handle::after {
             content: '';
             position: absolute;
-            bottom: 10px;
-            right: 10px;
-            width: 12px;
-            height: 12px;
-            border-bottom: 3px solid rgba(255,255,255,0.6);
-            border-right: 3px solid rgba(255,255,255,0.6);
-            border-radius: 2px;
+            bottom: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            border-bottom: 2px solid rgba(255,255,255,0.4);
+            border-right: 2px solid rgba(255,255,255,0.4);
+            border-radius: 1px;
         }
-
-        .glass-card:hover .resize-handle { opacity: 1; }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        .animate-fade { animation: fadeIn 1s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.6s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -119,9 +122,6 @@
         const CloudRain = createLucideIcon('CloudRain');
         const Sun = createLucideIcon('Sun');
         const CloudSun = createLucideIcon('CloudSun');
-        const Cloud = createLucideIcon('Cloud');
-        const Snowflake = createLucideIcon('Snowflake');
-        const CloudLightning = createLucideIcon('CloudLightning');
         const CheckSquare = createLucideIcon('CheckSquare');
         const Cake = createLucideIcon('Cake');
         const Wind = createLucideIcon('Wind');
@@ -144,38 +144,23 @@
         const CLICKUP_API_TOKEN = "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9";
         const CLICKUP_SPACE_ID = "90155050040"; 
         const CLICKUP_BIRTHDAY_LIST_ID = "901517968972";
-        const CLICKUP_PROJECTS_LIST_ID = "901515357300"; 
         const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv"; 
         const START_DATE_TIMESTAMP = new Date('2025-01-01').getTime();
-        const UPDATE_SCHEDULE = ['07:00', '12:30', '16:00'];
+        const CLICKUP_PROJECTS_LIST_ID = "901515357300";
 
+        // LOGGOR - Måste ligga i samma mapp som denna fil
         const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
-        
-        // Inga standardbilder - Vi letar lokalt
-        const SLIDESHOW_IMAGES = [];
 
-        // GRÄNSER
-        const SCREEN_PADDING = 20;
-        const HEADER_HEIGHT = 180;
+        // --- SCHEMA ---
+        const UPDATE_SCHEDULE = ['07:00', '12:30', '16:00'];
 
         // --- MODULER ---
 
         const WeatherModule = ({ data, w, h }) => {
             const isCompact = h < 2;
-
-            const getWeatherIcon = (code, size, className) => {
-                if (code === 0) return <Sun size={size} className={`text-yellow-400 ${className}`} />;
-                if (code >= 1 && code <= 3) return <CloudSun size={size} className={`text-white ${className}`} />;
-                if (code >= 45 && code <= 48) return <Cloud size={size} className={`text-slate-400 ${className}`} />;
-                if (code >= 51 && code <= 67) return <CloudRain size={size} className={`text-blue-400 ${className}`} />;
-                if (code >= 71 && code <= 77) return <Snowflake size={size} className={`text-cyan-200 ${className}`} />;
-                if (code >= 95) return <CloudLightning size={size} className={`text-purple-400 ${className}`} />;
-                return <CloudSun size={size} className={`text-white ${className}`} />;
-            };
-
             return (
-                <div className="h-full flex flex-col justify-between relative overflow-hidden p-6 md:p-8">
+                <div className="h-full flex flex-col justify-between relative overflow-hidden p-6 md:p-8 cursor-grab active:cursor-grabbing">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
                     <div className="relative z-10 flex justify-between items-start">
                         <div>
@@ -183,46 +168,33 @@
                                 <MapPin size={14} /> Stockholm
                             </div>
                             <div className={`font-bold tracking-tighter text-white leading-none ${isCompact ? 'text-6xl' : 'text-8xl'}`}>
-                                {data?.temp !== undefined ? Math.round(data.temp) : "--"}°
+                                {data?.temp || "--"}°
                             </div>
                             {!isCompact && (
                                 <div className="mt-3">
                                     <div className="text-xl text-slate-300 font-medium mt-2">{data?.condition}</div>
                                     <div className="flex items-center gap-3 mt-1 text-sm text-slate-400 font-medium">
-                                        <span className="flex items-center gap-1"><Thermometer size={14}/> Känns som {data?.feelsLike !== undefined ? Math.round(data.feelsLike) : "-"}°</span>
+                                        <span className="flex items-center gap-1"><Thermometer size={14}/> Känns som {data?.feelsLike}°</span>
                                     </div>
                                 </div>
                             )}
                         </div>
                         <div className={`bg-white/5 rounded-full border border-white/10 shadow-2xl flex items-center justify-center ${isCompact ? 'p-3' : 'p-5'}`}>
-                            {getWeatherIcon(data?.code, isCompact?40:64, "")}
+                            {data?.condition === "Soligt" ? <Sun size={isCompact?40:64} className="text-yellow-400"/> : <CloudRain size={isCompact?40:64} className="text-blue-400"/>}
                         </div>
                     </div>
 
                     {!isCompact && (
-                        <div className="animate-in flex flex-col gap-4">
-                             {data?.hourly && data.hourly.length > 0 && (
-                                 <div className="flex justify-between items-center pt-4 border-t border-white/10">
-                                     {data.hourly.slice(0, 4).map((h, i) => (
-                                         <div key={i} className="flex flex-col items-center text-center gap-1">
-                                             <span className="text-slate-500 text-[10px] font-bold">{h.time}</span>
-                                             {getWeatherIcon(h.code, 18, "")}
-                                             <span className="text-white text-xs font-bold">{Math.round(h.temp)}°</span>
-                                         </div>
-                                     ))}
-                                 </div>
-                             )}
-                             {data?.forecast && data.forecast.length > 0 && (
-                                <div className="grid grid-cols-3 gap-2 pt-2 relative z-10">
-                                    {data.forecast.map((day, i) => (
-                                        <div key={i} className="flex flex-col items-center text-center p-2 rounded-xl bg-white/5">
-                                            <span className="text-slate-400 text-[10px] font-bold uppercase mb-1">{day.day}</span>
-                                            {getWeatherIcon(day.code, 20, "mb-1")}
-                                            <span className="text-white font-bold text-sm">{Math.round(day.temp)}°</span>
-                                        </div>
-                                    ))}
-                                </div>
-                             )}
+                        <div className="animate-in">
+                             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/10 relative z-10">
+                                {data?.forecast?.map((day, i) => (
+                                    <div key={i} className="flex flex-col items-center text-center p-3 rounded-2xl bg-white/5">
+                                        <span className="text-slate-400 text-xs font-bold uppercase mb-1">{day.day}</span>
+                                        {day.icon === 'Sun' ? <Sun size={28} className="text-yellow-400 mb-1"/> : <CloudSun size={28} className="text-white mb-1"/>}
+                                        <span className="text-white font-bold text-xl">{day.temp}°</span>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -237,7 +209,8 @@
                         <h2 className="text-xl md:text-2xl font-bold uppercase tracking-wide text-white">Produktion 2025</h2>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-6 shrink-0">
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-blue-400 tracking-tighter">{loading ? "-" : stats?.activeProjects}</span>
                              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Igång Nu</span>
@@ -246,6 +219,7 @@
                              <span className="text-3xl md:text-4xl font-black text-purple-400 tracking-tighter">{loading ? "-" : stats?.totalProjects2025}</span>
                              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt 2025</span>
                         </div>
+
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter">{loading ? "-" : stats?.year}</span>
                              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Lev. Tasks</span>
@@ -256,14 +230,15 @@
                         </div>
                     </div>
 
+                    {/* Recent List */}
                     {h >= 3 && (
-                        <div className="flex-grow flex flex-col min-h-0 animate-fade pt-4 border-t border-white/5">
+                        <div className="flex-grow flex flex-col min-h-0 animate-in pt-4 border-t border-white/5">
                             <div className="flex items-center gap-3 mb-4 text-emerald-400 mt-2">
                                 <PackageCheck size={18} />
                                 <h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3>
                             </div>
                             <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
-                                {recent?.length > 0 ? recent.map((del, i) => (
+                                {recent?.length > 0 ? recent.slice(0, h > 3 ? 6 : 3).map((del, i) => (
                                     <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
                                         <span className="text-white font-medium text-sm truncate mr-2">{del.name}</span>
                                         <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span>
@@ -298,45 +273,72 @@
              </div>
         );
 
-        const SlideshowModule = ({ customImages }) => {
-            // PRIORITERING: 1. Lokala bilder. 2. Inga bilder (visa placeholder)
-            const images = customImages && customImages.length > 0 ? customImages : [];
-            
+        // LOKAL BILDKONTROLL
+        const SlideshowModule = () => {
             const [index, setIndex] = useState(0);
+            const [validImages, setValidImages] = useState([]);
+            
+            // 1. Generera lista på möjliga bilder (1.jpg, 1.png... upp till 20)
             useEffect(() => {
-                if (images.length <= 1) return;
-                const timer = setInterval(() => setIndex((prev) => (prev + 1) % images.length), 8000);
-                return () => clearInterval(timer);
-            }, [images]);
+                const possibleImages = [];
+                for (let i = 1; i <= 20; i++) {
+                    possibleImages.push(`bilder/${i}.jpg`);
+                    possibleImages.push(`bilder/${i}.png`);
+                    possibleImages.push(`bilder/${i}.jpeg`);
+                }
+                // Vi sätter alla som "potentiella". Om de failar, tas de bort.
+                setValidImages(possibleImages);
+            }, []);
 
-            if (images.length === 0) {
-                return (
-                     <div className="h-full w-full relative group overflow-hidden bg-slate-900 flex flex-col items-center justify-center text-center p-8 rounded-[2rem]">
-                        <Image size={48} className="text-slate-700 mb-4" />
-                        <h2 className="text-2xl font-bold text-white">Life at Crisp</h2>
-                        <p className="text-slate-500 text-sm mt-2 max-w-xs">Lägg bilder i mappen "bilder" (1.jpg, 2.png...) för att starta bildspelet.</p>
-                    </div>
-                );
-            }
+            // 2. Rotera bilder
+            useEffect(() => {
+                if (validImages.length === 0) return;
+                const timer = setInterval(() => setIndex((prev) => (prev + 1) % validImages.length), 8000);
+                return () => clearInterval(timer);
+            }, [validImages]);
+
+            // 3. Hantera trasiga bilder (404)
+            const handleImageError = (badSrc) => {
+                setValidImages(prev => prev.filter(src => src !== badSrc));
+            };
+
+            const currentImage = validImages[index];
 
             return (
                 <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing">
-                    {images.map((img, i) => (
-                        <div key={i} className="absolute inset-0 bg-cover transition-all duration-[2000ms] ease-in-out transform"
-                            style={{ 
-                                backgroundImage: `url('${img}')`, 
-                                backgroundPosition: 'center center', 
-                                opacity: index === i ? 1 : 0, 
-                                transform: index === i ? 'scale(1)' : 'scale(1.05)' 
-                            }} />
-                    ))}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                    <div className="absolute bottom-8 left-8 pointer-events-none">
-                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2">
-                            <Image size={14} /> Life at Crisp
+                    {validImages.length > 0 ? (
+                        <>
+                            {/* Vi renderar bara aktiv och nästa bild för prestanda, eller alla om få */}
+                            {validImages.map((img, i) => (
+                                <img 
+                                    key={img}
+                                    src={img}
+                                    onError={() => handleImageError(img)}
+                                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+                                    style={{ 
+                                        opacity: index === i ? 1 : 0,
+                                        transform: index === i ? 'scale(1)' : 'scale(1.05)',
+                                        transition: 'opacity 1s ease-in-out, transform 8s ease-out'
+                                    }}
+                                    alt="Life at Crisp"
+                                />
+                            ))}
+                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                             <div className="absolute bottom-8 left-8 pointer-events-none">
+                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2">
+                                    <Image size={14} /> Life at Crisp
+                                </div>
+                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Creating Magic</h2>
+                            </div>
+                        </>
+                    ) : (
+                        // Fallback om inga bilder hittas
+                        <div className="h-full flex flex-col items-center justify-center text-slate-600">
+                            <Image size={48} />
+                            <p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p>
+                            <p className="text-xs opacity-50">(1.jpg, 2.png, etc)</p>
                         </div>
-                        <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Creating Magic</h2>
-                    </div>
+                    )}
                 </div>
             );
         };
@@ -375,183 +377,146 @@
             </div>
         );
 
-        // --- SMART TILE (FRI FLYTT) ---
-        const SmartTile = ({ id, x, y, w, h, zIndex, onMove, onResize, onSelect, children }) => {
-            const [isDragging, setIsDragging] = useState(false);
-            const [isResizing, setIsResizing] = useState(false);
-
-            // Skärmgränser
-            const constrain = (val, min, max) => Math.min(Math.max(val, min), max);
-
-            const handleMouseDown = (e) => {
-                if (e.target.classList.contains('resize-handle')) return;
-                e.stopPropagation(); e.preventDefault();
-                onSelect(id);
-                setIsDragging(true);
-                
-                const startMouseX = e.clientX; const startMouseY = e.clientY;
-                const startX = x; const startY = y;
-
-                const onMouseMove = (ev) => {
-                    const dx = ev.clientX - startMouseX;
-                    const dy = ev.clientY - startMouseY;
-                    
-                    let nextX = constrain(startX + dx, SCREEN_PADDING, window.innerWidth - w - SCREEN_PADDING);
-                    let nextY = constrain(startY + dy, HEADER_HEIGHT, window.innerHeight - h - SCREEN_PADDING);
-
-                    onMove(id, nextX, nextY);
-                };
-
-                const onMouseUp = () => {
-                    setIsDragging(false);
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                };
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
-            };
-
-            const handleResizeDown = (e) => {
-                e.stopPropagation(); e.preventDefault();
-                onSelect(id);
-                setIsResizing(true);
-
-                const startMouseX = e.clientX; const startMouseY = e.clientY;
-                const startW = w; const startH = h;
-
-                const onResizeMove = (ev) => {
-                    const dw = ev.clientX - startMouseX;
-                    const dh = ev.clientY - startMouseY;
-                    
-                    let nextW = Math.max(300, startW + dw);
-                    let nextH = Math.max(200, startH + dh);
-
-                    if (x + nextW > window.innerWidth - SCREEN_PADDING) nextW = window.innerWidth - SCREEN_PADDING - x;
-                    if (y + nextH > window.innerHeight - SCREEN_PADDING) nextH = window.innerHeight - SCREEN_PADDING - y;
-
-                    onResize(id, nextW, nextH);
-                };
-
-                const onResizeUp = () => {
-                    setIsResizing(false);
-                    document.removeEventListener('mousemove', onResizeMove);
-                    document.removeEventListener('mouseup', onResizeUp);
-                };
-                document.addEventListener('mousemove', onResizeMove);
-                document.addEventListener('mouseup', onResizeUp);
-            };
-
-            return (
-                <div 
-                    onMouseDown={handleMouseDown}
-                    className={`glass-card animate-fade ${isDragging ? 'dragging' : ''} ${isResizing ? 'resizing' : ''}`}
-                    style={{ left: x, top: y, width: w, height: h, zIndex: (isDragging || isResizing) ? 9999 : zIndex }}
-                >
-                    <div className={`h-full w-full ${isDragging || isResizing ? 'pointer-events-none' : ''}`}>{children}</div>
-                    <div className="resize-handle" onMouseDown={handleResizeDown} title="Dra för att ändra storlek"></div>
-                </div>
-            );
-        };
+        // --- GRID APP COMPONENT ---
 
         const App = () => {
             const [time, setTime] = useState(new Date());
             const [data, setData] = useState(null);
             const [weather, setWeather] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [images, setImages] = useState([]);
 
-            // INITIAL LAYOUT (DESKTOP) - Återställt till bilden du gillade
+            // INITIAL LAYOUT
             const [modules, setModules] = useState([
-                // VÄNSTER KOLUMN
-                { id: 'weather',    x: 40,  y: 200, w: 480, h: 400, z: 1, component: 'WeatherModule' },
-                { id: 'production', x: 40,  y: 620, w: 480, h: 420, z: 2, component: 'ProductionModule' },
-                { id: 'slideshow',  x: 40,  y: 1060, w: 1000, h: 800, z: 3, component: 'SlideshowModule' },
-                // HÖGER KOLUMN
-                { id: 'birthdays',  x: 540, y: 200, w: 500, h: 350, z: 4, component: 'BirthdaysModule' },
-                { id: 'timeline',   x: 540, y: 570, w: 500, h: 470, z: 5, component: 'TimelineModule' },
+                { id: 'weather',    colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
+                { id: 'birthdays',  colSpan: 4, rowSpan: 2, component: 'BirthdaysModule' },
+                { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
+                { id: 'timeline',   colSpan: 12, rowSpan: 3, component: 'TimelineModule' },
+                { id: 'slideshow',  colSpan: 12, rowSpan: 2, component: 'SlideshowModule' },
             ]);
 
-            const updateModulePos = (id, x, y) => {
-                setModules(prev => prev.map(m => m.id === id ? { ...m, x, y } : m));
-            };
-            const updateModuleSize = (id, w, h) => {
-                setModules(prev => prev.map(m => m.id === id ? { ...m, w, h } : m));
-            };
-            const bringToFront = (id) => {
-                setModules(prev => {
-                    const maxZ = Math.max(...prev.map(m => m.z), 10);
-                    return prev.map(m => m.id === id ? { ...m, z: maxZ + 1 } : m);
-                });
+            const [draggedId, setDraggedId] = useState(null);
+            const [resizingId, setResizingId] = useState(null);
+
+            // --- Drag & Drop ---
+            const onDragStart = (e, id) => {
+                if (resizingId) { e.preventDefault(); return; }
+                setDraggedId(id);
+                e.dataTransfer.effectAllowed = "move";
+                e.currentTarget.classList.add('dragging');
             };
 
-            const renderModule = (item) => {
-                const allUpcoming = [
+            const onDragEnd = (e) => {
+                setDraggedId(null);
+                e.currentTarget.classList.remove('dragging');
+            };
+
+            const onDrop = (targetId) => {
+                if (!draggedId || draggedId === targetId) return;
+                const newModules = [...modules];
+                const dIdx = newModules.findIndex(m => m.id === draggedId);
+                const tIdx = newModules.findIndex(m => m.id === targetId);
+                const temp = newModules[dIdx];
+                newModules.splice(dIdx, 1);
+                newModules.splice(tIdx, 0, temp);
+                setModules(newModules);
+                setDraggedId(null);
+            };
+
+            // --- Resize ---
+            const handleResizeStart = (e, id) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setResizingId(id);
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const moduleIdx = modules.findIndex(m => m.id === id);
+                const startCol = modules[moduleIdx].colSpan;
+                const startRow = modules[moduleIdx].rowSpan;
+
+                const gridWidth = window.innerWidth - 64; 
+                const cellWidth = gridWidth / 12; 
+                const cellHeight = 160 + 24; 
+
+                const onMouseMove = (moveEvent) => {
+                    const dx = moveEvent.clientX - startX;
+                    const dy = moveEvent.clientY - startY;
+                    const colChange = Math.round(dx / cellWidth);
+                    const rowChange = Math.round(dy / cellHeight);
+
+                    if (colChange !== 0 || rowChange !== 0) {
+                        setModules(prev => {
+                            const next = [...prev];
+                            const m = next[moduleIdx];
+                            const newCol = Math.max(3, Math.min(12, startCol + colChange));
+                            const newRow = Math.max(1, Math.min(6, startRow + rowChange));
+                            if (m.colSpan !== newCol || m.rowSpan !== newRow) {
+                                next[moduleIdx] = { ...m, colSpan: newCol, rowSpan: newRow };
+                                return next;
+                            }
+                            return prev;
+                        });
+                    }
+                };
+
+                const onMouseUp = () => {
+                    setResizingId(null);
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            };
+
+            const renderModuleContent = (mod) => {
+                 const allUpcoming = [
                     ...(data?.events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
                     ...(data?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: 'Inspelning' }))
-                ].sort((a, b) => a.sortDate - b.sortDate);
+                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, mod.rowSpan * 2); 
 
-                switch(item.component) {
-                    case 'WeatherModule': return <WeatherModule data={weather} w={item.w} h={item.h} />;
-                    case 'ProductionModule': return <ProductionModule stats={data?.stats} recent={data?.recentDeliveries} loading={loading} h={item.h/100} />;
-                    case 'SlideshowModule': return <SlideshowModule customImages={images} />;
+                switch(mod.component) {
+                    case 'WeatherModule': return <WeatherModule data={weather} w={mod.colSpan} h={mod.rowSpan} />;
+                    case 'ProductionModule': return <ProductionModule stats={data?.stats} recent={data?.recentDeliveries} loading={loading} h={mod.rowSpan} />;
+                    case 'SlideshowModule': return <SlideshowModule />;
                     case 'TimelineModule': return <TimelineModule items={allUpcoming} loading={loading} />;
                     case 'BirthdaysModule': return <BirthdaysModule birthdays={data?.birthdays} />;
                     default: return null;
                 }
             };
 
-            // --- LOCAL IMAGE SCANNER ---
-            const scanLocalImages = async () => {
-                const candidates = [];
-                // Letar efter 1.jpg -> 20.jpg, png, jpeg, webp
-                for (let i = 1; i <= 20; i++) {
-                    candidates.push(`bilder/${i}.jpg`);
-                    candidates.push(`bilder/${i}.png`);
-                    candidates.push(`bilder/${i}.jpeg`);
-                    candidates.push(`bilder/${i}.webp`);
-                }
-                const valid = [];
-                for (const src of candidates) {
-                    try {
-                        const res = await new Promise((resolve) => {
-                            const img = new Image();
-                            img.onload = () => resolve(src);
-                            img.onerror = () => resolve(null);
-                            img.src = src;
-                        });
-                        if (res) valid.push(res);
-                    } catch(e) {}
-                }
-                return valid;
-            };
-
             useEffect(() => {
                 const timer = setInterval(() => setTime(new Date()), 1000);
                 const fetchData = async () => {
                     setLoading(true);
-                    const weatherData = await fetchOpenMeteoData();
+                    const weatherData = { 
+                        temp: 8, condition: "Molnigt", wind: 6, humidity: 78,
+                        forecast: [ { day: 'Tor', icon: 'Sun', temp: 10 }, { day: 'Fre', icon: 'Cloud', temp: 9 }, { day: 'Lör', icon: 'Sun', temp: 11 } ]
+                    };
                     try {
                         const clickUpData = await getClickUpData();
                         const sheetData = await getGoogleSheetEvents();
-                        
-                        setData({ ...clickUpData, events: sheetData.events });
-                        
-                        // Endast lokala bilder
-                        const locals = await scanLocalImages();
-                        setImages(locals);
-                        
-                        if(weatherData) setWeather(weatherData);
+                        setData({ ...clickUpData, events: sheetData });
+                        setWeather(weatherData);
                     } catch(e) {}
                     setLoading(false);
                 };
+                
+                // KÖR DIREKT VID START
                 fetchData();
+
+                // SCHEMALAGD UPPDATERING: Varje minut kollar vi klockan
                 const interval = setInterval(() => {
                     const now = new Date();
                     const h = now.getHours().toString().padStart(2,'0');
                     const m = now.getMinutes().toString().padStart(2,'0');
                     const currentTime = `${h}:${m}`;
-                    if (UPDATE_SCHEDULE.includes(currentTime)) fetchData();
-                }, 60000);
+
+                    if (UPDATE_SCHEDULE.includes(currentTime)) {
+                        console.log("Schemalagd uppdatering:", currentTime);
+                        fetchData();
+                    }
+                }, 60000); // Check every minute
+
                 return () => { clearInterval(timer); clearInterval(interval); };
             }, []);
 
@@ -559,14 +524,28 @@
             const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
             return (
-                <div className="min-h-screen w-full h-screen relative overflow-hidden bg-black">
-                    <header className="absolute top-0 left-0 right-0 p-8 flex justify-between items-end z-0 pointer-events-none h-[180px]">
+                <div className="min-h-screen p-8 flex flex-col h-screen">
+                    <header className="flex justify-between items-end mb-8 px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-[160px]">
                          <div className="flex flex-col">
+                             {/* LOGGOR HÄR */}
                              <div className="flex items-center gap-4 mb-3">
-                                <img src={LOGO_SYMBOL} alt="Crisp" className="h-16 w-auto object-contain" onError={(e) => e.target.style.display = 'none'}/>
-                                <img src={LOGO_TEXT} alt="Crisp Film" className="h-8 w-auto object-contain mt-2" onError={(e) => e.target.style.display = 'none'}/>
+                                <img 
+                                    src={LOGO_SYMBOL} 
+                                    alt="Crisp" 
+                                    className="h-16 w-auto object-contain"
+                                    onError={(e) => e.target.style.display = 'none'}
+                                />
+                                <img 
+                                    src={LOGO_TEXT} 
+                                    alt="Crisp Film" 
+                                    className="h-8 w-auto object-contain mt-2" 
+                                    onError={(e) => e.target.style.display = 'none'}
+                                />
                              </div>
-                             <div className="hidden"><h1 className="text-7xl font-bold tracking-tighter text-white leading-none mb-2">Going on at Crisp</h1></div>
+                             {/* Visas bara om loggor saknas, som fallback */}
+                             <div className="hidden">
+                                <h1 className="text-7xl font-bold tracking-tighter text-white leading-none mb-2">Going on at Crisp</h1>
+                            </div>
                             <p className="text-slate-400 text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
                         <div className="text-right">
@@ -575,65 +554,43 @@
                         </div>
                     </header>
 
-                    <div className="absolute inset-0 z-10">
-                        {modules.map(m => (
-                            <SmartTile 
-                                key={m.id} 
-                                {...m} 
-                                allModules={modules}
-                                onMove={updateModulePos} 
-                                onResize={updateModuleSize}
-                                onSelect={bringToFront}
+                    {/* BENTO GRID */}
+                    <div className="grid grid-cols-12 auto-rows-[160px] gap-6 flex-grow pb-6 grid-flow-dense relative z-10">
+                        {modules.map((mod) => (
+                            <div 
+                                key={mod.id}
+                                draggable={!resizingId} 
+                                onDragStart={(e) => onDragStart(e, mod.id)}
+                                onDragEnd={onDragEnd}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={() => onDrop(mod.id)}
+                                className={`glass-card animate-in col-span-${mod.colSpan} row-span-${mod.rowSpan} ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}
                             >
-                                {renderModule(m)}
-                            </SmartTile>
+                                {renderModuleContent(mod)}
+                                
+                                <div 
+                                    className="resize-handle"
+                                    onMouseDown={(e) => handleResizeStart(e, mod.id)}
+                                    title="Dra för att ändra storlek"
+                                ></div>
+                            </div>
                         ))}
                     </div>
                 </div>
             );
         };
 
-        // --- API & LOGIK ---
-        const fetchOpenMeteoData = async () => {
-                try {
-                    const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max&timezone=Europe%2FBerlin");
-                    const json = await res.json();
-                    const getCondition = (code) => {
-                        if (code === 0) return "Soligt"; if (code <= 3) return "Molnigt";
-                        if (code <= 48) return "Dimma"; if (code <= 67) return "Regn";
-                        if (code <= 77) return "Snö"; return "Ostadigt";
-                    };
-                    const current = {
-                        temp: json.current.temperature_2m, feelsLike: json.current.apparent_temperature,
-                        wind: json.current.wind_speed_10m, humidity: json.current.relative_humidity_2m,
-                        condition: getCondition(json.current.weather_code), code: json.current.weather_code
-                    };
-                    const hourly = []; const nowHour = new Date().getHours();
-                    [1, 4, 7].forEach(offset => {
-                        const idx = nowHour + offset;
-                        if (idx < 24) { hourly.push({ time: `${idx}:00`, temp: json.hourly.temperature_2m[idx], code: json.hourly.weather_code[idx] }); }
-                    });
-                    const daysMap = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
-                    const forecast = [];
-                    for(let i=1; i<=3; i++) {
-                        const d = new Date(); d.setDate(d.getDate() + i);
-                        forecast.push({ day: daysMap[d.getDay()], temp: json.daily.temperature_2m_max[i], code: json.daily.weather_code[i] });
-                    }
-                    return { ...current, hourly, forecast };
-                } catch(e) { return null; }
-            };
-
+        // --- API (Samma som tidigare) ---
         async function getGoogleSheetEvents() {
-            if (!GOOGLE_SHEET_CSV_URL) return { events: [] };
+            if (!GOOGLE_SHEET_CSV_URL) return [];
             try {
                 const url = `${GOOGLE_SHEET_CSV_URL}&t=${Date.now()}`;
                 const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
-                if (!res.ok) return { events: [] };
+                if (!res.ok) return [];
                 const txt = await res.text();
                 const rows = txt.split(/\r\n|\n/);
                 const events = [];
                 const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0);
-                
                 const parseDateRobustly = (dateStr) => {
                     if (!dateStr) return null;
                     let cleanStr = dateStr.trim();
@@ -642,13 +599,14 @@
                     cleanStr = cleanStr.split(' ')[0];
                     d = new Date(cleanStr);
                     if (!isNaN(d.getTime())) return d;
+                    const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+                    if (parts) return new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
                     return null;
                 };
-
                 rows.forEach((row, i) => {
                     if(i===0) return;
                     const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if(cols.length < 3) return; 
+                    if(cols.length < 4) return;
                     const name = cols[2].replace(/^"|"$/g, '').trim();
                     const dateStr = cols[3].replace(/^"|"$/g, '').trim();
                     if(name && dateStr) {
@@ -662,8 +620,8 @@
                         }
                     }
                 });
-                return { events }; 
-            } catch(e) { return { events: [] }; }
+                return events;
+            } catch(e) { return []; }
         }
 
         async function getClickUpData() {
@@ -705,7 +663,12 @@
                     return all;
                 };
 
-                const [active, archived, projects] = await Promise.all([getAllTasks(false), getAllTasks(true), getProjectTasks()]);
+                const [active, archived, projects] = await Promise.all([
+                    getAllTasks(false), 
+                    getAllTasks(true),
+                    getProjectTasks()
+                ]);
+
                 const tasksMap = new Map(); [...active, ...archived].forEach(t => tasksMap.set(t.id, t));
                 let tasks = Array.from(tasksMap.values()).filter(t => {
                      const folderName = t.folder ? t.folder.name : "";
@@ -780,12 +743,7 @@
                     } catch(e) {}
                 }
                 return {
-                    stats: { 
-                        year: delTasks.length, 
-                        occasions: recTasks.length,
-                        activeProjects: activeProjects,
-                        totalProjects2025: totalProjects2025
-                    },
+                    stats: { year: delTasks.length, occasions: recTasks.length },
                     recordings: finalRec,
                     recentDeliveries: recentDel,
                     birthdays: birthdays
