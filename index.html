@@ -20,13 +20,12 @@
             background-color: #050505; 
             color: #f5f5f7; 
             margin: 0;
-            /* Allow scrolling by default (mobile), we lock it for desktop in CSS below */
             min-height: 100vh;
             background: radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000000 80%);
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* DESKTOP ONLY: Lock scrolling to create the Kiosk/Dashboard feel */
+        /* DESKTOP ONLY: Lock scrolling */
         @media (min-width: 768px) {
             body {
                 overflow: hidden;
@@ -71,7 +70,6 @@
             cursor: grabbing;
         }
 
-        /* Resize Handle - Hidden on Mobile */
         .resize-handle {
             position: absolute;
             bottom: 0;
@@ -82,10 +80,9 @@
             z-index: 50;
             opacity: 0;
             transition: opacity 0.2s;
-            display: none; /* Hidden by default */
+            display: none; 
         }
         
-        /* Show resize handle only on Desktop */
         @media (min-width: 768px) {
             .resize-handle { display: block; }
             .glass-card:hover .resize-handle { opacity: 1; }
@@ -142,6 +139,9 @@
         const CloudRain = createLucideIcon('CloudRain');
         const Sun = createLucideIcon('Sun');
         const CloudSun = createLucideIcon('CloudSun');
+        const CloudFog = createLucideIcon('CloudFog');
+        const CloudSnow = createLucideIcon('CloudSnow');
+        const CloudLightning = createLucideIcon('CloudLightning');
         const CheckSquare = createLucideIcon('CheckSquare');
         const Cake = createLucideIcon('Cake');
         const Wind = createLucideIcon('Wind');
@@ -159,8 +159,33 @@
         const Thermometer = createLucideIcon('Thermometer');
         const Eye = createLucideIcon('Eye');
         const Move = createLucideIcon('Move');
+        const Umbrella = createLucideIcon('Umbrella');
 
         // --- KONFIGURATION ---
+        
+        // HÄR KAN DU ÄNDRA STORLEKAR (Tailwind klasser)
+        const SIZE_CONFIG = {
+            // Logotypens höjd
+            logoHeightMobile: "h-12",
+            logoHeightDesktop: "h-16",
+            
+            // Klockans textstorlek
+            clockSizeMobile: "text-6xl",
+            clockSizeDesktop: "text-9xl",
+            
+            // Datumets textstorlek
+            dateSizeMobile: "text-xl",
+            dateSizeDesktop: "text-3xl",
+            
+            // Väder-temperatur textstorlek (Topp)
+            weatherTempMobile: "text-6xl",
+            weatherTempDesktop: "text-7xl",
+            
+            // "Going on at Crisp" rubrik (om logga saknas)
+            headerTitleMobile: "text-4xl",
+            headerTitleDesktop: "text-7xl"
+        };
+
         const CLICKUP_API_TOKEN = "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9";
         const CLICKUP_SPACE_ID = "90155050040"; 
         const CLICKUP_BIRTHDAY_LIST_ID = "901517968972";
@@ -172,47 +197,82 @@
         const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
 
-        // --- SCHEMA ---
-        const UPDATE_SCHEDULE = ['07:00', '12:30', '16:00'];
-
         // --- MODULER ---
 
-        const WeatherModule = ({ data, w, h }) => {
+        const WeatherModule = ({ data, loading, w, h }) => {
+            let statusText = "Laddar...";
+            if (!loading && !data) statusText = "Ingen data";
+            if (data?.condition) statusText = data.condition;
+
             return (
-                <div className="h-full flex flex-col justify-between relative overflow-hidden p-6 md:p-8">
+                <div className="h-full flex flex-col relative overflow-hidden p-5 md:p-6">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
-                    <div className="relative z-10 flex justify-between items-start">
-                        <div>
-                            <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-2">
-                                <MapPin size={14} /> Stockholm
+                    
+                    {/* TOP: Location & Current Status */}
+                    <div className="relative z-10 flex justify-between items-start mb-2">
+                         <div>
+                            <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-1">
+                                <MapPin size={12} /> Stockholm
                             </div>
-                            {/* Responsive text size: 7xl on mobile, 8xl on desktop */}
-                            <div className={`font-bold tracking-tighter text-white leading-none text-7xl md:text-8xl`}>
-                                {data?.temp || "--"}°
-                            </div>
-                            <div className="mt-3">
-                                <div className="text-xl text-slate-300 font-medium mt-2">{data?.condition}</div>
-                                <div className="flex items-center gap-3 mt-1 text-sm text-slate-400 font-medium">
-                                    <span className="flex items-center gap-1"><Thermometer size={14}/> Känns som {data?.feelsLike}°</span>
+                            <div className="flex items-center gap-4">
+                                <div className={`font-bold tracking-tighter text-white leading-none ${SIZE_CONFIG.weatherTempMobile} md:${SIZE_CONFIG.weatherTempDesktop}`}>
+                                    {data?.temp !== undefined ? Math.round(data.temp) : "--"}°
+                                </div>
+                                <div className="flex flex-col">
+                                     <div className="text-lg md:text-xl text-slate-200 font-bold leading-tight">{statusText}</div>
+                                     <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase mt-1">
+                                        {/* Wind now correctly in m/s from API */}
+                                        <span className="flex items-center gap-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</span>
+                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className={`bg-white/5 rounded-full border border-white/10 shadow-2xl flex items-center justify-center p-4 md:p-5`}>
-                            {data?.condition === "Soligt" ? <Sun size={56} className="text-yellow-400"/> : <CloudRain size={56} className="text-blue-400"/>}
+                        <div className="bg-white/5 rounded-full border border-white/10 shadow-xl p-3">
+                             {data?.icon || <RefreshCw className="animate-spin text-slate-500" size={32} />}
                         </div>
                     </div>
 
-                    <div className="animate-in mt-6 md:mt-0">
-                             <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/10 relative z-10">
-                                {data?.forecast?.map((day, i) => (
-                                    <div key={i} className="flex flex-col items-center text-center p-3 rounded-2xl bg-white/5">
-                                        <span className="text-slate-400 text-xs font-bold uppercase mb-1">{day.day}</span>
-                                        {day.icon === 'Sun' ? <Sun size={28} className="text-yellow-400 mb-1"/> : <CloudSun size={28} className="text-white mb-1"/>}
-                                        <span className="text-white font-bold text-xl">{day.temp}°</span>
+                    {/* MIDDLE: Today's Timeline (Cleaner Design) */}
+                    <div className="flex-grow flex flex-col justify-center py-2 relative z-10">
+                        <div className="grid grid-cols-4 divide-x divide-white/10">
+                            {data?.todayForecast?.map((item, i) => (
+                                <div key={i} className="flex flex-col items-center justify-start pt-1 px-1 text-center h-full">
+                                    <span className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wide mb-1">{item.label}</span>
+                                    
+                                    {/* STÖRRE IKON och TEXT */}
+                                    <div className="my-1 text-white">{item.icon}</div>
+                                    <span className="text-[9px] uppercase text-blue-200 font-bold mb-1 truncate max-w-full px-1">{item.text}</span>
+                                    
+                                    <span className="text-white font-bold text-lg leading-none mb-1">{Math.round(item.temp)}°</span>
+                                    
+                                    <div className="flex flex-col gap-0.5 w-full items-center opacity-60 mt-auto pb-1">
+                                        <div className="flex items-center gap-1 text-[9px]" title="Vindbyar">
+                                            <Wind size={10} className="text-slate-300"/>
+                                            <span>{Math.round(item.wind)}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-[9px]" title="Nederbörd">
+                                            <Umbrella size={10} className="text-blue-300"/>
+                                            <span>{item.rain}%</span>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            ))}
                         </div>
+                    </div>
+
+                    {/* BOTTOM: Next Days Forecast (More Compact Cards) */}
+                    <div className="pt-3 border-t border-white/10 relative z-10 mt-auto">
+                        <div className="grid grid-cols-3 gap-3">
+                            {data?.nextDays?.map((day, i) => (
+                                <div key={i} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                    <span className="text-slate-400 text-xs font-bold uppercase mb-1">{day.day}</span>
+                                    <div className="mb-1">{day.icon}</div>
+                                    <span className="text-[9px] uppercase text-slate-400 font-bold mb-1">{day.text}</span>
+                                    <span className="text-white font-bold text-sm">{Math.round(day.temp)}°</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             );
         };
@@ -314,7 +374,7 @@
             const currentImage = validImages[index];
 
             return (
-                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing">
+                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center">
                     {validImages.length > 0 ? (
                         <>
                             {validImages.map((img, i) => (
@@ -322,7 +382,7 @@
                                     key={img}
                                     src={img}
                                     onError={() => handleImageError(img)}
-                                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out"
+                                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-1000 ease-in-out"
                                     style={{ 
                                         opacity: index === i ? 1 : 0,
                                         transform: index === i ? 'scale(1)' : 'scale(1.05)',
@@ -486,7 +546,7 @@
                 ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
 
                 switch(mod.component) {
-                    case 'WeatherModule': return <WeatherModule data={weather} w={mod.colSpan} h={mod.rowSpan} />;
+                    case 'WeatherModule': return <WeatherModule data={weather} loading={loading} w={mod.colSpan} h={mod.rowSpan} />;
                     case 'ProductionModule': return <ProductionModule stats={data?.stats} recent={data?.recentDeliveries} loading={loading} h={mod.rowSpan} />;
                     case 'SlideshowModule': return <SlideshowModule />;
                     case 'TimelineModule': return <TimelineModule items={allUpcoming} loading={loading} />;
@@ -499,13 +559,11 @@
                 const timer = setInterval(() => setTime(new Date()), 1000);
                 const fetchData = async () => {
                     setLoading(true);
-                    const weatherData = { 
-                        temp: 8, condition: "Molnigt", wind: 6, humidity: 78,
-                        forecast: [ { day: 'Tor', icon: 'Sun', temp: 10 }, { day: 'Fre', icon: 'Cloud', temp: 9 }, { day: 'Lör', icon: 'Sun', temp: 11 } ]
-                    };
+                    
                     try {
                         const clickUpData = await getClickUpData();
                         const sheetData = await getGoogleSheetEvents();
+                        const weatherData = await getRealWeather();
                         setData({ ...clickUpData, events: sheetData });
                         setWeather(weatherData);
                     } catch(e) {}
@@ -516,15 +574,13 @@
 
                 const interval = setInterval(() => {
                     const now = new Date();
-                    const h = now.getHours().toString().padStart(2,'0');
-                    const m = now.getMinutes().toString().padStart(2,'0');
-                    const currentTime = `${h}:${m}`;
-
-                    if (UPDATE_SCHEDULE.includes(currentTime)) {
-                        console.log("Schemalagd uppdatering:", currentTime);
+                    const m = now.getMinutes();
+                    // UPPDATERA VARJE HEL TIMME (När minutvisaren är på 0)
+                    if (m === 0) {
+                        console.log("Uppdaterar data (hel timme)...");
                         fetchData();
                     }
-                }, 60000); 
+                }, 60000); // Kollar varje minut
 
                 return () => { clearInterval(timer); clearInterval(interval); };
             }, []);
@@ -534,14 +590,14 @@
 
             return (
                 <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden">
-                    <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[160px]">
-                         <div className="flex flex-col">
+                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-8 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[160px] text-center md:text-left">
+                         <div className="flex flex-col items-center md:items-start w-full md:w-auto">
                              {/* LOGGOR HÄR */}
                              <div className="flex items-center gap-4 mb-3">
                                 <img 
                                     src={LOGO_SYMBOL} 
                                     alt="Crisp" 
-                                    className="h-10 md:h-16 w-auto object-contain"
+                                    className={`${SIZE_CONFIG.logoHeightMobile} md:${SIZE_CONFIG.logoHeightDesktop} w-auto object-contain`}
                                     onError={(e) => e.target.style.display = 'none'}
                                 />
                                 <img 
@@ -553,13 +609,13 @@
                              </div>
                              {/* Fallback text if logos miss */}
                              <div className="hidden">
-                                <h1 className="text-4xl md:text-7xl font-bold tracking-tighter text-white leading-none mb-2">Going on at Crisp</h1>
+                                <h1 className={`${SIZE_CONFIG.headerTitleMobile} md:${SIZE_CONFIG.headerTitleDesktop} font-bold tracking-tighter text-white leading-none mb-2`}>Going on at Crisp</h1>
                             </div>
                             <p className="text-slate-400 text-lg md:text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
-                        <div className="text-left md:text-right mt-6 md:mt-0">
-                            <div className="text-6xl md:text-9xl font-semibold text-white tracking-tighter leading-none">{timeStr}</div>
-                            <div className="text-slate-400 text-xl md:text-3xl capitalize font-medium mt-2">{dateStr}</div>
+                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-6 md:mt-0">
+                            <div className={`${SIZE_CONFIG.clockSizeMobile} md:${SIZE_CONFIG.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div>
+                            <div className={`text-slate-400 ${SIZE_CONFIG.dateSizeMobile} md:${SIZE_CONFIG.dateSizeDesktop} capitalize font-medium mt-2`}>{dateStr}</div>
                         </div>
                     </header>
 
@@ -596,6 +652,103 @@
                 </div>
             );
         };
+
+        // --- REAL WEATHER API ---
+        async function getRealWeather() {
+            try {
+                // Stockholm Coords
+                const lat = 59.3293;
+                const lon = 18.0686;
+                // FIX: remove 'time' from daily variables to prevent 400 Bad Request
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=4&wind_speed_unit=ms`;
+                
+                const res = await fetch(url);
+                if (!res.ok) {
+                    console.error("Weather API Error:", res.status, res.statusText);
+                    throw new Error("API Response not OK");
+                }
+
+                const json = await res.json();
+                
+                if (!json?.current || !json?.hourly?.time || !json?.daily?.time) {
+                    throw new Error("Invalid API Data Structure");
+                }
+
+                const current = json.current;
+                const hourly = json.hourly;
+                const daily = json.daily;
+                
+                const getWeatherIcon = (code, size=56, isYellow=false) => {
+                    if (code === 0) return <Sun size={size} className={isYellow ? "text-yellow-400" : "text-white"} />;
+                    if (code <= 3) return <CloudSun size={size} className="text-blue-300" />;
+                    if (code <= 48) return <CloudFog size={size} className="text-slate-400" />;
+                    if (code <= 67 || (code >= 80 && code <= 82)) return <CloudRain size={size} className="text-blue-400" />;
+                    if (code <= 77 || code === 85 || code === 86) return <CloudSnow size={size} className="text-white" />;
+                    return <CloudLightning size={size} className="text-purple-400" />;
+                };
+
+                const getWeatherText = (code) => {
+                    if (code === 0) return "Soligt";
+                    if (code <= 3) return "Molnigt";
+                    if (code <= 48) return "Dimmigt";
+                    if (code <= 67) return "Regn";
+                    if (code <= 77) return "Snö";
+                    if (code >= 80 && code <= 82) return "Skurar";
+                    return "Oväder";
+                };
+
+                const getHourlyVal = (key, idx) => {
+                    return hourly[key] && hourly[key][idx] !== undefined ? hourly[key][idx] : 0;
+                };
+
+                const indices = [8, 12, 16, 20];
+                const labels = ["Morgon", "Lunch", "Eftermiddag", "Kväll"];
+                
+                const todayForecast = indices.map((idx, i) => {
+                    const code = getHourlyVal('weather_code', idx);
+                    const temp = getHourlyVal('temperature_2m', idx);
+                    const wind = getHourlyVal('wind_speed_10m', idx);
+                    const rain = getHourlyVal('precipitation_probability', idx);
+                    
+                    return {
+                        label: labels[i],
+                        icon: getWeatherIcon(code, 40, code === 0), // Increased size
+                        text: getWeatherText(code),
+                        temp: temp,
+                        wind: wind,
+                        rain: rain
+                    };
+                });
+                
+                const nextDays = daily.time.slice(1, 4).map((t, i) => {
+                    const date = new Date(t);
+                    const dayName = date.toLocaleDateString('sv-SE', {weekday:'short'}).replace('.',''); 
+                    
+                    const dailyCode = daily.weather_code[i+1];
+                    const dailyTemp = daily.temperature_2m_max[i+1];
+                    
+                    return {
+                        day: dayName,
+                        icon: getWeatherIcon(dailyCode, 32, dailyCode === 0), // Increased size
+                        text: getWeatherText(dailyCode),
+                        temp: dailyTemp
+                    };
+                });
+
+                return {
+                    temp: current.temperature_2m,
+                    condition: getWeatherText(current.weather_code),
+                    wind: current.wind_speed_10m,
+                    icon: getWeatherIcon(current.weather_code, 40, current.weather_code === 0),
+                    todayForecast: todayForecast,
+                    nextDays: nextDays
+                };
+
+            } catch(e) {
+                console.error("Weather Error Details:", e);
+                return null;
+            }
+        }
 
         // --- API ---
         async function getGoogleSheetEvents() {
@@ -760,7 +913,12 @@
                     } catch(e) {}
                 }
                 return {
-                    stats: { year: delTasks.length, occasions: recTasks.length },
+                    stats: { 
+                        year: delTasks.length, 
+                        occasions: recTasks.length,
+                        activeProjects: activeProjects,
+                        totalProjects2025: totalProjects2025
+                    },
                     recordings: finalRec,
                     recentDeliveries: recentDel,
                     birthdays: birthdays
