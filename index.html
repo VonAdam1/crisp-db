@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Production Dashboard (Optimized)</title>
+    <title>Crisp Dashboard (Production Filter)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -25,12 +25,8 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        /* DESKTOP ONLY: Lock scrolling */
         @media (min-width: 768px) {
-            body {
-                overflow: hidden;
-                height: 100vh;
-            }
+            body { overflow: hidden; height: 100vh; }
         }
         
         /* Premium Glass */
@@ -48,7 +44,6 @@
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
-        /* Hover effects only on Desktop */
         @media (min-width: 768px) {
             .glass-card:hover {
                 border-color: rgba(255, 255, 255, 0.2);
@@ -60,6 +55,8 @@
                 cursor: grabbing;
                 transform: scale(0.99);
             }
+            .resize-handle { display: block; }
+            .glass-card:hover .resize-handle { opacity: 1; }
         }
 
         .glass-card.dragging {
@@ -71,72 +68,36 @@
         }
 
         .resize-handle {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 30px;
-            height: 30px;
-            cursor: nwse-resize;
-            z-index: 50;
-            opacity: 0;
-            transition: opacity 0.2s;
-            display: none; 
+            position: absolute; bottom: 0; right: 0; width: 30px; height: 30px;
+            cursor: nwse-resize; z-index: 50; opacity: 0; transition: opacity 0.2s; display: none; 
         }
-        
-        @media (min-width: 768px) {
-            .resize-handle { display: block; }
-            .glass-card:hover .resize-handle { opacity: 1; }
-        }
-        
         .resize-handle::after {
-            content: '';
-            position: absolute;
-            bottom: 8px;
-            right: 8px;
-            width: 8px;
-            height: 8px;
-            border-bottom: 2px solid rgba(255,255,255,0.4);
-            border-right: 2px solid rgba(255,255,255,0.4);
-            border-radius: 1px;
+            content: ''; position: absolute; bottom: 8px; right: 8px; width: 8px; height: 8px;
+            border-bottom: 2px solid rgba(255,255,255,0.4); border-right: 2px solid rgba(255,255,255,0.4); border-radius: 1px;
         }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
         .animate-in { animation: fadeIn 0.6s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-
-        /* Loader pulse */
-        .loading-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
-        // --- IKONER ---
+        // --- ICONS ---
         const createLucideIcon = (name) => {
             if (!window.lucide || !window.lucide.icons) return () => null;
             const iconData = window.lucide.icons[name];
-            if (!iconData) return () => null;
             return ({ size = 24, className = "", color = "currentColor", ...props }) => {
-                if (!Array.isArray(iconData)) return null;
                 const [tag, defaultAttrs, children = []] = iconData;
                 const toCamel = (s) => s.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
-                const processAttrs = (attrs) => {
-                    const newAttrs = {};
-                    for (const [k, v] of Object.entries(attrs || {})) {
-                        const key = k === 'class' ? 'className' : toCamel(k);
-                        newAttrs[key] = v;
-                    }
-                    return newAttrs;
-                };
-                const combinedAttrs = { ...processAttrs(defaultAttrs), width: size, height: size, stroke: color, className: `lucide lucide-${name.toLowerCase()} ${className}`, ...props };
-                const childElements = Array.isArray(children) ? children.map(([childTag, childAttrs], idx) => React.createElement(childTag, { ...processAttrs(childAttrs), key: idx })) : [];
-                return React.createElement(tag, combinedAttrs, ...childElements);
+                const processAttrs = (attrs) => Object.entries(attrs || {}).reduce((acc, [k, v]) => ({ ...acc, [k==='class'?'className':toCamel(k)]: v }), {});
+                return React.createElement(tag, { ...processAttrs(defaultAttrs), width: size, height: size, stroke: color, className: `lucide lucide-${name.toLowerCase()} ${className}`, ...props }, 
+                    children.map(([t, a], i) => React.createElement(t, { ...processAttrs(a), key: i })));
             };
         };
 
@@ -146,8 +107,6 @@
         const CloudFog = createLucideIcon('CloudFog');
         const CloudSnow = createLucideIcon('CloudSnow');
         const CloudLightning = createLucideIcon('CloudLightning');
-        const CheckSquare = createLucideIcon('CheckSquare');
-        const Cake = createLucideIcon('Cake');
         const Wind = createLucideIcon('Wind');
         const Video = createLucideIcon('Video');
         const Trophy = createLucideIcon('Trophy');
@@ -156,33 +115,25 @@
         const PackageCheck = createLucideIcon('PackageCheck');
         const Star = createLucideIcon('Star');
         const Image = createLucideIcon('Image');
-        const RefreshCw = createLucideIcon('RefreshCw');
         const PartyPopper = createLucideIcon('PartyPopper');
         const Umbrella = createLucideIcon('Umbrella');
         const Loader2 = createLucideIcon('Loader2');
 
         // ==========================================
-        // --- MASTER CONFIGURATION ---
+        // --- CONFIG ---
         // ==========================================
         const DASHBOARD_CONFIG = {
             year: "2025",
             recordingKeywords: ["inspelning", "shoot", "foto", "studio"],
+            streamKeywords: ["stream", "live", "sändning"],
             slideshowInterval: 8000,
             design: {
-                logoSymbolHeightMobile: "h-12",
-                logoSymbolHeightDesktop: "h-16", 
-                logoTextHeightMobile: "h-6",
-                logoTextHeightDesktop: "h-8",    
-                clockSizeMobile: "text-6xl",
-                clockSizeDesktop: "text-9xl",
-                dateSizeMobile: "text-xl",
-                dateSizeDesktop: "text-3xl",
-                weatherTempMobile: "text-6xl",
-                weatherTempDesktop: "text-7xl",
-                headersMobile: "text-xl",
-                headersDesktop: "text-2xl",
-                fallbackHeaderMobile: "text-4xl",
-                fallbackHeaderDesktop: "text-7xl"
+                logoSymbolHeightMobile: "h-12", logoSymbolHeightDesktop: "h-16", 
+                logoTextHeightMobile: "h-6", logoTextHeightDesktop: "h-8",    
+                clockSizeMobile: "text-6xl", clockSizeDesktop: "text-9xl",
+                dateSizeMobile: "text-xl", dateSizeDesktop: "text-3xl",
+                weatherTempMobile: "text-6xl", weatherTempDesktop: "text-7xl",
+                headersMobile: "text-xl", headersDesktop: "text-2xl"
             },
             api: {
                 clickUpToken: "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9",
@@ -196,23 +147,18 @@
         const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
 
-        // --- MODULER ---
+        // --- MODULES ---
 
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar...";
             if (!loading && !data) statusText = "Ingen data";
             if (data?.condition) statusText = data.condition;
-
             return (
                 <div className="h-full flex flex-col relative overflow-hidden p-5 md:p-6">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
-                    
-                    {/* TOP: Location & Current Status */}
                     <div className="relative z-10 flex justify-between items-start mb-2">
                          <div>
-                            <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-1">
-                                <MapPin size={12} /> Stockholm
-                            </div>
+                            <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-1"><MapPin size={12} /> Stockholm</div>
                             <div className="flex items-center gap-4">
                                 <div className={`font-bold tracking-tighter text-white leading-none ${DASHBOARD_CONFIG.design.weatherTempMobile} md:${DASHBOARD_CONFIG.design.weatherTempDesktop}`}>
                                     {loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°
@@ -229,8 +175,6 @@
                              {loading ? <Loader2 className="animate-spin text-slate-500" size={32} /> : (data?.icon || <Sun className="text-slate-500" size={32} />)}
                         </div>
                     </div>
-
-                    {/* MIDDLE: Today's Timeline */}
                     <div className="flex-grow flex flex-col justify-center py-2 relative z-10">
                         {loading ? <div className="w-full h-20 bg-white/5 animate-pulse rounded-lg"></div> : (
                             <div className="grid grid-cols-4 divide-x divide-white/10">
@@ -249,8 +193,6 @@
                             </div>
                         )}
                     </div>
-
-                    {/* BOTTOM: Next Days Forecast */}
                     <div className="pt-3 border-t border-white/10 relative z-10 mt-auto">
                         <div className="grid grid-cols-3 gap-3">
                             {loading ? [1,2,3].map(i => <div key={i} className="h-24 bg-white/5 animate-pulse rounded-xl"></div>) : 
@@ -274,14 +216,10 @@
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
                             <Trophy className="text-orange-400" size={32} />
-                            <h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>
-                                Produktion {DASHBOARD_CONFIG.year}
-                            </h2>
+                            <h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2>
                         </div>
                         {loading && <Loader2 className="animate-spin text-slate-600" size={24} />}
                     </div>
-
-                    {/* Stats Grid */}
                     <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center">
                              <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span>
@@ -291,7 +229,6 @@
                              <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span>
                              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt {DASHBOARD_CONFIG.year}</span>
                         </div>
-
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center">
                              <span className={`text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span>
                              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Lev. Tasks</span>
@@ -299,10 +236,11 @@
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center">
                              <span className={`text-3xl md:text-4xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
                              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Insp. Dagar</span>
+                             {!loading && stats?.streams > 0 && (
+                                <span className="text-[9px] font-bold text-orange-300/70 uppercase mt-0.5">(+{stats.streams} Streams)</span>
+                             )}
                         </div>
                     </div>
-
-                    {/* Recent List */}
                     <div className="flex-grow flex flex-col min-h-0 animate-in pt-4 border-t border-white/5">
                         <div className="flex items-center gap-3 mb-4 text-emerald-400 mt-2">
                             <PackageCheck size={18} />
@@ -310,10 +248,7 @@
                         </div>
                         <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
                             {loading ? (
-                                <div className="space-y-2">
-                                    <div className="h-10 bg-white/5 rounded-xl animate-pulse"></div>
-                                    <div className="h-10 bg-white/5 rounded-xl animate-pulse"></div>
-                                </div>
+                                <div className="space-y-2"><div className="h-10 bg-white/5 rounded-xl animate-pulse"></div><div className="h-10 bg-white/5 rounded-xl animate-pulse"></div></div>
                             ) : recent?.length > 0 ? recent.slice(0, 6).map((del, i) => (
                                 <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
                                     <span className="text-white font-medium text-sm truncate mr-2">{del.name}</span>
@@ -329,27 +264,15 @@
         const BirthdaysModule = ({ birthdays, loading }) => (
              <div className="h-full p-6 md:p-8 flex flex-col">
                 <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3 text-pink-400">
-                        <PartyPopper size={28} />
-                        <h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Fyller år (30 dagar)</h3>
-                    </div>
+                    <div className="flex items-center gap-3 text-pink-400"><PartyPopper size={28} /><h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Fyller år (30 dagar)</h3></div>
                     {loading && <Loader2 className="animate-spin text-slate-600" size={20} />}
                 </div>
                 <div className="space-y-4 overflow-y-auto no-scrollbar flex-grow">
-                    {loading ? (
-                         <div className="space-y-3">
-                            <div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div>
-                            <div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div>
-                         </div>
-                    ) : birthdays?.length > 0 ? birthdays.map((b, i) => (
+                    {loading ? <div className="space-y-3"><div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div><div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div></div>
+                    : birthdays?.length > 0 ? birthdays.map((b, i) => (
                         <div key={i} className="flex items-center gap-5 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
-                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg shrink-0">
-                                {b.name.charAt(0)}
-                            </div>
-                            <div>
-                                <div className="text-white text-xl md:text-2xl font-bold">{b.name}</div>
-                                <div className="text-pink-300 text-sm md:text-base font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div>
-                            </div>
+                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
+                            <div><div className="text-white text-xl md:text-2xl font-bold">{b.name}</div><div className="text-pink-300 text-sm md:text-base font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div></div>
                         </div>
                     )) : <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">Inga födelsedagar nära.</div>}
                 </div>
@@ -359,59 +282,29 @@
         const SlideshowModule = () => {
             const [index, setIndex] = useState(0);
             const [validImages, setValidImages] = useState([]);
-            
             useEffect(() => {
-                const possibleImages = [];
-                for (let i = 1; i <= 20; i++) {
-                    possibleImages.push(`bilder/${i}.jpg`);
-                    possibleImages.push(`bilder/${i}.png`);
-                    possibleImages.push(`bilder/${i}.jpeg`);
-                }
-                setValidImages(possibleImages);
+                const arr = []; for (let i=1; i<=20; i++) { arr.push(`bilder/${i}.jpg`); arr.push(`bilder/${i}.png`); arr.push(`bilder/${i}.jpeg`); }
+                setValidImages(arr);
             }, []);
-
             useEffect(() => {
                 if (validImages.length === 0) return;
-                const timer = setInterval(() => setIndex((prev) => (prev + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval);
-                return () => clearInterval(timer);
+                const t = setInterval(() => setIndex((p) => (p + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval);
+                return () => clearInterval(t);
             }, [validImages]);
-
-            const handleImageError = (badSrc) => {
-                setValidImages(prev => prev.filter(src => src !== badSrc));
-            };
-
+            const err = (s) => setValidImages(p => p.filter(x => x !== s));
             return (
                 <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center">
-                    {validImages.length > 0 ? (
-                        <>
+                    {validImages.length > 0 ? <>
                             {validImages.map((img, i) => (
-                                <img 
-                                    key={img}
-                                    src={img}
-                                    onError={() => handleImageError(img)}
-                                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-1000 ease-in-out"
-                                    style={{ 
-                                        opacity: index === i ? 1 : 0,
-                                        transform: index === i ? 'scale(1)' : 'scale(1.05)',
-                                        transition: 'opacity 1s ease-in-out, transform 8s ease-out'
-                                    }}
-                                    alt="Life at Crisp"
-                                />
+                                <img key={img} src={img} onError={() => err(img)} className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-1000 ease-in-out"
+                                    style={{ opacity: index === i ? 1 : 0, transform: index === i ? 'scale(1)' : 'scale(1.05)', transition: 'opacity 1s ease-in-out, transform 8s ease-out' }} alt="Crisp" />
                             ))}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                             <div className="absolute bottom-8 left-8 pointer-events-none">
-                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2">
-                                    <Image size={14} /> Life at Crisp
-                                </div>
+                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={14} /> Life at Crisp</div>
                                 <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Creating Magic</h2>
                             </div>
-                        </>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-600">
-                            <Image size={48} />
-                            <p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p>
-                        </div>
-                    )}
+                        </> : <div className="h-full flex flex-col items-center justify-center text-slate-600"><Image size={48} /><p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p></div>}
                 </div>
             );
         };
@@ -423,11 +316,8 @@
                     {loading && <Loader2 className="animate-spin text-slate-600" size={24}/>}
                 </div>
                 <div className="flex-grow space-y-4 overflow-y-auto no-scrollbar pr-2">
-                    {loading && items.length === 0 ? (
-                        <div className="space-y-4">
-                             {[1,2,3].map(i => <div key={i} className="h-24 bg-white/5 rounded-3xl animate-pulse"></div>)}
-                        </div>
-                    ) : items.length > 0 ? items.map((item, idx) => {
+                    {loading && items.length === 0 ? <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-white/5 rounded-3xl animate-pulse"></div>)}</div>
+                    : items.length > 0 ? items.map((item, idx) => {
                          const isRec = item.type === 'recording';
                          return (
                             <div key={idx} className="flex items-center gap-5 md:gap-6 p-4 md:p-5 bg-white/5 rounded-3xl border border-white/5 transition-all hover:bg-white/10">
@@ -444,34 +334,18 @@
                                 </div>
                             </div>
                          );
-                    }) : (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50">
-                            <Calendar size={64} strokeWidth={1} />
-                            <p className="mt-4 text-xl font-medium">Kalendern är tom</p>
-                        </div>
-                    )}
+                    }) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><Calendar size={64} strokeWidth={1} /><p className="mt-4 text-xl font-medium">Kalendern är tom</p></div>}
                 </div>
             </div>
         );
 
-        // --- GRID APP COMPONENT ---
-
         const App = () => {
             const [time, setTime] = useState(new Date());
-            
-            // SEPARATE STATE FOR STAGGERED LOADING
-            const [weather, setWeather] = useState(null);
-            const [loadingWeather, setLoadingWeather] = useState(true);
+            const [weather, setWeather] = useState(null); const [loadingWeather, setLoadingWeather] = useState(true);
+            const [birthdays, setBirthdays] = useState([]); const [loadingBirthdays, setLoadingBirthdays] = useState(true);
+            const [events, setEvents] = useState([]); 
+            const [prodStats, setProdStats] = useState(null); const [loadingProd, setLoadingProd] = useState(true);
 
-            const [birthdays, setBirthdays] = useState([]);
-            const [loadingBirthdays, setLoadingBirthdays] = useState(true);
-
-            const [events, setEvents] = useState([]); // Google Sheets
-            
-            const [prodStats, setProdStats] = useState(null); // Heavy ClickUp
-            const [loadingProd, setLoadingProd] = useState(true);
-
-            // INITIAL LAYOUT
             const [modules, setModules] = useState([
                 { id: 'weather',    colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
                 { id: 'birthdays',  colSpan: 4, rowSpan: 2, component: 'BirthdaysModule' },
@@ -483,23 +357,10 @@
             const [draggedId, setDraggedId] = useState(null);
             const [resizingId, setResizingId] = useState(null);
 
-            // --- Drag & Drop (Only for Desktop) ---
-            const onDragStart = (e, id) => {
-                if (window.innerWidth < 768) return; 
-                if (resizingId) { e.preventDefault(); return; }
-                setDraggedId(id);
-                e.dataTransfer.effectAllowed = "move";
-                e.currentTarget.classList.add('dragging');
-            };
-
-            const onDragEnd = (e) => {
-                setDraggedId(null);
-                e.currentTarget.classList.remove('dragging');
-            };
-
+            const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
+            const onDragEnd = (e) => { setDraggedId(null); e.currentTarget.classList.remove('dragging'); };
             const onDrop = (targetId) => {
-                if (window.innerWidth < 768) return;
-                if (!draggedId || draggedId === targetId) return;
+                if (window.innerWidth < 768 || !draggedId || draggedId === targetId) return;
                 const newModules = [...modules];
                 const dIdx = newModules.findIndex(m => m.id === draggedId);
                 const tIdx = newModules.findIndex(m => m.id === targetId);
@@ -507,123 +368,54 @@
                 newModules.splice(dIdx, 1);
                 newModules.splice(tIdx, 0, temp);
                 setModules(newModules);
-                setDraggedId(null);
             };
-
-            // --- Resize (Only for Desktop) ---
             const handleResizeStart = (e, id) => {
                 if (window.innerWidth < 768) return;
-                e.preventDefault();
-                e.stopPropagation();
-                setResizingId(id);
-                const startX = e.clientX;
-                const startY = e.clientY;
-                const moduleIdx = modules.findIndex(m => m.id === id);
-                const startCol = modules[moduleIdx].colSpan;
-                const startRow = modules[moduleIdx].rowSpan;
-
-                const gridWidth = window.innerWidth - 64; 
-                const cellWidth = gridWidth / 12; 
-                const cellHeight = 160 + 24; 
-
-                const onMouseMove = (moveEvent) => {
-                    const dx = moveEvent.clientX - startX;
-                    const dy = moveEvent.clientY - startY;
-                    const colChange = Math.round(dx / cellWidth);
-                    const rowChange = Math.round(dy / cellHeight);
-
-                    if (colChange !== 0 || rowChange !== 0) {
-                        setModules(prev => {
-                            const next = [...prev];
-                            const m = next[moduleIdx];
-                            const newCol = Math.max(3, Math.min(12, startCol + colChange));
-                            const newRow = Math.max(1, Math.min(6, startRow + rowChange));
-                            if (m.colSpan !== newCol || m.rowSpan !== newRow) {
-                                next[moduleIdx] = { ...m, colSpan: newCol, rowSpan: newRow };
-                                return next;
-                            }
-                            return prev;
-                        });
-                    }
+                e.preventDefault(); e.stopPropagation(); setResizingId(id);
+                const startX = e.clientX; const startY = e.clientY;
+                const mIdx = modules.findIndex(m => m.id === id);
+                const startCol = modules[mIdx].colSpan; const startRow = modules[mIdx].rowSpan;
+                const cellW = (window.innerWidth-64)/12; const cellH = 184; 
+                const onMM = (me) => {
+                    const c = Math.max(3, Math.min(12, startCol + Math.round((me.clientX-startX)/cellW)));
+                    const r = Math.max(1, Math.min(6, startRow + Math.round((me.clientY-startY)/cellH)));
+                    setModules(prev => { const n = [...prev]; if(n[mIdx].colSpan !== c || n[mIdx].rowSpan !== r) n[mIdx]={...n[mIdx], colSpan:c, rowSpan:r}; return n; });
                 };
-
-                const onMouseUp = () => {
-                    setResizingId(null);
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                };
-
-                document.addEventListener('mousemove', onMouseMove);
-                document.addEventListener('mouseup', onMouseUp);
+                const onMU = () => { setResizingId(null); document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); };
+                document.addEventListener('mousemove', onMM); document.addEventListener('mouseup', onMU);
             };
 
             const renderModuleContent = (mod) => {
                  const allUpcoming = [
                     ...(events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
-                    ...(prodStats?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: 'Inspelning' }))
+                    ...(prodStats?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: r.isStream ? 'Stream' : 'Inspelning' }))
                 ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
 
                 switch(mod.component) {
                     case 'WeatherModule': return <WeatherModule data={weather} loading={loadingWeather} />;
                     case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} />;
                     case 'SlideshowModule': return <SlideshowModule />;
-                    case 'TimelineModule': return <TimelineModule items={allUpcoming} loading={loadingProd} />; // Depends on heavy data for full list
+                    case 'TimelineModule': return <TimelineModule items={allUpcoming} loading={loadingProd} />; 
                     case 'BirthdaysModule': return <BirthdaysModule birthdays={birthdays} loading={loadingBirthdays} />;
                     default: return null;
                 }
             };
 
-            // --- DATA FETCHING ORCHESTRATION ---
             useEffect(() => {
                 const timer = setInterval(() => setTime(new Date()), 1000);
-
-                const loadFastData = async () => {
-                    setLoadingWeather(true);
-                    setLoadingBirthdays(true);
-                    
-                    // 1. Weather
-                    try {
-                        const w = await getRealWeather();
-                        setWeather(w);
-                    } catch(e) {}
-                    setLoadingWeather(false);
-
-                    // 2. Google Sheets
-                    try {
-                        const ev = await getGoogleSheetEvents();
-                        setEvents(ev);
-                    } catch(e) {}
-
-                    // 3. Birthdays (Separate lightweight call)
-                    try {
-                        const bds = await getClickUpBirthdays();
-                        setBirthdays(bds);
-                    } catch(e) {}
-                    setLoadingBirthdays(false);
+                const loadFast = async () => {
+                    setLoadingWeather(true); setLoadingBirthdays(true);
+                    try { setWeather(await getRealWeather()); } catch(e){} setLoadingWeather(false);
+                    try { setEvents(await getGoogleSheetEvents()); } catch(e){}
+                    try { setBirthdays(await getClickUpBirthdays()); } catch(e){} setLoadingBirthdays(false);
                 };
-
-                const loadHeavyData = async () => {
+                const loadHeavy = async () => {
                     setLoadingProd(true);
-                    try {
-                        const stats = await getClickUpProductionData();
-                        setProdStats(stats);
-                    } catch(e) { console.error(e); }
+                    try { setProdStats(await getClickUpProductionData()); } catch(e) { console.error(e); }
                     setLoadingProd(false);
                 };
-
-                // Trigger loads
-                loadFastData();
-                loadHeavyData();
-
-                const interval = setInterval(() => {
-                    const now = new Date();
-                    if (now.getMinutes() === 0) {
-                        console.log("Uppdaterar data (hel timme)...");
-                        loadFastData();
-                        loadHeavyData();
-                    }
-                }, 60000);
-
+                loadFast(); loadHeavy();
+                const interval = setInterval(() => { if (new Date().getMinutes() === 0) { loadFast(); loadHeavy(); } }, 60000);
                 return () => { clearInterval(timer); clearInterval(interval); };
             }, []);
 
@@ -635,18 +427,8 @@
                     <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-8 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[160px] text-center md:text-left">
                          <div className="flex flex-col items-center md:items-start w-full md:w-auto">
                              <div className="flex items-center gap-4 mb-3">
-                                <img 
-                                    src={LOGO_SYMBOL} 
-                                    alt="Crisp" 
-                                    className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`}
-                                    onError={(e) => e.target.style.display = 'none'}
-                                />
-                                <img 
-                                    src={LOGO_TEXT} 
-                                    alt="Crisp Film" 
-                                    className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-2`}
-                                    onError={(e) => e.target.style.display = 'none'}
-                                />
+                                <img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} />
+                                <img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-2`} onError={(e) => e.target.style.display = 'none'} />
                              </div>
                             <p className="text-slate-400 text-lg md:text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
@@ -655,33 +437,12 @@
                             <div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-2`}>{dateStr}</div>
                         </div>
                     </header>
-
-                    {/* BENTO GRID */}
                     <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[160px] gap-4 md:gap-6 flex-grow pb-6 grid-flow-dense relative z-10">
                         {modules.map((mod) => (
-                            <div 
-                                key={mod.id}
-                                draggable={!resizingId} 
-                                onDragStart={(e) => onDragStart(e, mod.id)}
-                                onDragEnd={onDragEnd}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={() => onDrop(mod.id)}
-                                className={`
-                                    glass-card animate-in 
-                                    col-span-1 md:col-span-${mod.colSpan} 
-                                    md:row-span-${mod.rowSpan} 
-                                    min-h-[350px] md:min-h-0
-                                    ${draggedId === mod.id ? 'dragging' : ''} 
-                                    ${resizingId === mod.id ? 'resizing' : ''}
-                                `}
-                            >
+                            <div key={mod.id} draggable={!resizingId} onDragStart={(e) => onDragStart(e, mod.id)} onDragEnd={onDragEnd} onDragOver={(e) => e.preventDefault()} onDrop={() => onDrop(mod.id)}
+                                className={`glass-card animate-in col-span-1 md:col-span-${mod.colSpan} md:row-span-${mod.rowSpan} min-h-[350px] md:min-h-0 ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}>
                                 {renderModuleContent(mod)}
-                                
-                                <div 
-                                    className="resize-handle"
-                                    onMouseDown={(e) => handleResizeStart(e, mod.id)}
-                                    title="Dra för att ändra storlek"
-                                ></div>
+                                <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, mod.id)}></div>
                             </div>
                         ))}
                     </div>
@@ -689,255 +450,138 @@
             );
         };
 
-        // --- API HELPERS ---
-
+        // --- HELPERS ---
         async function getRealWeather() {
             try {
-                const lat = 59.3293;
-                const lon = 18.0686;
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=4&wind_speed_unit=ms`;
-                
-                const res = await fetch(url);
-                if (!res.ok) throw new Error("API Response not OK");
-                const json = await res.json();
-                
-                const current = json.current;
-                const hourly = json.hourly;
-                const daily = json.daily;
-                
-                const getWeatherIcon = (code, size=56, isYellow=false) => {
-                    if (code === 0) return <Sun size={size} className={isYellow ? "text-yellow-400" : "text-white"} />;
-                    if (code <= 3) return <CloudSun size={size} className="text-blue-300" />;
-                    if (code <= 48) return <CloudFog size={size} className="text-slate-400" />;
-                    if (code <= 67 || (code >= 80 && code <= 82)) return <CloudRain size={size} className="text-blue-400" />;
-                    if (code <= 77 || code === 85 || code === 86) return <CloudSnow size={size} className="text-white" />;
-                    return <CloudLightning size={size} className="text-purple-400" />;
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=4&wind_speed_unit=ms`);
+                if (!res.ok) throw new Error("API Err"); const json = await res.json();
+                const { current, hourly, daily } = json;
+                const getIcon = (code, size, y) => {
+                    const P = { size, className: y ? "text-yellow-400" : "text-white" }; const C = { size, className: "text-blue-300" };
+                    if(code===0) return <Sun {...P}/>; if(code<=3) return <CloudSun {...C}/>; if(code<=48) return <CloudFog size={size} className="text-slate-400"/>;
+                    if(code<=67||(code>=80&&code<=82)) return <CloudRain size={size} className="text-blue-400"/>; if(code<=77||code===85) return <CloudSnow size={size} className="text-white"/>;
+                    return <CloudLightning size={size} className="text-purple-400"/>;
                 };
-
-                const getWeatherText = (code) => {
-                    if (code === 0) return "Soligt";
-                    if (code <= 3) return "Molnigt";
-                    if (code <= 48) return "Dimmigt";
-                    if (code <= 67) return "Regn";
-                    if (code <= 77) return "Snö";
-                    if (code >= 80 && code <= 82) return "Skurar";
-                    return "Oväder";
-                };
-
-                const getHourlyVal = (key, idx) => hourly[key] && hourly[key][idx] !== undefined ? hourly[key][idx] : 0;
-
-                const indices = [8, 12, 16, 20];
-                const labels = ["Morgon", "Lunch", "Eftermiddag", "Kväll"];
-                
-                const todayForecast = indices.map((idx, i) => {
-                    const code = getHourlyVal('weather_code', idx);
-                    return {
-                        label: labels[i],
-                        icon: getWeatherIcon(code, 40, code === 0),
-                        text: getWeatherText(code),
-                        temp: getHourlyVal('temperature_2m', idx),
-                        wind: getHourlyVal('wind_speed_10m', idx),
-                        rain: getHourlyVal('precipitation_probability', idx)
-                    };
-                });
-                
-                const nextDays = daily.time.slice(1, 4).map((t, i) => {
-                    const dailyCode = daily.weather_code[i+1];
-                    return {
-                        day: new Date(t).toLocaleDateString('sv-SE', {weekday:'short'}).replace('.',''),
-                        icon: getWeatherIcon(dailyCode, 32, dailyCode === 0),
-                        text: getWeatherText(dailyCode),
-                        temp: daily.temperature_2m_max[i+1]
-                    };
-                });
-
-                return {
-                    temp: current.temperature_2m,
-                    condition: getWeatherText(current.weather_code),
-                    wind: current.wind_speed_10m,
-                    icon: getWeatherIcon(current.weather_code, 40, current.weather_code === 0),
-                    todayForecast, nextDays
-                };
-
+                const getText = (c) => c===0?"Soligt":c<=3?"Molnigt":c<=48?"Dimmigt":c<=67?"Regn":c<=77?"Snö":c>=80?"Skurar":"Oväder";
+                const todayForecast = [8,12,16,20].map((idx, i) => ({ label: ["Morgon","Lunch","Eftermiddag","Kväll"][i], icon: getIcon(hourly.weather_code[idx], 40, hourly.weather_code[idx]===0), text: getText(hourly.weather_code[idx]), temp: hourly.temperature_2m[idx], wind: hourly.wind_speed_10m[idx], rain: hourly.precipitation_probability[idx] }));
+                const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],32,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] }));
+                return { temp: current.temperature_2m, condition: getText(current.weather_code), wind: current.wind_speed_10m, icon: getIcon(current.weather_code, 40, current.weather_code===0), todayForecast, nextDays };
             } catch(e) { return null; }
         }
 
         async function getGoogleSheetEvents() {
             if (!DASHBOARD_CONFIG.api.googleSheetCsvUrl) return [];
             try {
-                const url = `${DASHBOARD_CONFIG.api.googleSheetCsvUrl}&t=${Date.now()}`;
-                const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+                const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetCsvUrl + '&t=' + Date.now())}`);
                 if (!res.ok) return [];
-                const txt = await res.text();
-                const rows = txt.split(/\r\n|\n/);
-                const events = [];
-                const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0);
-                
-                rows.forEach((row, i) => {
-                    if(i===0) return;
-                    const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if(cols.length < 4) return;
-                    const name = cols[2].replace(/^"|"$/g, '').trim();
-                    const dateStr = cols[3].replace(/^"|"$/g, '').trim();
-                    if(name && dateStr) {
-                         let d = new Date(dateStr);
-                         if(isNaN(d.getTime())) d = new Date(dateStr.split(' ')[0]);
-                         if(!isNaN(d.getTime()) && d >= yest) {
-                            events.push({
-                                name, sortDate: d.getTime(),
-                                dateMain: d.getDate(),
-                                dateSub: d.toLocaleDateString('sv-SE', {month:'short'}).toUpperCase()
-                            });
-                         }
-                    }
-                });
+                const rows = (await res.text()).split(/\r\n|\n/);
+                const events = []; const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0);
+                rows.forEach((r,i) => { if(i>0){ const c = r.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); if(c.length>=4){
+                    const n = c[2].replace(/^"|"$/g,'').trim(); const ds = c[3].replace(/^"|"$/g,'').trim();
+                    let d = new Date(ds); if(isNaN(d.getTime())) d = new Date(ds.split(' ')[0]);
+                    if(!isNaN(d.getTime()) && d>=yest) events.push({ name:n, sortDate:d.getTime(), dateMain:d.getDate(), dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase() });
+                }}});
                 return events;
             } catch(e) { return []; }
         }
 
-        // --- NEW LIGHTWEIGHT FETCH FOR BIRTHDAYS ---
         async function getClickUpBirthdays() {
-            if (!DASHBOARD_CONFIG.api.clickUpSpaceId || !DASHBOARD_CONFIG.api.clickUpBirthdayListId) return [];
-            const headers = { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken };
-            const proxy = "https://corsproxy.io/?";
-            try {
-                 const bdRes = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpBirthdayListId}/task`, { headers });
-                 const bdJson = await bdRes.json();
-                 return (bdJson.tasks || [])
-                    .map(t => {
-                        const d = new Date(parseInt(t.due_date));
-                        const today = new Date();
-                        let next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
-                        if(next < today) next.setFullYear(today.getFullYear()+1);
-                        const diff = Math.ceil((next - today)/(1000*60*60*24));
-                        return { name: t.name, dateStr: next.toLocaleDateString('sv-SE', {day:'numeric', month:'short'}), diff, isSoon: diff < 14 };
-                    })
-                    .filter(b => b.diff < 40)
-                    .sort((a,b) => a.diff - b.diff)
-                    .slice(0,3);
-            } catch(e) { return []; }
+             if (!DASHBOARD_CONFIG.api.clickUpBirthdayListId) return [];
+             try {
+                 const res = await fetch(`https://corsproxy.io/?https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpBirthdayListId}/task`, { headers: { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken } });
+                 return (await res.json()).tasks.map(t => {
+                     const d = new Date(parseInt(t.due_date)); const today = new Date(); let next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
+                     if(next<today) next.setFullYear(today.getFullYear()+1); const diff = Math.ceil((next-today)/(86400000));
+                     return { name: t.name, dateStr: next.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}), diff, isSoon: diff<14 };
+                 }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3);
+             } catch(e) { return []; }
         }
 
-        // --- HEAVY FETCH FOR PRODUCTION DATA (ONLY FROM 2025) ---
         async function getClickUpProductionData() {
             if (!DASHBOARD_CONFIG.api.clickUpSpaceId) return {};
             const headers = { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken };
             const proxy = "https://corsproxy.io/?";
-            
             try {
-                const teamRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers });
-                const teamId = (await teamRes.json()).teams[0].id;
-                
-                // OPTIMIZATION: ONLY FETCH TASKS UPDATED AFTER JAN 1 2025
+                const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers });
+                const teamId = (await tRes.json()).teams[0].id;
                 const startTimestamp = new Date("2025-01-01").getTime();
 
-                const getAllTasks = async (archived) => {
-                    let all = []; let page = 0;
-                    // Lowered page limit to 20 for speed, usually enough for current year
-                    while(page < 20) {
+                const getTasks = async (archived) => {
+                    let all = []; let p = 0;
+                    while(p < 7) { 
                         try {
-                            const url = `${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${page}`;
-                            const res = await fetch(url, { headers });
-                            const json = await res.json();
-                            if(!json.tasks || json.tasks.length === 0) break;
-                            all = [...all, ...json.tasks];
-                            page++;
+                            const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers });
+                            const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++;
                         } catch(e) { break; }
                     }
                     return all;
                 };
 
-                const getProjectTasks = async () => {
+                const getProj = async () => {
                     if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return [];
-                    let all = []; let page = 0;
-                    while(page < 5) {
+                    let all = []; let p = 0;
+                    while(p < 5) {
                          try {
-                            const url = `${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${page}`;
-                            const res = await fetch(url, { headers });
-                            const json = await res.json();
-                            if(!json.tasks || json.tasks.length === 0) break;
-                            all = [...all, ...json.tasks];
-                            page++;
+                            const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers });
+                            const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++;
                          } catch(e) { break; }
                     }
                     return all;
                 };
 
-                const [active, archived, projects] = await Promise.all([
-                    getAllTasks(false), 
-                    getAllTasks(true),
-                    getProjectTasks()
-                ]);
-
-                const tasksMap = new Map(); [...active, ...archived].forEach(t => tasksMap.set(t.id, t));
+                const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
+                const tasks = [...active, ...archived];
                 const shortYear = DASHBOARD_CONFIG.year.slice(-2);
                 
-                let tasks = Array.from(tasksMap.values()).filter(t => {
-                      const folderName = t.folder ? t.folder.name : "";
-                      const listName = t.list ? t.list.name : "";
-                      return folderName.startsWith(shortYear) || listName.startsWith(shortYear);
-                });
-
                 const validProjects = projects.filter(t => t.name.startsWith(shortYear));
-                const activeProjects = validProjects.filter(t => t.status.status.toLowerCase() === 'production').length;
-                const totalProjectsCurrentYear = validProjects.filter(t => {
-                    const s = t.status.status.toLowerCase();
-                    return s === 'production' || s === 'delivered';
-                }).length;
+                const activeProjCount = validProjects.filter(t => t.status.status.toLowerCase() === 'production').length;
+                const totalProjCount = validProjects.filter(t => ['production','delivered'].includes(t.status.status.toLowerCase())).length;
+                
+                let recCount = 0; let streamCount = 0; const upcomingRecs = [];
+                const matches = (str, keys) => keys.some(k => str.toLowerCase().includes(k.toLowerCase()));
 
-                const recKeywords = DASHBOARD_CONFIG.recordingKeywords || ["inspelning","stream"];
-                const recTasks = tasks.filter(t => {
-                    const n = t.name.trim().toLowerCase();
-                    return recKeywords.some(keyword => n.includes(keyword.toLowerCase()));
-                });
+                tasks.forEach(t => {
+                    const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
+                    if (!fName.startsWith(shortYear) && !lName.startsWith(shortYear)) return;
 
-                const upcomingRec = recTasks
-                    .filter(t => {
+                    // --- NY STRICT FILTER-LOGIK HÄR ---
+                    // Om vi ska räkna inspelning/stream, måste tasken ligga i en lista som heter exakt "Production" (case-insensitive)
+                    // Detta ignorerar tasks i "Leverans", "Post-production" osv även om de råkar heta "Inspelning voiceover"
+                    const listNameClean = lName.toLowerCase().trim();
+                    if (listNameClean !== 'production') return; 
+
+                    const name = t.name;
+                    const isStream = matches(name, DASHBOARD_CONFIG.streamKeywords);
+                    const isRec = matches(name, DASHBOARD_CONFIG.recordingKeywords);
+
+                    if (isStream) streamCount++; else if (isRec) recCount++;
+
+                    if (isStream || isRec) {
                         const d = parseInt(t.start_date||t.due_date||0);
                         const s = t.status.status.toLowerCase();
-                        return d >= Date.now() - 86400000 && s!=='complete' && s!=='closed' && s!=='klar' && s!=='done';
-                    })
-                    .sort((a,b) => (a.start_date||0) - (b.start_date||0));
-                
-                const seen = new Set(); const finalRec = [];
-                for(const t of upcomingRec) {
-                    let n = "Projekt";
-                    if(t.folder) n = t.folder.name; else if(t.list) n = t.list.name;
-                    n = n.length > 6 && n.includes('_') ? n.substring(6).replace(/_/g,' ') : n;
-                    if(!seen.has(n)) {
-                        seen.add(n);
-                        const d = parseInt(t.start_date||t.due_date);
-                        finalRec.push({
-                            id: t.id, project: n, sortDate: d,
-                            dateMain: new Date(d).getDate(),
-                            dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase()
-                        });
+                        if (d >= Date.now() - 86400000 && !['complete','closed','klar','done'].includes(s)) {
+                            let pName = t.folder ? t.folder.name : (t.list ? t.list.name : "Projekt");
+                            if(pName.length>6 && pName.includes('_')) pName = pName.substring(6).replace(/_/g,' ');
+                            upcomingRecs.push({
+                                id: t.id, project: pName, sortDate: d,
+                                dateMain: new Date(d).getDate(),
+                                dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(),
+                                isStream: isStream
+                            });
+                        }
                     }
-                    if(finalRec.length >= 5) break;
-                }
+                });
 
-                const deliveredProjects = validProjects.filter(t => t.status.status.toLowerCase() === 'delivered');
-                const deliveredCount = deliveredProjects.length;
-                const recentDel = deliveredProjects
-                    .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
-                    .slice(0,5)
-                    .map(t => {
-                        const ts = parseInt(t.date_closed||t.date_updated||0);
-                        return { 
-                            name: t.name, 
-                            date: ts > 0 ? new Date(ts).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) : "-" 
-                        };
-                    });
+                const uniqueRecs = []; const seen = new Set();
+                upcomingRecs.sort((a,b) => a.sortDate - b.sortDate);
+                for(const r of upcomingRecs) { if(!seen.has(r.project)) { seen.add(r.project); uniqueRecs.push(r); } if(uniqueRecs.length>=5) break; }
+
+                const delivered = validProjects.filter(t => t.status.status.toLowerCase() === 'delivered');
+                const recentDel = delivered.sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0)).slice(0,5).map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
 
                 return {
-                    stats: { 
-                        year: deliveredCount,
-                        occasions: recTasks.length,
-                        activeProjects: activeProjects,
-                        totalProjectsCurrentYear: totalProjectsCurrentYear
-                    },
-                    recordings: finalRec,
-                    recentDeliveries: recentDel
+                    stats: { year: delivered.length, occasions: recCount, streams: streamCount, activeProjects: activeProjCount, totalProjectsCurrentYear: totalProjCount },
+                    recordings: uniqueRecs, recentDeliveries: recentDel
                 };
             } catch(e) { return {}; }
         }
