@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + Namnsdagar)</title>
+    <title>Crisp Dashboard (Final + Public NameDay)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -89,8 +89,8 @@
         const Trophy = createLucideIcon('Trophy'); const Calendar = createLucideIcon('Calendar'); const MapPin = createLucideIcon('MapPin'); const PackageCheck = createLucideIcon('PackageCheck');
         const Star = createLucideIcon('Star'); const Image = createLucideIcon('Image'); const PartyPopper = createLucideIcon('PartyPopper'); const Umbrella = createLucideIcon('Umbrella');
         const Loader2 = createLucideIcon('Loader2'); const HelpCircle = createLucideIcon('HelpCircle'); const X = createLucideIcon('X');
-        const User = createLucideIcon('User'); // NY IKON
-        const Bell = createLucideIcon('Bell'); // NY IKON
+        const User = createLucideIcon('User');
+        const Bell = createLucideIcon('Bell');
 
         // --- CONFIG ---
         const DASHBOARD_CONFIG = {
@@ -113,7 +113,8 @@
 
         // --- NAMNSDAGS MODUL ---
         const NameDayModule = ({ nameDays, loading }) => (
-            <div className="glass-card p-4 md:p-6 flex items-center justify-between min-h-[90px] w-full animate-in shrink-0">
+            // Ändrat: w-full md:w-1/3 för att bli en tredjedel på desktop
+            <div className="glass-card p-4 md:p-6 flex items-center justify-between min-h-[90px] w-full md:w-1/3 animate-in shrink-0">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
                         <Bell size={24} />
@@ -130,7 +131,6 @@
                 )}
             </div>
         );
-
 
         // --- MODULES ---
         const WeatherModule = ({ data, loading }) => {
@@ -179,10 +179,10 @@
                 <div className="h-full p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-3"><Trophy className="text-orange-400" size={32} /><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={24} />}</div>
                     <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
-                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
+                        <div onClick={() => onOpenDetails('Igång Nu', stats?.lists?.active)} className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Igång Nu</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Totalt antal projekt 2025 (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                        <div onClick={() => onOpenDetails('Antal projekt 2025 (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt {DASHBOARD_CONFIG.year}</span>
                         </div>
                         <div onClick={() => onOpenDetails('Levererade projekt', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
@@ -306,8 +306,8 @@
                     <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white flex items-center gap-2"><HelpCircle /> Dashboard Info</h2><button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button></div>
                     <div className="space-y-4 text-slate-300 text-sm font-medium">
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>Ändra antal av <strong>Senast levererat</strong> eller <strong>händer framöver</strong> genom "slice" i koden.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Antal Inspelningar</strong> söker efter exakt ordet "Inspelning".</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>Ändra antal av <strong>nyligen levererat</strong> eller <strong>händer framöver</strong> genom "slice" i koden.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Antal inspelningar</strong> söker efter exakt ordet "Inspelning".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Streams</strong> söker efter exakt ordet "stream".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Aktiva projekt</strong> och <strong>leveranser</strong> baseras på Project Hub.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Bilder</strong> läggs i mappen 'bilder' (namn 1.jpg till 20.jpg).</div></div>
@@ -365,7 +365,7 @@
                     try { setEvents(await getGoogleSheetEvents()); } catch(e){} 
                     try { setBirthdays(await getClickUpBirthdays()); } catch(e){} 
                     
-                    // FETCH NAMNSDAG
+                    // FETCH NAMNSDAG (PUBLIC API)
                     try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
 
                     setLoadingWeather(false); 
@@ -407,29 +407,17 @@
 
         // --- HELPERS ---
         async function getNamnsdagar() {
-            const today = new Date().toLocaleDateString('sv-SE');
-            const systemPrompt = "Du är en expert på svenska namnsdagar. Baserat på dagens datum, ge mig endast namnen som har namnsdag idag i en kort, kommaseparerad sträng. Exempel: 'Kalle, Katta'. Om inga namn hittas, svara endast 'Inga namnsdagar'.";
-            const userQuery = `Vilka svenska namnsdagar är det idag, ${today}?`;
-            const apiKey = ""
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
-
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                tools: [{ "google_search": {} }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-            };
-
             try {
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Inga namnsdagar";
-                return text.replace(/\.$/, '');
+                // Använder Svenska Dagar API via proxy för att undvika CORS-problem
+                const url = "https://sholiday.faboul.se/dagar/v2.1/";
+                const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
+                if (!res.ok) throw new Error("API Error");
+                const data = await res.json();
+                // API returnerar en array "dagar", vi tar första objektet (idag)
+                const names = data.dagar[0]?.namnsdag || [];
+                return names.length > 0 ? names.join(', ') : "Inga namnsdagar";
             } catch(e) {
-                console.error("Name Day API Error:", e);
+                console.error("Namnsdag Error:", e);
                 return "Kunde inte hämta";
             }
         }
@@ -449,10 +437,15 @@
                 const parseDateRobustly = (dateStr) => {
                     if (!dateStr) return null;
                     const cleanStr = dateStr.trim().split(' ')[0];
+                    
+                    // 1. Try YYYY-MM-DD or MM/DD/YYYY (Native JS parsing)
                     let d = new Date(cleanStr);
                     if (!isNaN(d.getTime())) return d;
+
+                    // 2. Try DD/MM/YYYY or DD-MM-YYYY (Common European format)
                     const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
                     if (parts) {
+                        // Create date object explicitly as YYYY-MM-DD to avoid regional parsing issues
                         d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
                         if (!isNaN(d.getTime())) return d;
                     }
@@ -460,7 +453,7 @@
                 };
                 
                 rows.forEach((row, i) => { 
-                    if(i===0) return; 
+                    if(i===0) return; // Skip header
                     const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
                     if(c.length>=4){ 
                         const n = c[2].replace(/^"|"$/g,'').trim(); 
@@ -488,7 +481,9 @@
                     } 
                 }); 
                 return events; 
-            } catch(e) { return []; } 
+            } catch(e) { 
+                return []; 
+            } 
         }
 
         async function getClickUpBirthdays() { if (!DASHBOARD_CONFIG.api.clickUpBirthdayListId) return []; try { const r = await fetch(`https://corsproxy.io/?https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpBirthdayListId}/task`, { headers: { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken } }); return (await r.json()).tasks.map(t => { const d = new Date(parseInt(t.due_date)); const today = new Date(); let next = new Date(today.getFullYear(), d.getMonth(), d.getDate()); if(next<today) next.setFullYear(today.getFullYear()+1); const diff = Math.ceil((next-today)/(86400000)); return { name: t.name, dateStr: next.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}), diff, isSoon: diff<14 }; }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3); } catch(e) { return []; } }
@@ -499,6 +494,7 @@
             const proxy = "https://corsproxy.io/?";
             try {
                 const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
+                // 1. Fetch tasks from 2024-01-01 to catch long-running or specific 2024 projects
                 const startTimestamp = new Date("2024-01-01").getTime(); 
                 const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
                 const getProj = async () => { if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
@@ -508,9 +504,11 @@
                 
                 const shortYear = DASHBOARD_CONFIG.year.slice(-2); const fullYear = DASHBOARD_CONFIG.year;
                 
+                // DATA HOLDERS FOR MODALS
                 const listActive = []; const listTotal = []; const listDelivered = [];
                 const listRec = []; const listStream = []; const listVO = [];
 
+                // Projects - only current year
                 const validProjects = projects.filter(t => t.name.startsWith(shortYear));
                 validProjects.forEach(t => {
                     const s = t.status.status.toLowerCase();
@@ -535,9 +533,13 @@
                 tasks.forEach(t => {
                     const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
                     
+                    // --- PROJECT FILTER LOGIC ---
+                    // 1. Is it a 2025 project? (Starts with 25 or 2025)
                     const is2025 = fName.startsWith("25") || lName.startsWith("25") || fName.startsWith("2025") || lName.startsWith("2025");
+                    // 2. Is it the SPECIFIC 2024 Stream project?
                     const is24185 = fName.startsWith("24185") || lName.startsWith("24185");
 
+                    // If not 2025 AND not the specific 2024 project, skip immediately.
                     if (!is2025 && !is24185) return;
 
                     const listNameClean = lName.toLowerCase();
@@ -550,11 +552,14 @@
                     const isStream = /\b(Stream)\b/i.test(name);
                     const isRec = /\b(Inspelning)\b/i.test(name);
 
+                    // SPECIFIC EXCEPTION RULE:
+                    // If it's the 2024 project (24185), ONLY Streams are allowed.
                     if (is24185 && !isStream) return;
 
                     const status = t.status.status.toLowerCase();
                     const isDone = ['complete', 'closed', 'klar', 'done'].includes(status);
 
+                    // COUNT ONLY DONE TASKS
                     if (isDone) {
                         const displayFolder = fName || lName;
                         const item = { name: t.name, status: status, folder: displayFolder };
@@ -571,6 +576,7 @@
                         }
                     }
 
+                    // TIMELINE: SHOW ONLY ACTIVE TASKS (NOT DONE)
                     if ((isVO || isStream || isRec) && !isDone) {
                         const d = parseInt(t.start_date||t.due_date||0);
                         if (d >= Date.now() - 86400000) {
@@ -604,7 +610,7 @@
                         streams: streamCount, 
                         vos: voCount, 
                         activeProjects: listActive.length, 
-                        totalProjectsCurrentYear: listTotal.length,
+                        totalProjectsCurrentYear: listTotal.length, // Production + Delivered
                         lists: { active: listActive, total: listTotal, delivered: listDelivered, rec: listRec, stream: listStream, vo: listVO }
                     }, 
                     recordings: uniqueRecs, 
