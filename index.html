@@ -191,7 +191,7 @@
                         <div onClick={() => onOpenDetails('Inspelning & Streams', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-3xl md:text-4xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
                              <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inspelningar</span>
+                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
                                  {!loading && <span className="text-[9px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats?.streams || 0} Streams)</span>}
                                  {!loading && stats?.vos > 0 && <span className="text-[9px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats.vos} VO)</span>}
                              </div>
