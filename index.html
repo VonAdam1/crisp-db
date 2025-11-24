@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final - Total Fixed)</title>
+    <title>Crisp Dashboard (Final + Time Columns)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -156,14 +156,14 @@
                 <div className="h-full p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-3"><Trophy className="text-orange-400" size={32} /><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={24} />}</div>
                     <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
-                        <div onClick={() => onOpenDetails('Igång Nu', stats?.lists?.active)} className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Igång Nu</span>
+                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Totalt 2025 (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                        <div onClick={() => onOpenDetails('Totalt antal projekt 2025 (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt {DASHBOARD_CONFIG.year}</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Levererade Tasks', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Lev. Tasks</span>
+                        <div onClick={() => onOpenDetails('Levererade projekt', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Leverade projekt</span>
                         </div>
                         <div onClick={() => onOpenDetails('Inspelning & Streams', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-3xl md:text-4xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
@@ -232,7 +232,10 @@
                          return (
                             <div key={idx} className="flex items-center gap-5 md:gap-6 p-4 md:p-5 bg-white/5 rounded-3xl border border-white/5 transition-all hover:bg-white/10">
                                 <div className={`flex flex-col items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-2xl shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}><span className="font-bold text-2xl md:text-3xl leading-none">{item.dateMain}</span><span className="text-[10px] md:text-xs font-bold uppercase mt-0.5">{item.dateSub}</span></div>
-                                <div className="flex-grow min-w-0"><h3 className="text-lg md:text-2xl font-semibold text-white truncate leading-tight">{item.title}</h3><div className="flex items-center gap-3 mt-1.5">{isRec ? <Video size={16} className="text-red-400"/> : <Star size={16} className="text-indigo-400"/>}<span className="text-xs md:text-base font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span></div></div>
+                                <div className="flex-grow min-w-0"><h3 className="text-lg md:text-2xl font-semibold text-white truncate leading-tight">{item.title}</h3><div className="flex items-center gap-3 mt-1.5">{isRec ? <Video size={16} className="text-red-400"/> : <Star size={16} className="text-indigo-400"/>}<span className="text-xs md:text-base font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
+                                    {/* VISA TID FÖR KALENDER EVENTS */}
+                                    {item.timeStr && <span className="text-xs md:text-base font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-2 py-0.5 rounded-full ml-2">{item.timeStr}</span>}
+                                </div></div>
                             </div>
                          );
                     }) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><Calendar size={64} strokeWidth={1} /><p className="mt-4 text-xl font-medium">Kalendern är tom</p></div>}
@@ -280,10 +283,10 @@
                     <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white flex items-center gap-2"><HelpCircle /> Dashboard Info</h2><button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button></div>
                     <div className="space-y-4 text-slate-300 text-sm font-medium">
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>Ändra antal av <strong>nyligen levererat</strong> eller <strong>händer framöver</strong> genom "slice" i koden.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>Ändra antal av <strong>Senast levererat</strong> eller <strong>händer framöver</strong> genom "slice" i koden.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Antal Inspelningar</strong> söker efter exakt ordet "Inspelning".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Streams</strong> söker efter exakt ordet "stream".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Igång nu</strong> och <strong>leveranser</strong> baseras på Project Hub.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Aktiva projekt</strong> och <strong>leveranser</strong> baseras på Project Hub.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Bilder</strong> läggs i mappen 'bilder' (namn 1.jpg till 20.jpg).</div></div>
                     </div>
                 </div>
@@ -359,7 +362,62 @@
 
         // --- HELPERS ---
         async function getRealWeather() { try { const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=4&wind_speed_unit=ms`); if (!r.ok) throw new Error("API Err"); const j = await r.json(); const { current, hourly, daily } = j; const getIcon = (c, s, y) => { const P = { size: s, className: y ? "text-yellow-400" : "text-white" }; const C = { size: s, className: "text-blue-300" }; if(c===0) return <Sun {...P}/>; if(c<=3) return <CloudSun {...C}/>; if(c<=48) return <CloudFog size={s} className="text-slate-400"/>; if(c<=67||(c>=80&&c<=82)) return <CloudRain size={s} className="text-blue-400"/>; if(c<=77||c===85) return <CloudSnow size={s} className="text-white"/>; return <CloudLightning size={s} className="text-purple-400"/>; }; const getText = (c) => c===0?"Soligt":c<=3?"Molnigt":c<=48?"Dimmigt":c<=67?"Regn":c<=77?"Snö":c>=80?"Skurar":"Oväder"; const todayForecast = [8,12,16,20].map((idx, i) => ({ label: ["Morgon","Lunch","Eftermiddag","Kväll"][i], icon: getIcon(hourly.weather_code[idx], 40, hourly.weather_code[idx]===0), text: getText(hourly.weather_code[idx]), temp: hourly.temperature_2m[idx], wind: hourly.wind_speed_10m[idx], rain: hourly.precipitation_probability[idx] })); const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],32,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] })); return { temp: current.temperature_2m, condition: getText(current.weather_code), wind: current.wind_speed_10m, icon: getIcon(current.weather_code, 40, current.weather_code===0), todayForecast, nextDays }; } catch(e) { return null; } }
-        async function getGoogleSheetEvents() { if (!DASHBOARD_CONFIG.api.googleSheetCsvUrl) return []; try { const r = await fetch(`https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetCsvUrl + '&t=' + Date.now())}`); if (!r.ok) return []; const rows = (await r.text()).split(/\r\n|\n/); const events = []; const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0); rows.forEach((row,i) => { if(i>0){ const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); if(c.length>=4){ const n = c[2].replace(/^"|"$/g,'').trim(); const ds = c[3].replace(/^"|"$/g,'').trim(); let d = new Date(ds); if(isNaN(d.getTime())) d = new Date(ds.split(' ')[0]); if(!isNaN(d.getTime()) && d>=yest) events.push({ name:n, sortDate:d.getTime(), dateMain:d.getDate(), dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase() }); } } }); return events; } catch(e) { return []; } }
+        
+        async function getGoogleSheetEvents() { 
+            if (!DASHBOARD_CONFIG.api.googleSheetCsvUrl) return []; 
+            try { 
+                const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetCsvUrl + '&t=' + Date.now())}`;
+                const res = await fetch(url); 
+                if (!res.ok) return []; 
+                const rows = (await res.text()).split(/\r\n|\n/); 
+                const events = []; 
+                const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0); 
+
+                const parseDateRobustly = (dateStr) => {
+                    if (!dateStr) return null;
+                    const cleanStr = dateStr.trim().split(' ')[0];
+                    let d = new Date(cleanStr);
+                    if (!isNaN(d.getTime())) return d;
+                    const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+                    if (parts) {
+                        d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                        if (!isNaN(d.getTime())) return d;
+                    }
+                    return null;
+                };
+                
+                rows.forEach((row, i) => { 
+                    if(i===0) return; 
+                    const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
+                    if(c.length>=4){ 
+                        const n = c[2].replace(/^"|"$/g,'').trim(); 
+                        const ds = c[3].replace(/^"|"$/g,'').trim(); 
+                        
+                        // TIME LOGIC: Column E (4) and G (6)
+                        let timeLabel = "";
+                        const tStart = c[4] ? c[4].replace(/^"|"$/g,'').trim() : "";
+                        const tEnd = c.length > 6 && c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
+                        if(tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`;
+                        else if(tStart) timeLabel = tStart;
+                        else if(tEnd) timeLabel = tEnd;
+
+                        const d = parseDateRobustly(ds);
+                        
+                        if(d && d>=yest) {
+                            events.push({ 
+                                name:n, 
+                                sortDate:d.getTime(), 
+                                dateMain:d.getDate(), 
+                                dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(),
+                                timeStr: timeLabel // New Time String from Columns
+                            }); 
+                        }
+                    } 
+                }); 
+                return events; 
+            } catch(e) { return []; } 
+        }
+
         async function getClickUpBirthdays() { if (!DASHBOARD_CONFIG.api.clickUpBirthdayListId) return []; try { const r = await fetch(`https://corsproxy.io/?https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpBirthdayListId}/task`, { headers: { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken } }); return (await r.json()).tasks.map(t => { const d = new Date(parseInt(t.due_date)); const today = new Date(); let next = new Date(today.getFullYear(), d.getMonth(), d.getDate()); if(next<today) next.setFullYear(today.getFullYear()+1); const diff = Math.ceil((next-today)/(86400000)); return { name: t.name, dateStr: next.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}), diff, isSoon: diff<14 }; }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3); } catch(e) { return []; } }
 
         async function getClickUpProductionData() {
@@ -368,7 +426,6 @@
             const proxy = "https://corsproxy.io/?";
             try {
                 const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
-                // 1. Fetch tasks from 2024-01-01 to catch long-running or specific 2024 projects
                 const startTimestamp = new Date("2024-01-01").getTime(); 
                 const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
                 const getProj = async () => { if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
@@ -378,11 +435,9 @@
                 
                 const shortYear = DASHBOARD_CONFIG.year.slice(-2); const fullYear = DASHBOARD_CONFIG.year;
                 
-                // DATA HOLDERS FOR MODALS
                 const listActive = []; const listTotal = []; const listDelivered = [];
                 const listRec = []; const listStream = []; const listVO = [];
 
-                // Projects - only current year
                 const validProjects = projects.filter(t => t.name.startsWith(shortYear));
                 validProjects.forEach(t => {
                     const s = t.status.status.toLowerCase();
@@ -390,14 +445,14 @@
                     
                     if(s === 'production') {
                         listActive.push(item);
-                        listTotal.push(item); // Add Production to Total
+                        listTotal.push(item);
                     }
                     
                     if(s === 'delivered') {
                         const d = parseInt(t.date_closed||t.date_updated||0);
                         const delItem = { ...item, date: d > 0 ? new Date(d).toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) : '-' };
                         listDelivered.push(delItem);
-                        listTotal.push(delItem); // Add Delivered to Total
+                        listTotal.push(delItem);
                     }
                 });
                 
@@ -407,13 +462,9 @@
                 tasks.forEach(t => {
                     const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
                     
-                    // --- PROJECT FILTER LOGIC ---
-                    // 1. Is it a 2025 project? (Starts with 25 or 2025)
                     const is2025 = fName.startsWith("25") || lName.startsWith("25") || fName.startsWith("2025") || lName.startsWith("2025");
-                    // 2. Is it the SPECIFIC 2024 Stream project?
                     const is24185 = fName.startsWith("24185") || lName.startsWith("24185");
 
-                    // If not 2025 AND not the specific 2024 project, skip immediately.
                     if (!is2025 && !is24185) return;
 
                     const listNameClean = lName.toLowerCase();
@@ -426,14 +477,11 @@
                     const isStream = /\b(Stream)\b/i.test(name);
                     const isRec = /\b(Inspelning)\b/i.test(name);
 
-                    // SPECIFIC EXCEPTION RULE:
-                    // If it's the 2024 project (24185), ONLY Streams are allowed.
                     if (is24185 && !isStream) return;
 
                     const status = t.status.status.toLowerCase();
                     const isDone = ['complete', 'closed', 'klar', 'done'].includes(status);
 
-                    // COUNT ONLY DONE TASKS
                     if (isDone) {
                         const displayFolder = fName || lName;
                         const item = { name: t.name, status: status, folder: displayFolder };
@@ -450,7 +498,6 @@
                         }
                     }
 
-                    // TIMELINE: SHOW ONLY ACTIVE TASKS (NOT DONE)
                     if ((isVO || isStream || isRec) && !isDone) {
                         const d = parseInt(t.start_date||t.due_date||0);
                         if (d >= Date.now() - 86400000) {
@@ -484,7 +531,7 @@
                         streams: streamCount, 
                         vos: voCount, 
                         activeProjects: listActive.length, 
-                        totalProjectsCurrentYear: listTotal.length, // Production + Delivered
+                        totalProjectsCurrentYear: listTotal.length,
                         lists: { active: listActive, total: listTotal, delivered: listDelivered, rec: listRec, stream: listStream, vo: listVO }
                     }, 
                     recordings: uniqueRecs, 
