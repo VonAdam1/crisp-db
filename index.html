@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + Time Columns)</title>
+    <title>Crisp Dashboard (Final + Namnsdagar)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -89,6 +89,8 @@
         const Trophy = createLucideIcon('Trophy'); const Calendar = createLucideIcon('Calendar'); const MapPin = createLucideIcon('MapPin'); const PackageCheck = createLucideIcon('PackageCheck');
         const Star = createLucideIcon('Star'); const Image = createLucideIcon('Image'); const PartyPopper = createLucideIcon('PartyPopper'); const Umbrella = createLucideIcon('Umbrella');
         const Loader2 = createLucideIcon('Loader2'); const HelpCircle = createLucideIcon('HelpCircle'); const X = createLucideIcon('X');
+        const User = createLucideIcon('User'); // NY IKON
+        const Bell = createLucideIcon('Bell'); // NY IKON
 
         // --- CONFIG ---
         const DASHBOARD_CONFIG = {
@@ -108,6 +110,27 @@
 
         const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
+
+        // --- NAMNSDAGS MODUL ---
+        const NameDayModule = ({ nameDays, loading }) => (
+            <div className="glass-card p-4 md:p-6 flex items-center justify-between min-h-[90px] w-full animate-in shrink-0">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
+                        <Bell size={24} />
+                    </div>
+                    <div>
+                        <div className="text-sm md:text-base font-bold uppercase tracking-widest text-slate-400 mb-1">Namnsdag Idag</div>
+                        <div className="text-white text-xl md:text-3xl font-bold tracking-tight">
+                            {loading ? "Laddar..." : nameDays}
+                        </div>
+                    </div>
+                </div>
+                {!loading && nameDays !== "Inga namnsdagar" && (
+                    <div className="text-xs text-indigo-400 font-bold uppercase tracking-wider hidden sm:block">Fira dem!</div>
+                )}
+            </div>
+        );
+
 
         // --- MODULES ---
         const WeatherModule = ({ data, loading }) => {
@@ -168,7 +191,7 @@
                         <div onClick={() => onOpenDetails('Inspelning & Streams', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-3xl md:text-4xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
                              <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Insp. Dagar</span>
+                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inspelningar</span>
                                  {!loading && <span className="text-[9px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats?.streams || 0} Streams)</span>}
                                  {!loading && stats?.vos > 0 && <span className="text-[9px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats.vos} VO)</span>}
                              </div>
@@ -188,7 +211,7 @@
 
         const BirthdaysModule = ({ birthdays, loading }) => (
              <div className="h-full p-6 md:p-8 flex flex-col">
-                <div className="flex items-center justify-between mb-6"><div className="flex items-center gap-3 text-pink-400"><PartyPopper size={28} /><h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Fyller år (30 dagar)</h3></div>{loading && <Loader2 className="animate-spin text-slate-600" size={20} />}</div>
+                <div className="flex items-center justify-between mb-6"><div className="flex items-center gap-3 text-pink-400"><PartyPopper size={28} /><h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Birthdays coming up!</h3></div>{loading && <Loader2 className="animate-spin text-slate-600" size={20} />}</div>
                 <div className="space-y-4 overflow-y-auto no-scrollbar flex-grow">
                     {loading ? <div className="space-y-3"><div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div><div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div></div> : birthdays?.length > 0 ? birthdays.map((b, i) => (
                         <div key={i} className="flex items-center gap-5 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
@@ -299,6 +322,7 @@
             const [birthdays, setBirthdays] = useState([]); const [loadingBirthdays, setLoadingBirthdays] = useState(true);
             const [events, setEvents] = useState([]); 
             const [prodStats, setProdStats] = useState(null); const [loadingProd, setLoadingProd] = useState(true);
+            const [nameDays, setNameDays] = useState("Laddar..."); const [loadingNameDays, setLoadingNameDays] = useState(true); // NYA NAMNSDAG STATE
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
@@ -332,7 +356,22 @@
 
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
-                const loadFast = async () => { setLoadingWeather(true); setLoadingBirthdays(true); try { setWeather(await getRealWeather()); } catch(e){} setLoadingWeather(false); try { setEvents(await getGoogleSheetEvents()); } catch(e){} try { setBirthdays(await getClickUpBirthdays()); } catch(e){} setLoadingBirthdays(false); };
+                const loadFast = async () => { 
+                    setLoadingWeather(true); 
+                    setLoadingBirthdays(true); 
+                    setLoadingNameDays(true); // START NAMNSDAG LOADING
+                    
+                    try { setWeather(await getRealWeather()); } catch(e){} 
+                    try { setEvents(await getGoogleSheetEvents()); } catch(e){} 
+                    try { setBirthdays(await getClickUpBirthdays()); } catch(e){} 
+                    
+                    // FETCH NAMNSDAG
+                    try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
+
+                    setLoadingWeather(false); 
+                    setLoadingBirthdays(false); 
+                    setLoadingNameDays(false); // END NAMNSDAG LOADING
+                };
                 const loadHeavy = async () => { setLoadingProd(true); try { setProdStats(await getClickUpProductionData()); } catch(e) { console.error(e); } setLoadingProd(false); };
                 loadFast(); loadHeavy(); const i = setInterval(() => { if (new Date().getMinutes() === 0) { loadFast(); loadHeavy(); } }, 60000); return () => { clearInterval(t); clearInterval(i); };
             }, []);
@@ -341,7 +380,7 @@
 
             return (
                 <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
-                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-8 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[160px] text-center md:text-left relative">
+                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-4 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[160px] text-center md:text-left relative">
                          <div className="flex flex-col items-center md:items-start w-full md:w-auto">
                              <div className="flex items-center gap-4 mb-3"><img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} /><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-2`} onError={(e) => e.target.style.display = 'none'} /></div>
                             <p className="text-slate-400 text-lg md:text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
@@ -349,6 +388,12 @@
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-6 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-2`}>{dateStr}</div></div>
                     </header>
                     
+                    {/* NY NAMNSDAGS PLACERING HÄR */}
+                    <div className="px-4 md:px-8 mb-6">
+                        <NameDayModule nameDays={nameDays} loading={loadingNameDays} />
+                    </div>
+                    {/* SLUT NAMNSDAGS PLACERING */}
+
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
@@ -361,6 +406,34 @@
         };
 
         // --- HELPERS ---
+        async function getNamnsdagar() {
+            const today = new Date().toLocaleDateString('sv-SE');
+            const systemPrompt = "Du är en expert på svenska namnsdagar. Baserat på dagens datum, ge mig endast namnen som har namnsdag idag i en kort, kommaseparerad sträng. Exempel: 'Kalle, Katta'. Om inga namn hittas, svara endast 'Inga namnsdagar'.";
+            const userQuery = `Vilka svenska namnsdagar är det idag, ${today}?`;
+            const apiKey = ""
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Inga namnsdagar";
+                return text.replace(/\.$/, '');
+            } catch(e) {
+                console.error("Name Day API Error:", e);
+                return "Kunde inte hämta";
+            }
+        }
+        
         async function getRealWeather() { try { const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=4&wind_speed_unit=ms`); if (!r.ok) throw new Error("API Err"); const j = await r.json(); const { current, hourly, daily } = j; const getIcon = (c, s, y) => { const P = { size: s, className: y ? "text-yellow-400" : "text-white" }; const C = { size: s, className: "text-blue-300" }; if(c===0) return <Sun {...P}/>; if(c<=3) return <CloudSun {...C}/>; if(c<=48) return <CloudFog size={s} className="text-slate-400"/>; if(c<=67||(c>=80&&c<=82)) return <CloudRain size={s} className="text-blue-400"/>; if(c<=77||c===85) return <CloudSnow size={s} className="text-white"/>; return <CloudLightning size={s} className="text-purple-400"/>; }; const getText = (c) => c===0?"Soligt":c<=3?"Molnigt":c<=48?"Dimmigt":c<=67?"Regn":c<=77?"Snö":c>=80?"Skurar":"Oväder"; const todayForecast = [8,12,16,20].map((idx, i) => ({ label: ["Morgon","Lunch","Eftermiddag","Kväll"][i], icon: getIcon(hourly.weather_code[idx], 40, hourly.weather_code[idx]===0), text: getText(hourly.weather_code[idx]), temp: hourly.temperature_2m[idx], wind: hourly.wind_speed_10m[idx], rain: hourly.precipitation_probability[idx] })); const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],32,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] })); return { temp: current.temperature_2m, condition: getText(current.weather_code), wind: current.wind_speed_10m, icon: getIcon(current.weather_code, 40, current.weather_code===0), todayForecast, nextDays }; } catch(e) { return null; } }
         
         async function getGoogleSheetEvents() { 
