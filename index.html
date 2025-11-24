@@ -166,9 +166,16 @@
         // Här styr du allt!
         // ==========================================
         const DASHBOARD_CONFIG = {
-            // ÅRTAL - Ändra detta när det blir nytt år (t.ex. "2026")
-            // Detta påverkar rubriker OCH vilken data som hämtas från ClickUp (mappar som börjar på 25, 26 etc)
+            // ÅRTAL
             year: "2025",
+
+            // INSPELNINGS-ORD (Nyckelord för inspelningstasks)
+            // Lägg till fler ord här om du vill, t.ex. "shoot", "foto", "studio"
+            recordingKeywords: ["inspelning", "shoot", "foto", "studio"],
+
+            // INSTÄLLNINGAR
+            // Här styr du tiden för bildspelet (i millisekunder). 8000 = 8 sekunder.
+            slideshowInterval: 8000,
 
             // STORLEKAR & DESIGN (Tailwind klasser)
             design: {
@@ -311,7 +318,7 @@
                     <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-blue-400 tracking-tighter">{loading ? "-" : stats?.activeProjects}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Igång Nu</span>
                         </div>
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-purple-400 tracking-tighter">{loading ? "-" : stats?.totalProjectsCurrentYear}</span>
@@ -320,11 +327,11 @@
 
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter">{loading ? "-" : stats?.year}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererade projekt</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Lev. Tasks</span>
                         </div>
                         <div className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center">
                              <span className="text-3xl md:text-4xl font-black text-orange-400 tracking-tighter">{loading ? "-" : stats?.occasions}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Antal inspelningar</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Insp. Dagar</span>
                         </div>
                     </div>
 
@@ -351,7 +358,7 @@
              <div className="h-full p-6 md:p-8 flex flex-col">
                 <div className="flex items-center gap-3 mb-6 text-pink-400">
                     <PartyPopper size={28} />
-                    <h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Birthdays coming up!</h3>
+                    <h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Fyller år (30 dagar)</h3>
                 </div>
                 <div className="space-y-4 overflow-y-auto no-scrollbar flex-grow">
                     {birthdays?.length > 0 ? birthdays.map((b, i) => (
@@ -385,7 +392,7 @@
 
             useEffect(() => {
                 if (validImages.length === 0) return;
-                const timer = setInterval(() => setIndex((prev) => (prev + 1) % validImages.length), 20000);
+                const timer = setInterval(() => setIndex((prev) => (prev + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval);
                 return () => clearInterval(timer);
             }, [validImages]);
 
@@ -418,7 +425,7 @@
                                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2">
                                     <Image size={14} /> Life at Crisp
                                 </div>
-                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Every frame counts</h2>
+                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Creating Magic</h2>
                             </div>
                         </>
                     ) : (
@@ -724,6 +731,7 @@
                 };
 
                 const indices = [8, 12, 16, 20];
+                // CHANGED: "Eftm" -> "Eftermiddag"
                 const labels = ["Morgon", "Lunch", "Eftermiddag", "Kväll"];
                 
                 const todayForecast = indices.map((idx, i) => {
@@ -882,7 +890,14 @@
                     return s === 'production' || s === 'delivered';
                 }).length;
 
-                const recTasks = tasks.filter(t => t.name.trim().toLowerCase() === "inspelning");
+                // --- UPDATED RECORDING FILTER ---
+                // Uses config keywords for flexible matching (contains check)
+                const recKeywords = DASHBOARD_CONFIG.recordingKeywords || ["inspelning","stream"];
+                const recTasks = tasks.filter(t => {
+                    const n = t.name.trim().toLowerCase();
+                    return recKeywords.some(keyword => n.includes(keyword.toLowerCase()));
+                });
+
                 const upcomingRec = recTasks
                     .filter(t => {
                         const d = parseInt(t.start_date||t.due_date||0);
@@ -913,7 +928,7 @@
 
                 const recentDel = deliveredProjects
                     .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
-                    .slice(0,9)
+                    .slice(0,5)
                     .map(t => {
                         const ts = parseInt(t.date_closed||t.date_updated||0);
                         return { 
