@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + Public NameDay)</title>
+    <title>Crisp Dashboard (Final + Optimized Zoom)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -63,6 +63,9 @@
 
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        
+        /* GPU Acceleration Helper */
+        .gpu-accelerate { transform: translateZ(0); backface-visibility: hidden; }
     </style>
 </head>
 <body>
@@ -91,13 +94,15 @@
         const Loader2 = createLucideIcon('Loader2'); const HelpCircle = createLucideIcon('HelpCircle'); const X = createLucideIcon('X');
         const User = createLucideIcon('User');
         const Bell = createLucideIcon('Bell');
+        const Gift = createLucideIcon('Gift');
 
         // --- CONFIG ---
         const DASHBOARD_CONFIG = {
             year: "2025",
             slideshowInterval: 8000,
             design: {
-                logoSymbolHeightMobile: "h-12", logoSymbolHeightDesktop: "h-16", logoTextHeightMobile: "h-6", logoTextHeightDesktop: "h-8",    
+                logoSymbolHeightMobile: "h-16", logoSymbolHeightDesktop: "h-24", 
+                logoTextHeightMobile: "h-8", logoTextHeightDesktop: "h-12",    
                 clockSizeMobile: "text-6xl", clockSizeDesktop: "text-9xl", dateSizeMobile: "text-xl", dateSizeDesktop: "text-3xl",
                 weatherTempMobile: "text-6xl", weatherTempDesktop: "text-7xl", headersMobile: "text-xl", headersDesktop: "text-2xl"
             },
@@ -113,22 +118,23 @@
 
         // --- NAMNSDAGS MODUL ---
         const NameDayModule = ({ nameDays, loading }) => (
-            // Ändrat: w-full md:w-1/3 för att bli en tredjedel på desktop
-            <div className="glass-card p-4 md:p-6 flex items-center justify-between min-h-[90px] w-full md:w-1/3 animate-in shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
-                        <Bell size={24} />
+            <div className="glass-card px-4 py-3 flex items-center justify-between min-h-[60px] w-full md:w-1/3 animate-in shrink-0">
+                <div className="flex items-center gap-3 w-full">
+                    <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
+                        <Gift size={16} />
                     </div>
-                    <div>
-                        <div className="text-sm md:text-base font-bold uppercase tracking-widest text-slate-400 mb-1">Namnsdag Idag</div>
-                        <div className="text-white text-xl md:text-3xl font-bold tracking-tight">
-                            {loading ? "Laddar..." : nameDays}
+                    <div className="flex flex-col w-full">
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">Namnsdag Idag</div>
+                        <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-white text-lg font-bold tracking-tight leading-none">
+                                {loading ? "Laddar..." : nameDays}
+                            </span>
+                             {!loading && nameDays !== "Inga namnsdagar" && (
+                                <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider animate-pulse">Fira dem!</span>
+                            )}
                         </div>
                     </div>
                 </div>
-                {!loading && nameDays !== "Inga namnsdagar" && (
-                    <div className="text-xs text-indigo-400 font-bold uppercase tracking-wider hidden sm:block">Fira dem!</div>
-                )}
             </div>
         );
 
@@ -179,16 +185,16 @@
                 <div className="h-full p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-3"><Trophy className="text-orange-400" size={32} /><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={24} />}</div>
                     <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
-                        <div onClick={() => onOpenDetails('Igång Nu', stats?.lists?.active)} className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Igång Nu</span>
+                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Antal projekt 2025 (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt {DASHBOARD_CONFIG.year}</span>
+                        <div onClick={() => onOpenDetails('Totalt antal projekt (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt antal projekt</span>
                         </div>
                         <div onClick={() => onOpenDetails('Levererade projekt', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Leverade projekt</span>
+                             <span className={`text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererade projekt</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Inspelning & Streams', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-3xl md:text-4xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
                              <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
@@ -228,17 +234,31 @@
             useEffect(() => { const arr = []; for (let i=1; i<=20; i++) { arr.push(`bilder/${i}.jpg`); arr.push(`bilder/${i}.png`); arr.push(`bilder/${i}.jpeg`); } setValidImages(arr); }, []);
             useEffect(() => { if (validImages.length === 0) return; const t = setInterval(() => setIndex((p) => (p + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval); return () => clearInterval(t); }, [validImages]);
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
+            
+            // Optimized Zoom + Fade
             return (
-                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center">
+                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
                     {validImages.length > 0 ? <>
                             {validImages.map((img, i) => (
-                                <img key={img} src={img} onError={() => err(img)} className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-1000 ease-in-out"
-                                    style={{ opacity: index === i ? 1 : 0, transform: index === i ? 'scale(1)' : 'scale(1.05)', transition: 'opacity 1s ease-in-out, transform 8s ease-out' }} alt="Crisp" />
+                                <img 
+                                    key={img} 
+                                    src={img} 
+                                    onError={() => err(img)} 
+                                    className="absolute inset-0 w-full h-full object-cover object-center"
+                                    style={{ 
+                                        opacity: index === i ? 1 : 0, 
+                                        // Transform & Opacity combined
+                                        transform: index === i ? 'scale(1)' : 'scale(1.05)', 
+                                        transition: 'opacity 1.5s ease-in-out, transform 8s linear', 
+                                        willChange: 'opacity, transform' 
+                                    }} 
+                                    alt="Crisp" 
+                                />
                             ))}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                             <div className="absolute bottom-8 left-8 pointer-events-none">
                                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={14} /> Life at Crisp</div>
-                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Creating Magic</h2>
+                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Every frame counts</h2>
                             </div>
                         </> : <div className="h-full flex flex-col items-center justify-center text-slate-600"><Image size={48} /><p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p></div>}
                 </div>
@@ -307,9 +327,9 @@
                     <div className="space-y-4 text-slate-300 text-sm font-medium">
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>Ändra antal av <strong>nyligen levererat</strong> eller <strong>händer framöver</strong> genom "slice" i koden.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Antal inspelningar</strong> söker efter exakt ordet "Inspelning".</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Streams</strong> söker efter exakt ordet "stream".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Aktiva projekt</strong> och <strong>leveranser</strong> baseras på Project Hub.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Igång nu</strong> och <strong>leveranser</strong> baseras på Project Hub.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Bilder</strong> läggs i mappen 'bilder' (namn 1.jpg till 20.jpg).</div></div>
                     </div>
                 </div>
@@ -389,7 +409,7 @@
                     </header>
                     
                     {/* NY NAMNSDAGS PLACERING HÄR */}
-                    <div className="px-4 md:px-8 mb-6">
+                    <div className="px-4 md:px-8 mb-6 flex justify-start">
                         <NameDayModule nameDays={nameDays} loading={loadingNameDays} />
                     </div>
                     {/* SLUT NAMNSDAGS PLACERING */}
