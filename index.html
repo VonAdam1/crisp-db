@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + Optimized Zoom)</title>
+    <title>Crisp Dashboard (Final + Layout Fix)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -48,6 +48,21 @@
         @media (min-width: 768px) {
             .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
             .glass-card:active { cursor: grabbing; transform: scale(0.99); }
+        }
+        
+        /* Special class for container modules that shouldn't look like cards themselves */
+        .transparent-container {
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            overflow: visible;
+        }
+        .transparent-container:hover {
+            border-color: transparent;
+            box-shadow: none;
+            cursor: default;
         }
 
         .glass-card.dragging { opacity: 0.5; border: 2px dashed rgba(255,255,255,0.3); background: transparent; box-shadow: none; cursor: grabbing; }
@@ -116,29 +131,6 @@
         const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
 
-        // --- NAMNSDAGS MODUL ---
-        const NameDayModule = ({ nameDays, loading }) => (
-            // Bredd satt till 1/3
-            <div className="glass-card px-4 py-3 flex items-center justify-between min-h-[60px] w-full md:w-1/3 animate-in shrink-0">
-                <div className="flex items-center gap-3 w-full">
-                    <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
-                        <Gift size={16} />
-                    </div>
-                    <div className="flex flex-col w-full">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">Namnsdag Idag</div>
-                        <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-white text-lg font-bold tracking-tight leading-none">
-                                {loading ? "Laddar..." : nameDays}
-                            </span>
-                             {!loading && nameDays !== "Inga namnsdagar" && (
-                                <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider animate-pulse">Fira dem!</span>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-
         // --- MODULES ---
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
@@ -151,7 +143,7 @@
                                 <div className={`font-bold tracking-tighter text-white leading-none ${DASHBOARD_CONFIG.design.weatherTempMobile} md:${DASHBOARD_CONFIG.design.weatherTempDesktop}`}>
                                     {loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°
                                 </div>
-                                <div className="flex flex-col"><div className="text-lg md:text-xl text-slate-200 font-bold leading-tight">{statusText}</div><div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase mt-1"><span className="flex items-center gap-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</span></div></div>
+                                <div className="flex flex-col"><div className="text-base md:text-lg text-slate-200 font-bold leading-tight">{statusText}</div><div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase mt-1"><span className="flex items-center gap-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</span></div></div>
                             </div>
                         </div>
                         <div className="bg-white/5 rounded-full border border-white/10 shadow-xl p-3">{loading ? <Loader2 className="animate-spin text-slate-500" size={32} /> : (data?.icon || <Sun className="text-slate-500" size={32} />)}</div>
@@ -161,8 +153,8 @@
                             <div className="grid grid-cols-4 divide-x divide-white/10">
                                 {data?.todayForecast?.map((item, i) => (
                                     <div key={i} className="flex flex-col items-center justify-start pt-1 px-1 text-center h-full">
-                                        <span className="text-slate-400 text-[9px] md:text-[10px] font-bold uppercase tracking-wide mb-1">{item.label}</span><div className="my-1 text-white">{item.icon}</div><span className="text-[9px] uppercase text-blue-200 font-bold mb-1 truncate max-w-full px-1">{item.text}</span><span className="text-white font-bold text-lg leading-none mb-1">{Math.round(item.temp)}°</span>
-                                        <div className="flex flex-col gap-0.5 w-full items-center opacity-60 mt-auto pb-1"><div className="flex items-center gap-1 text-[9px]"><Wind size={10} className="text-slate-300"/> <span>{Math.round(item.wind)}</span></div><div className="flex items-center gap-1 text-[9px]"><Umbrella size={10} className="text-blue-300"/> <span>{item.rain}%</span></div></div>
+                                        <span className="text-slate-400 text-[8px] md:text-[9px] font-bold uppercase tracking-wide mb-1">{item.label}</span><div className="my-1 text-white">{item.icon}</div><span className="text-[8px] uppercase text-blue-200 font-bold mb-1 truncate max-w-full px-1">{item.text}</span><span className="text-white font-bold text-base leading-none mb-1">{Math.round(item.temp)}°</span>
+                                        <div className="flex flex-col gap-0.5 w-full items-center opacity-60 mt-auto pb-1"><div className="flex items-center gap-1 text-[8px]"><Wind size={10} className="text-slate-300"/> <span>{Math.round(item.wind)}</span></div><div className="flex items-center gap-1 text-[8px]"><Umbrella size={10} className="text-blue-300"/> <span>{item.rain}%</span></div></div>
                                     </div>
                                 ))}
                             </div>
@@ -170,9 +162,9 @@
                     </div>
                     <div className="pt-3 border-t border-white/10 relative z-10 mt-auto">
                         <div className="grid grid-cols-3 gap-3">
-                            {loading ? [1,2,3].map(i => <div key={i} className="h-24 bg-white/5 animate-pulse rounded-xl"></div>) : data?.nextDays?.map((day, i) => (
+                            {loading ? [1,2,3].map(i => <div key={i} className="h-20 bg-white/5 animate-pulse rounded-xl"></div>) : data?.nextDays?.map((day, i) => (
                                 <div key={i} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                    <span className="text-slate-400 text-xs font-bold uppercase mb-1">{day.day}</span><div className="mb-1">{day.icon}</div><span className="text-[9px] uppercase text-slate-400 font-bold mb-1">{day.text}</span><span className="text-white font-bold text-sm">{Math.round(day.temp)}°</span>
+                                    <span className="text-slate-400 text-xs font-bold uppercase mb-1">{day.day}</span><div className="mb-1">{day.icon}</div><span className="text-[8px] uppercase text-slate-400 font-bold mb-1">{day.text}</span><span className="text-white font-bold text-sm">{Math.round(day.temp)}°</span>
                                 </div>
                             ))}
                         </div>
@@ -181,54 +173,86 @@
             );
         };
 
+        // --- INFO SIDEBAR MODULE (Combines NameDay and Birthdays) ---
+        const InfoSidebarModule = ({ nameDays, nameDaysLoading, birthdays, birthdaysLoading }) => (
+             <div className="flex flex-col h-full gap-4">
+                {/* Namnsdag Card */}
+                <div className="glass-card px-4 py-3 flex items-center justify-between min-h-[60px] w-full shrink-0">
+                    <div className="flex items-center gap-3 w-full">
+                        <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
+                            <Gift size={16} />
+                        </div>
+                        <div className="flex flex-col w-full">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">Namnsdag Idag</div>
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                                <span className="text-white text-lg font-bold tracking-tight leading-none">
+                                    {nameDaysLoading ? "Laddar..." : nameDays}
+                                </span>
+                                {!nameDaysLoading && nameDays !== "Inga namnsdagar" && (
+                                    <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider animate-pulse">Fira dem!</span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Birthdays Card (Fills remaining height) */}
+                <div className="glass-card p-4 md:p-6 flex flex-col flex-grow">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-pink-400">
+                            <PartyPopper size={24} />
+                            <h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Birthdays coming up!</h3>
+                        </div>
+                        {birthdaysLoading && <Loader2 className="animate-spin text-slate-600" size={18} />}
+                    </div>
+                    <div className="space-y-3 overflow-y-auto no-scrollbar flex-grow">
+                        {birthdaysLoading ? 
+                            <div className="space-y-3"><div className="h-16 bg-white/5 rounded-xl animate-pulse"></div><div className="h-16 bg-white/5 rounded-xl animate-pulse"></div></div> 
+                            : birthdays?.length > 0 ? birthdays.map((b, i) => (
+                            <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-base md:text-lg font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
+                                <div><div className="text-white text-lg md:text-xl font-bold">{b.name}</div><div className="text-pink-300 text-xs md:text-sm font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div></div>
+                            </div>
+                        )) : <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">Inga födelsedagar nära.</div>}
+                    </div>
+                </div>
+             </div>
+        );
+
         const ProductionModule = ({ stats, recent, loading, onOpenDetails }) => {
             return (
-                <div className="h-full p-6 md:p-8 flex flex-col gap-6 relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-2"><div className="flex items-center gap-3"><Trophy className="text-orange-400" size={32} /><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={24} />}</div>
+                <div className="h-full p-4 md:p-6 flex flex-col gap-4 relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2"><Trophy className="text-orange-400" size={28} /><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={20} />}</div>
                     <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
-                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-2xl p-4 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
+                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Totalt antal projekt (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-2xl p-4 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt antal projekt</span>
+                        <div onClick={() => onOpenDetails('Totalt antal projekt (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt antal projekt</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Levererade projekt', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-2xl p-4 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[10px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererade projekt</span>
+                        <div onClick={() => onOpenDetails('Levererade projekt', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-xl p-3 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererade projekt</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-2xl p-4 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-3xl md:text-4xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
+                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-xl p-3 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
                              <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
-                                 {!loading && <span className="text-[9px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats?.streams || 0} Streams)</span>}
-                                 {!loading && stats?.vos > 0 && <span className="text-[9px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats.vos} VO)</span>}
+                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
+                                 {!loading && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats?.streams || 0} Streams)</span>}
+                                 {!loading && stats?.vos > 0 && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats.vos} VO)</span>}
                              </div>
                         </div>
                     </div>
-                    <div className="flex-grow flex flex-col min-h-0 animate-in pt-4 border-t border-white/5">
-                        <div className="flex items-center gap-3 mb-4 text-emerald-400 mt-2"><PackageCheck size={18} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
+                    <div className="flex-grow flex flex-col min-h-0 animate-in pt-3 border-t border-white/5">
+                        <div className="flex items-center gap-3 mb-3 text-emerald-400 mt-2"><PackageCheck size={16} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
                         <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
-                            {loading ? <div className="space-y-2"><div className="h-10 bg-white/5 rounded-xl animate-pulse"></div><div className="h-10 bg-white/5 rounded-xl animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 6).map((del, i) => (
-                                <div key={i} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5"><span className="text-white font-medium text-sm truncate mr-2">{del.name}</span><span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span></div>
+                            {loading ? <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 6).map((del, i) => (
+                                <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-sm truncate mr-2">{del.name}</span><span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span></div>
                             )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
                         </div>
                     </div>
                 </div>
             );
         };
-
-        const BirthdaysModule = ({ birthdays, loading }) => (
-             <div className="h-full p-6 md:p-8 flex flex-col">
-                <div className="flex items-center justify-between mb-6"><div className="flex items-center gap-3 text-pink-400"><PartyPopper size={28} /><h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Birthdays coming up!</h3></div>{loading && <Loader2 className="animate-spin text-slate-600" size={20} />}</div>
-                <div className="space-y-4 overflow-y-auto no-scrollbar flex-grow">
-                    {loading ? <div className="space-y-3"><div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div><div className="h-20 bg-white/5 rounded-2xl animate-pulse"></div></div> : birthdays?.length > 0 ? birthdays.map((b, i) => (
-                        <div key={i} className="flex items-center gap-5 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
-                            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-lg md:text-xl font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
-                            <div><div className="text-white text-xl md:text-2xl font-bold">{b.name}</div><div className="text-pink-300 text-sm md:text-base font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div></div>
-                        </div>
-                    )) : <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">Inga födelsedagar nära.</div>}
-                </div>
-             </div>
-        );
 
         const SlideshowModule = () => {
             const [index, setIndex] = useState(0); const [validImages, setValidImages] = useState([]);
@@ -248,7 +272,6 @@
                                     className="absolute inset-0 w-full h-full object-cover object-center"
                                     style={{ 
                                         opacity: index === i ? 1 : 0, 
-                                        // Removed transform: scale(1.05)
                                         transition: 'opacity 1.5s ease-in-out', 
                                         willChange: 'opacity' 
                                     }} 
@@ -256,9 +279,9 @@
                                 />
                             ))}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                            <div className="absolute bottom-8 left-8 pointer-events-none">
-                                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={14} /> Life at Crisp</div>
-                                <h2 className="text-3xl md:text-4xl font-bold text-white tracking-tight">Every frame counts</h2>
+                            <div className="absolute bottom-6 left-6 pointer-events-none">
+                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={12} /> Life at Crisp</div>
+                                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Every frame counts</h2>
                             </div>
                         </> : <div className="h-full flex flex-col items-center justify-center text-slate-600"><Image size={48} /><p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p></div>}
                 </div>
@@ -266,10 +289,10 @@
         };
 
         const TimelineModule = ({ items, loading }) => (
-            <div className="h-full p-6 md:p-8 flex flex-col">
-                <div className="flex items-center justify-between mb-6 md:mb-8"><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Händer Framöver</h2>{loading && <Loader2 className="animate-spin text-slate-600" size={24}/>}</div>
-                <div className="flex-grow space-y-2 overflow-y-auto no-scrollbar pr-2">
-                    {loading && items.length === 0 ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-14 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
+            <div className="h-full p-4 md:p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-4 md:mb-6"><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Händer Framöver</h2>{loading && <Loader2 className="animate-spin text-slate-600" size={20}/>}</div>
+                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">
+                    {loading && items.length === 0 ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
                     : items.length > 0 ? items.map((item, idx) => {
                          const isRec = item.type === 'recording';
                          return (
@@ -354,7 +377,14 @@
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
 
-            const [modules, setModules] = useState([ { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, { id: 'birthdays', colSpan: 4, rowSpan: 2, component: 'BirthdaysModule' }, { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, ]);
+            // CHANGED: 'infoSidebar' with noGlass: true, instead of 'birthdays'
+            const [modules, setModules] = useState([ 
+                { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
+                { id: 'infoSidebar', colSpan: 4, rowSpan: 2, component: 'InfoSidebarModule', noGlass: true }, 
+                { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
+                { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
+                { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, 
+            ]);
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
 
             const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
@@ -376,7 +406,8 @@
                     case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} onOpenDetails={openDetails} />; 
                     case 'SlideshowModule': return <SlideshowModule />; 
                     case 'TimelineModule': return <TimelineModule items={allUpcoming} loading={loadingProd} />; 
-                    case 'BirthdaysModule': return <BirthdaysModule birthdays={birthdays} loading={loadingBirthdays} />; 
+                    // Changed to use InfoSidebarModule which combines NameDay and Birthdays
+                    case 'InfoSidebarModule': return <InfoSidebarModule nameDays={nameDays} nameDaysLoading={loadingNameDays} birthdays={birthdays} birthdaysLoading={loadingBirthdays} />; 
                     default: return null; 
                 }
             };
@@ -392,7 +423,6 @@
                     try { setEvents(await getGoogleSheetEvents()); } catch(e){} 
                     try { setBirthdays(await getClickUpBirthdays()); } catch(e){} 
                     
-                    // FETCH NAMNSDAG (PUBLIC API)
                     try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
 
                     setLoadingWeather(false); 
@@ -407,26 +437,36 @@
 
             return (
                 <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
-                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-4 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[160px] text-center md:text-left relative">
+                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-3 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
                          <div className="flex flex-col items-center md:items-start w-full md:w-auto">
-                             <div className="flex items-center gap-4 mb-3"><img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} /><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-2`} onError={(e) => e.target.style.display = 'none'} /></div>
-                            <p className="text-slate-400 text-lg md:text-2xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
+                             <div className="flex items-center gap-3 mb-2"><img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} /><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
+                            <p className="text-slate-400 text-lg md:text-xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
-                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-6 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-2`}>{dateStr}</div></div>
+                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-4 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1`}>{dateStr}</div></div>
                     </header>
                     
-                    {/* NY NAMNSDAGS PLACERING HÄR */}
-                    <div className="px-4 md:px-8 mb-6 flex justify-start">
-                        <NameDayModule nameDays={nameDays} loading={loadingNameDays} />
-                    </div>
-                    {/* SLUT NAMNSDAGS PLACERING */}
+                    {/* Removed separate NameDay placement */}
 
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
-                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[160px] gap-4 md:gap-6 flex-grow pb-6 grid-flow-dense relative z-10">
-                        {modules.map((mod) => ( <div key={mod.id} draggable={!resizingId} onDragStart={(e) => onDragStart(e, mod.id)} onDragEnd={onDragEnd} onDragOver={(e) => e.preventDefault()} onDrop={() => onDrop(mod.id)} className={`glass-card animate-in col-span-1 md:col-span-${mod.colSpan} md:row-span-${mod.rowSpan} min-h-[350px] md:min-h-0 ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}> {renderModuleContent(mod)} <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, mod.id)}></div> </div> ))}
+                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
+                        {modules.map((mod) => ( 
+                            <div 
+                                key={mod.id} 
+                                draggable={!resizingId} 
+                                onDragStart={(e) => onDragStart(e, mod.id)} 
+                                onDragEnd={onDragEnd} 
+                                onDragOver={(e) => e.preventDefault()} 
+                                onDrop={() => onDrop(mod.id)} 
+                                // Apply glass-card only if mod.noGlass is NOT true
+                                className={`${mod.noGlass ? 'transparent-container' : 'glass-card'} animate-in col-span-1 md:col-span-${mod.colSpan} md:row-span-${mod.rowSpan} min-h-[300px] md:min-h-0 ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}
+                            > 
+                                {renderModuleContent(mod)} 
+                                <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, mod.id)}></div> 
+                            </div> 
+                        ))}
                     </div>
                 </div>
             );
@@ -435,12 +475,10 @@
         // --- HELPERS ---
         async function getNamnsdagar() {
             try {
-                // Använder Svenska Dagar API via proxy för att undvika CORS-problem
                 const url = "https://sholiday.faboul.se/dagar/v2.1/";
                 const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
                 if (!res.ok) throw new Error("API Error");
                 const data = await res.json();
-                // API returnerar en array "dagar", vi tar första objektet (idag)
                 const names = data.dagar[0]?.namnsdag || [];
                 return names.length > 0 ? names.join(', ') : "Inga namnsdagar";
             } catch(e) {
@@ -465,14 +503,11 @@
                     if (!dateStr) return null;
                     const cleanStr = dateStr.trim().split(' ')[0];
                     
-                    // 1. Try YYYY-MM-DD or MM/DD/YYYY (Native JS parsing)
                     let d = new Date(cleanStr);
                     if (!isNaN(d.getTime())) return d;
 
-                    // 2. Try DD/MM/YYYY or DD-MM-YYYY (Common European format)
                     const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
                     if (parts) {
-                        // Create date object explicitly as YYYY-MM-DD to avoid regional parsing issues
                         d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
                         if (!isNaN(d.getTime())) return d;
                     }
@@ -480,13 +515,12 @@
                 };
                 
                 rows.forEach((row, i) => { 
-                    if(i===0) return; // Skip header
+                    if(i===0) return; 
                     const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
                     if(c.length>=4){ 
                         const n = c[2].replace(/^"|"$/g,'').trim(); 
                         const ds = c[3].replace(/^"|"$/g,'').trim(); 
                         
-                        // TIME LOGIC: Column E (4) and G (6)
                         let timeLabel = "";
                         const tStart = c[4] ? c[4].replace(/^"|"$/g,'').trim() : "";
                         const tEnd = c.length > 6 && c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
@@ -502,7 +536,7 @@
                                 sortDate:d.getTime(), 
                                 dateMain:d.getDate(), 
                                 dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(),
-                                timeStr: timeLabel // New Time String from Columns
+                                timeStr: timeLabel 
                             }); 
                         }
                     } 
@@ -521,7 +555,6 @@
             const proxy = "https://corsproxy.io/?";
             try {
                 const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
-                // 1. Fetch tasks from 2024-01-01 to catch long-running or specific 2024 projects
                 const startTimestamp = new Date("2024-01-01").getTime(); 
                 const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
                 const getProj = async () => { if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
@@ -531,11 +564,9 @@
                 
                 const shortYear = DASHBOARD_CONFIG.year.slice(-2); const fullYear = DASHBOARD_CONFIG.year;
                 
-                // DATA HOLDERS FOR MODALS
                 const listActive = []; const listTotal = []; const listDelivered = [];
                 const listRec = []; const listStream = []; const listVO = [];
 
-                // Projects - only current year
                 const validProjects = projects.filter(t => t.name.startsWith(shortYear));
                 validProjects.forEach(t => {
                     const s = t.status.status.toLowerCase();
@@ -560,13 +591,9 @@
                 tasks.forEach(t => {
                     const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
                     
-                    // --- PROJECT FILTER LOGIC ---
-                    // 1. Is it a 2025 project? (Starts with 25 or 2025)
                     const is2025 = fName.startsWith("25") || lName.startsWith("25") || fName.startsWith("2025") || lName.startsWith("2025");
-                    // 2. Is it the SPECIFIC 2024 Stream project?
                     const is24185 = fName.startsWith("24185") || lName.startsWith("24185");
 
-                    // If not 2025 AND not the specific 2024 project, skip immediately.
                     if (!is2025 && !is24185) return;
 
                     const listNameClean = lName.toLowerCase();
@@ -579,14 +606,11 @@
                     const isStream = /\b(Stream)\b/i.test(name);
                     const isRec = /\b(Inspelning)\b/i.test(name);
 
-                    // SPECIFIC EXCEPTION RULE:
-                    // If it's the 2024 project (24185), ONLY Streams are allowed.
                     if (is24185 && !isStream) return;
 
                     const status = t.status.status.toLowerCase();
                     const isDone = ['complete', 'closed', 'klar', 'done'].includes(status);
 
-                    // COUNT ONLY DONE TASKS
                     if (isDone) {
                         const displayFolder = fName || lName;
                         const item = { name: t.name, status: status, folder: displayFolder };
@@ -603,7 +627,6 @@
                         }
                     }
 
-                    // TIMELINE: SHOW ONLY ACTIVE TASKS (NOT DONE)
                     if ((isVO || isStream || isRec) && !isDone) {
                         const d = parseInt(t.start_date||t.due_date||0);
                         if (d >= Date.now() - 86400000) {
@@ -637,7 +660,7 @@
                         streams: streamCount, 
                         vos: voCount, 
                         activeProjects: listActive.length, 
-                        totalProjectsCurrentYear: listTotal.length, // Production + Delivered
+                        totalProjectsCurrentYear: listTotal.length,
                         lists: { active: listActive, total: listTotal, delivered: listDelivered, rec: listRec, stream: listStream, vo: listVO }
                     }, 
                     recordings: uniqueRecs, 
