@@ -3,13 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard</title>
+    <title>Crisp Dashboard (Side-by-Side Fix)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.292.0"></script>
+    <!-- ADDED: PapaParse for robust CSV handling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
@@ -124,6 +126,8 @@
             api: {
                 clickUpToken: "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9",
                 clickUpSpaceId: "90155050040", clickUpBirthdayListId: "901517968972", clickUpProjectsListId: "901515357300",
+                // ADDED: Corrected list ID for budget
+                clickUpBudgetListId: "901515357300",
                 googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv"
             }
         };
@@ -135,15 +139,13 @@
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
             return (
-                <div className="h-full flex flex-col relative overflow-hidden p-4"> {/* Minskat padding från p-6 till p-4 */}
+                <div className="h-full flex flex-col relative overflow-hidden p-4">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
                     
-                    {/* Header: Stad & Nuvarande väder - Mer kompakt */}
                     <div className="relative z-10 flex justify-between items-center mb-1 shrink-0">
                           <div>
                             <div className="flex items-center gap-2 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-0.5"><MapPin size={10} /> Stockholm</div>
                             <div className="flex items-center gap-3">
-                                {/* Minskad textstorlek för desktop från 7xl till 5xl för att spara höjd */}
                                 <div className={`font-bold tracking-tighter text-white leading-none ${DASHBOARD_CONFIG.design.weatherTempMobile} md:text-5xl`}>
                                     {loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°
                                 </div>
@@ -160,14 +162,13 @@
                         </div>
                     </div>
 
-                    {/* Middle: Dagens prognos (Morgon/Lunch/etc) */}
                     <div className="flex-grow flex flex-col justify-center py-1 relative z-10 min-h-0">
                         {loading ? <div className="w-full h-12 bg-white/5 animate-pulse rounded-lg"></div> : (
                             <div className="grid grid-cols-4 divide-x divide-white/10 h-full">
                                 {data?.todayForecast?.map((item, i) => (
                                     <div key={i} className="flex flex-col items-center justify-center px-1 text-center h-full">
                                         <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wide mb-0.5">{item.label}</span>
-                                        <div className="my-0.5 text-white scale-75 origin-center">{item.icon}</div> {/* Nedskalade ikoner */}
+                                        <div className="my-0.5 text-white scale-75 origin-center">{item.icon}</div>
                                         <span className="text-[7px] uppercase text-blue-200 font-bold mb-0.5 truncate max-w-full px-1">{item.text}</span>
                                         <span className="text-white font-bold text-sm leading-none">{Math.round(item.temp)}°</span>
                                     </div>
@@ -176,7 +177,6 @@
                         )}
                     </div>
 
-                    {/* Footer: Kommande dagar - Slimmad layout */}
                     <div className="pt-2 border-t border-white/10 relative z-10 mt-auto shrink-0">
                         <div className="grid grid-cols-3 gap-2">
                             {loading ? [1,2,3].map(i => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg"></div>) : data?.nextDays?.map((day, i) => (
@@ -192,11 +192,8 @@
             );
         };
 
-        // --- INFO SIDEBAR MODULE (Combines NameDay and Birthdays) ---
-        // UPDATED: Header fixed (shrink-0) and Weather module shorter
         const InfoSidebarModule = ({ nameDays, nameDaysLoading, birthdays, birthdaysLoading }) => (
              <div className="flex flex-col h-full gap-2"> 
-                {/* Namnsdag Card - Compact */}
                 <div className="glass-card px-3 py-2 flex items-center justify-between min-h-[50px] w-full shrink-0">
                     <div className="flex items-center gap-3 w-full">
                         <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
@@ -216,9 +213,7 @@
                     </div>
                 </div>
 
-                {/* Birthdays Card - Compact to fit 2 people */}
                 <div className="glass-card p-3 flex flex-col flex-grow min-h-0">
-                    {/* FIXED: Added flex-shrink-0 to header container so it never shrinks */}
                     <div className="flex items-center justify-between mb-2 shrink-0 flex-shrink-0">
                         <div className="flex items-center gap-2 text-pink-400 min-w-0">
                             <PartyPopper size={18} className="shrink-0" />
@@ -244,32 +239,64 @@
         );
 
         const ProductionModule = ({ stats, recent, loading, onOpenDetails }) => {
+            
+            const formatCurrency = (val) => {
+                if (val === undefined || val === null) return "-";
+                if (val === 0 && loading) return "-";
+                if (val > 1000000) return (val / 1000000).toFixed(1) + " Mkr";
+                return val.toLocaleString('sv-SE') + " kr";
+            };
+
+            const currentMonthName = new Date().toLocaleDateString('sv-SE', { month: 'short' });
+            const capitalizedMonth = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1);
+
             return (
                 <div className="h-full p-4 md:p-6 flex flex-col gap-4 relative overflow-hidden">
                     <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2"><Trophy className="text-orange-400" size={28} /><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={20} />}</div>
-                    <div className="grid grid-cols-2 grid-rows-2 gap-4 shrink-0">
-                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                    
+                    <div className="grid grid-cols-2 grid-rows-3 gap-3 shrink-0">
+                        
+                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-xl p-2.5 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Totalt antal projekt (Production + Delivered)', stats?.lists?.total)} className="bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt antal projekt</span>
+
+                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="bg-slate-800/50 rounded-xl p-2.5 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt antal</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Levererade projekt', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-xl p-3 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererade projekt</span>
+
+                        <div onClick={() => onOpenDetails('Levererat i år', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-xl p-2.5 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat (År)</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-xl p-3 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
-                             <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
-                                 {!loading && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats?.streams || 0} Streams)</span>}
-                                 {!loading && stats?.vos > 0 && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats.vos} VO)</span>}
+
+                        <div onClick={() => onOpenDetails(`Levererat ${capitalizedMonth}`, stats?.lists?.monthDelivered)} className="bg-slate-800/50 rounded-xl p-2.5 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-emerald-200 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.month}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat ({capitalizedMonth})</span>
+                        </div>
+
+                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-xl p-2.5 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative overflow-hidden">
+                             <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter leading-none ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest mb-0.5">Inspelningar</span>
+                             <div className="flex flex-col items-center leading-none">
+                                {!loading && (stats?.streams > 0 || stats?.vos > 0) && (
+                                    <div className="text-[8px] font-bold text-orange-300/80 uppercase tracking-wide">
+                                        {stats?.streams > 0 && <span>+ {stats.streams} Streams</span>}
+                                        {stats?.streams > 0 && stats?.vos > 0 && <span> • </span>}
+                                        {stats?.vos > 0 && <span>+ {stats.vos} VO</span>}
+                                    </div>
+                                )}
                              </div>
                         </div>
+
+                        <div onClick={() => onOpenDetails('Omsättning / Budgetdetaljer', stats?.lists?.budgetDetails || [])} className="bg-slate-800/50 rounded-xl p-2.5 border border-yellow-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative group">
+                             <span className={`text-xl md:text-2xl font-black text-yellow-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : formatCurrency(stats?.revenue)}</span>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Omsättning (ish)</span>
+                             <span className="absolute bottom-1 right-2 text-[8px] text-yellow-500/50 opacity-0 group-hover:opacity-100 transition-opacity">Visa detaljer</span>
+                        </div>
+
                     </div>
                     <div className="flex-grow flex flex-col min-h-0 animate-in pt-3 border-t border-white/5">
                         <div className="flex items-center gap-3 mb-3 text-emerald-400 mt-2"><PackageCheck size={16} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
                         <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
-                            {loading ? <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 6).map((del, i) => (
+                            {loading ? <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 20).map((del, i) => (
                                 <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-sm truncate mr-2">{del.name}</span><span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span></div>
                             )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
                         </div>
@@ -284,7 +311,6 @@
             useEffect(() => { if (validImages.length === 0) return; const t = setInterval(() => setIndex((p) => (p + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval); return () => clearInterval(t); }, [validImages]);
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
             
-            // Optimized Fade ONLY (Zoom removed for performance)
             return (
                 <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
                     {validImages.length > 0 ? <>
@@ -362,13 +388,25 @@
                                         <div className="text-white font-medium truncate">{item.name}</div>
                                     </div>
                                     {item.folder && <div className="text-blue-300 text-xs mt-0.5">{item.folder}</div>}
+                                    
+                                    {/* DEBUG DISPLAY FOR BUDGET */}
+                                    {item.debugRawValue !== undefined && (
+                                        <div className="text-[10px] text-yellow-400/70 mt-1 font-mono">
+                                            Raw: "{item.debugRawValue}" -> Parsed: {item.parsedValue}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="shrink-0">
                                     {item.status && <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-[10px] uppercase font-bold">{item.status}</span>}
                                     {item.date && <div className="text-slate-500 text-[10px] mt-1 text-right">{item.date}</div>}
                                 </div>
                             </div>
-                        )) : <div className="text-slate-500 italic">Ingen data att visa.</div>}
+                        )) : (
+                            <div className="text-slate-500 italic p-4 text-center">
+                                <p>Inga data att visa.</p>
+                                {title.includes("Budget") && <p className="text-xs mt-2 text-slate-600">Om detta är tomt, hittades inga uppgifter i listan med ID {DASHBOARD_CONFIG.api.clickUpBudgetListId}</p>}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -401,7 +439,6 @@
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
 
-            // CHANGED: rowSpan for weather decreased to 3 (was 4) to make it 25% smaller
             const [modules, setModules] = useState([ 
                 { id: 'weather', colSpan: 8, rowSpan: 3, component: 'WeatherModule' }, 
                 { id: 'infoSidebar', colSpan: 4, rowSpan: 4, component: 'InfoSidebarModule', noGlass: true }, 
@@ -415,7 +452,6 @@
             const onDragEnd = (e) => { setDraggedId(null); e.currentTarget.classList.remove('dragging'); };
             const onDrop = (targetId) => { if (window.innerWidth < 768 || !draggedId || draggedId === targetId) return; const n = [...modules]; const d = n.findIndex(m => m.id === draggedId); const t = n.findIndex(m => m.id === targetId); const tmp = n[d]; n.splice(d, 1); n.splice(t, 0, tmp); setModules(n); };
             
-            // UPDATED: Adjusted cell height (ch) to 80 for finer resizing control
             const handleResizeStart = (e, id) => { if (window.innerWidth < 768) return; e.preventDefault(); e.stopPropagation(); setResizingId(id); const sx = e.clientX; const sy = e.clientY; const idx = modules.findIndex(m => m.id === id); const sc = modules[idx].colSpan; const sr = modules[idx].rowSpan; const cw = (window.innerWidth - 64) / 12; const ch = 80; const onMM = (me) => { const c = Math.max(3, Math.min(12, sc + Math.round((me.clientX-sx)/cw))); const r = Math.max(2, Math.min(12, sr + Math.round((me.clientY-sy)/ch))); setModules(p => { const nx = [...p]; if(nx[idx].colSpan !== c || nx[idx].rowSpan !== r) nx[idx]={...nx[idx], colSpan:c, rowSpan:r}; return nx; }); }; const onMU = () => { setResizingId(null); document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); }; document.addEventListener('mousemove', onMM); document.addEventListener('mouseup', onMU); };
 
             const openDetails = (title, items) => {
@@ -426,7 +462,10 @@
                  const allUpcoming = [
                     ...(events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
                     ...(prodStats?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: r.isStream ? 'Stream' : (r.isVO ? 'Voiceover' : 'Inspelning') }))
-                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
+                ]
+                .sort((a, b) => a.sortDate - b.sortDate)
+                .slice(0, 50); 
+                
                 switch(mod.component) { 
                     case 'WeatherModule': return <WeatherModule data={weather} loading={loadingWeather} />; 
                     case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} onOpenDetails={openDetails} />; 
@@ -475,7 +514,6 @@
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
                     
-                    {/* UPDATED: auto-rows to 60px for finer grid */}
                     <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[60px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
                             <div 
@@ -519,42 +557,62 @@
                 const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetCsvUrl + '&t=' + Date.now())}`;
                 const res = await fetch(url); 
                 if (!res.ok) return []; 
-                const rows = (await res.text()).split(/\r\n|\n/); 
+                
+                const text = await res.text();
+                
+                // USE PAPAPARSE
+                const result = Papa.parse(text, {
+                    header: false, // We read raw rows
+                    skipEmptyLines: true
+                });
+                
+                const rows = result.data;
                 const events = []; 
                 const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0); 
 
                 const parseDateRobustly = (dateStr) => {
                     if (!dateStr) return null;
-                    const cleanStr = dateStr.trim().split(' ')[0];
-                    
-                    let d = new Date(cleanStr);
+                    let s = dateStr.trim();
+                    s = s.split(' ')[0].split('T')[0]; // Remove time
+
+                    let d = new Date(s);
                     if (!isNaN(d.getTime())) return d;
 
-                    const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+                    let parts = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
                     if (parts) {
-                        d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`);
+                        d = new Date(parts[3], parts[2] - 1, parts[1]);
+                        if (!isNaN(d.getTime())) return d;
+                    }
+
+                    parts = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
+                    if (parts) {
+                        d = new Date(parts[1], parts[2] - 1, parts[3]);
                         if (!isNaN(d.getTime())) return d;
                     }
                     return null;
                 };
                 
                 rows.forEach((row, i) => { 
-                    if(i===0) return; 
-                    const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
-                    if(c.length>=4){ 
-                        const n = c[2].replace(/^"|"$/g,'').trim(); 
-                        const ds = c[3].replace(/^"|"$/g,'').trim(); 
+                    // Need at least 4 columns (0,1,2,3)
+                    if(row.length >= 4){ 
+                        const rawTitle = row[1] ? row[1].trim() : "";
+                        const cleanTitle = row[2] ? row[2].trim() : "";
+                        const n = cleanTitle || rawTitle;
+                        const ds = row[3] ? row[3].trim() : ""; 
                         
+                        if (!n) return;
+
                         let timeLabel = "";
-                        const tStart = c[4] ? c[4].replace(/^"|"$/g,'').trim() : "";
-                        const tEnd = c.length > 6 && c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
+                        const tStart = row.length > 4 && row[4] ? row[4].trim() : "";
+                        const tEnd = row.length > 6 && row[6] ? row[6].trim() : "";
+                        
                         if(tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`;
                         else if(tStart) timeLabel = tStart;
                         else if(tEnd) timeLabel = tEnd;
 
                         const d = parseDateRobustly(ds);
                         
-                        if(d && d>=yest) {
+                        if(d && !isNaN(d.getTime()) && d >= yest) {
                             events.push({ 
                                 name:n, 
                                 sortDate:d.getTime(), 
@@ -580,10 +638,41 @@
             try {
                 const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
                 const startTimestamp = new Date("2024-01-01").getTime(); 
-                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
+                
+                // Helper to fetch pages
+                const getTasks = async (archived, listId = null) => { 
+                    let all = []; let p = 0; 
+                    const baseUrl = listId 
+                        ? `${proxy}https://api.clickup.com/api/v2/list/${listId}/task?` 
+                        : `${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&`;
+                    
+                    while(p < 30) { 
+                        try { 
+                            // For budget list, we don't filter by update date to be safe, just get everything
+                            const dateFilter = listId ? "" : `&date_updated_gt=${startTimestamp}`;
+                            const res = await fetch(`${baseUrl}archived=${archived}&include_closed=true&subtasks=true&limit=100${dateFilter}&page=${p}`, { headers }); 
+                            const j = await res.json(); 
+                            if(!j.tasks || j.tasks.length===0) break; 
+                            all.push(...j.tasks); 
+                            p++; 
+                        } catch(e) { break; } 
+                    } 
+                    return all; 
+                };
+
                 const getProj = async () => { if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
 
-                const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
+                // ADDED: Fetch Budget List
+                const getBudgetTasks = async () => {
+                    if (!DASHBOARD_CONFIG.api.clickUpBudgetListId) return [];
+                    const [act, arch] = await Promise.all([
+                        getTasks(false, DASHBOARD_CONFIG.api.clickUpBudgetListId),
+                        getTasks(true, DASHBOARD_CONFIG.api.clickUpBudgetListId)
+                    ]);
+                    return [...act, ...arch];
+                };
+
+                const [active, archived, projects, budgetTasks] = await Promise.all([getTasks(false), getTasks(true), getProj(), getBudgetTasks()]);
                 const tasks = [...active, ...archived];
                 
                 const shortYear = DASHBOARD_CONFIG.year.slice(-2); const fullYear = DASHBOARD_CONFIG.year;
@@ -603,7 +692,7 @@
                     
                     if(s === 'delivered') {
                         const d = parseInt(t.date_closed||t.date_updated||0);
-                        const delItem = { ...item, date: d > 0 ? new Date(d).toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) : '-' };
+                        const delItem = { ...item, rawDate: d, date: d > 0 ? new Date(d).toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) : '-' };
                         listDelivered.push(delItem);
                         listTotal.push(delItem);
                     }
@@ -674,18 +763,107 @@
                 const recentDelSidebar = validProjects
                     .filter(t => t.status.status.toLowerCase() === 'delivered')
                     .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
-                    .slice(0,25)
+                    .slice(0,20)
                     .map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
+
+                // Calculate delivered this month + LIST
+                const now = new Date();
+                const deliveredListMonth = listDelivered.filter(i => {
+                    if(!i.rawDate) return false;
+                    const d = new Date(i.rawDate);
+                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                })
+                .sort((a, b) => b.rawDate - a.rawDate);
+
+                // --- BUDGET CALCULATION IMPROVED & DEBUGGING ---
+                let totalRevenue = 0;
+                let budgetDebugList = []; // New list for debug info
+
+                budgetTasks.forEach(t => {
+                    // Filter: Only include tasks starting with "25" or "2025" (current year)
+                    const name = t.name || "";
+                    if (!name.startsWith(shortYear) && !name.startsWith(fullYear)) return;
+
+                    if (!t.custom_fields) return;
+
+                    // Bredare sökning: Letar efter "budget" i namnet ELLER typen "currency"
+                    const budgetField = t.custom_fields.find(f => {
+                        const name = (f.name || "").toLowerCase();
+                        const type = (f.type || "").toLowerCase();
+                        return name.includes('budget') || type === 'currency';
+                    });
+
+                    if (budgetField && budgetField.value) {
+                        // Ibland kan currency vara ett objekt, ibland en sträng/nummer
+                        let rawVal = budgetField.value;
+                        // Om det är ett objekt med value-property (vissa API versioner)
+                        if (typeof rawVal === 'object' && rawVal !== null && rawVal.value !== undefined) {
+                            rawVal = rawVal.value;
+                        }
+                        
+                        // Clean up string values (e.g. "kr170,000" -> 170000)
+                        let parsedVal = 0;
+                        if (typeof rawVal === 'string') {
+                            // Remove anything that is not a digit, dot, or minus
+                            const cleanString = rawVal.replace(/[^0-9.-]/g, '');
+                            parsedVal = parseFloat(cleanString);
+                        } else if (typeof rawVal === 'number') {
+                            parsedVal = rawVal;
+                        }
+                        
+                        if (!isNaN(parsedVal)) {
+                            totalRevenue += parsedVal;
+                            
+                            // Add to debug list
+                            budgetDebugList.push({
+                                name: t.name,
+                                status: "OK", 
+                                debugRawValue: JSON.stringify(rawVal),
+                                parsedValue: parsedVal.toLocaleString('sv-SE') + " kr",
+                                folder: "Budget List"
+                            });
+                        }
+                    } else if (budgetTasks.length < 5) {
+                         budgetDebugList.push({
+                            name: t.name,
+                            status: "No Value",
+                            debugRawValue: "No matching field found",
+                            parsedValue: "-",
+                            folder: "Budget List"
+                        });
+                    }
+                });
+                
+                if (budgetDebugList.length === 0) {
+                     budgetDebugList.push({
+                        name: "No tasks found",
+                        status: "Error",
+                        debugRawValue: "Check List ID",
+                        parsedValue: "-",
+                        folder: "-"
+                    });
+                }
 
                 return { 
                     stats: { 
                         year: listDelivered.length, 
+                        month: deliveredListMonth.length,
+                        revenue: totalRevenue, 
                         occasions: recCount, 
                         streams: streamCount, 
                         vos: voCount, 
                         activeProjects: listActive.length, 
                         totalProjectsCurrentYear: listTotal.length,
-                        lists: { active: listActive, total: listTotal, delivered: listDelivered, rec: listRec, stream: listStream, vo: listVO }
+                        lists: { 
+                            active: listActive, 
+                            total: listTotal, 
+                            delivered: listDelivered, 
+                            monthDelivered: deliveredListMonth, 
+                            rec: listRec, 
+                            stream: listStream, 
+                            vo: listVO,
+                            budgetDetails: budgetDebugList 
+                        }
                     }, 
                     recordings: uniqueRecs, 
                     recentDeliveries: recentDelSidebar 
