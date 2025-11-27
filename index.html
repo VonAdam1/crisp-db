@@ -650,7 +650,7 @@
                 const recentDelSidebar = validProjects
                     .filter(t => t.status.status.toLowerCase() === 'delivered')
                     .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
-                    .slice(0,5)
+                    .slice(0,15)
                     .map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
 
                 return { 
