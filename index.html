@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + External Reload)</title>
+    <title>Crisp Dashboard (Final Separated)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -39,10 +39,9 @@
             overflow: hidden; display: flex; flex-direction: column; position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
-        @media (min-width: 768px) {
-            .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
-            .glass-card:active { cursor: grabbing; transform: scale(0.99); }
-        }
+        .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
+        .glass-card:active { cursor: grabbing; transform: scale(0.99); }
+        
         .transparent-container {
             background: transparent;
             border: none;
@@ -51,12 +50,6 @@
             -webkit-backdrop-filter: none;
             overflow: visible;
         }
-        .transparent-container:hover {
-            border-color: transparent;
-            box-shadow: none;
-            cursor: default;
-        }
-        .glass-card.dragging { opacity: 0.5; border: 2px dashed rgba(255,255,255,0.3); background: transparent; box-shadow: none; cursor: grabbing; }
         .resize-handle { position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; cursor: nwse-resize; z-index: 50; opacity: 0; transition: opacity 0.2s; display: none; }
         @media (min-width: 768px) { .resize-handle { display: block; } .glass-card:hover .resize-handle { opacity: 1; } }
         .resize-handle::after { content: ''; position: absolute; bottom: 8px; right: 8px; width: 8px; height: 8px; border-bottom: 2px solid rgba(255,255,255,0.4); border-right: 2px solid rgba(255,255,255,0.4); border-radius: 1px; }
@@ -92,10 +85,7 @@
                 clickUpProjectsListId: "901515357300",
                 clickUpBudgetFieldId: "26f92511-130b-4909-a6e5-b51385752454",
                 googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
-                
-                // TEXT SHEET URL
                 googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
-                
                 calendars: [
                     { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
                     { name: "Onlinerum", cid: "c_1e0eb5196df08999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10" }
@@ -186,7 +176,7 @@
                         const ds = c[3].replace(/^"|"$/g,'').trim(); 
                         let timeLabel = "";
                         const tStart = c[4] ? c[4].replace(/^"|"$/g,'').trim() : "";
-                        const tEnd = c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
+                        const tEnd = c.length > 6 && c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
                         if(tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`; else if(tStart) timeLabel = tStart; else if(tEnd) timeLabel = tEnd;
                         const d = parseDateRobustly(ds);
                         if(d && d>=yest) { events.push({ name:n, sortDate:d.getTime(), dateMain:d.getDate(), dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), timeStr: timeLabel }); }
@@ -199,16 +189,13 @@
         async function getGoogleSheetMotto() {
             if (!DASHBOARD_CONFIG.api.googleSheetTextUrl) return null;
             try {
-                // Aggressive Cache Busting: Timestamp + Random ID
+                // Cache Busting
                 const uniqueParam = `nocache=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
                 const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetTextUrl + '&' + uniqueParam)}`;
                 
                 const res = await fetch(url, {
                     cache: 'no-store',
-                    headers: {
-                        'Pragma': 'no-cache',
-                        'Cache-Control': 'no-cache'
-                    }
+                    headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
                 });
 
                 if (!res.ok) return null;
@@ -234,12 +221,10 @@
                 };
                 const rows = parseCSV(textData);
                 
-                // --- Kollar A1 och B1 ---
                 let title = "Every frame counts";
                 let shouldReload = "FALSE"; 
 
                 if (rows.length > 0) {
-                    // Check A1 (Index [0][0]) for primary text
                     if (rows[0].length > 0) {
                         const a1Text = rows[0][0]; 
                         const cleanText = a1Text ? a1Text.trim() : "";
@@ -247,8 +232,6 @@
                             title = cleanText;
                         }
                     }
-
-                    // Check B1 (Index [0][1]) for reload command
                     if (rows[0].length > 1) {
                         const b1Text = rows[0][1];
                         if (b1Text && b1Text.trim().toUpperCase() === "RELOAD") {
@@ -748,6 +731,7 @@
             );
         };
 
+        // --- MODALS ---
         const DetailsModal = ({ title, items, onClose }) => (
             <div className="modal-overlay open" onClick={onClose}>
                 <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -790,8 +774,9 @@
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Omsättning</strong> hämtas från fältet "Budget".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1) och uppdateras var 10:e sekund.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>**Tvinga Omladdning:** Skriv **RELOAD** i cell **B1** i ditt text-Sheet. Dashboarden läser in all data på nytt (ClickUp, etc.) inom 10 sekunder.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1).</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Texten uppdateras automatiskt</strong> var 10:e sekund.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Manuell omladdning</strong>: Skriv **RELOAD** i cell **B1** för att tvinga en omladdning (max en gång per 10 min).</div></div>
                     </div>
                 </div>
             </div>
@@ -809,8 +794,6 @@
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
-            // För att spåra den senaste tvingade omladdningen
-            const lastForcedReloadTime = useRef(0);
             // 10 minuter i millisekunder
             const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
@@ -847,10 +830,16 @@
                 }
             };
 
+            // EFFECT 1: CLOCK (Runs every second)
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
+                return () => clearInterval(t);
+            }, []);
 
+            // EFFECT 2: HEAVY DATA (Runs once + every hour)
+            useEffect(() => {
                 const loadMainData = async () => {
+                    console.log("Loading Main Data...");
                     setLoadingWeather(true);
                     setLoadingBirthdays(true);
                     setLoadingNameDays(true);
@@ -869,48 +858,48 @@
                     setLoadingProd(false);
                 };
 
-                const loadTextOnly = async () => {
+                loadMainData(); // Run immediately on mount
+
+                const mainInterval = setInterval(() => {
+                    if (new Date().getMinutes() === 0) {
+                        loadMainData();
+                    }
+                }, 60000); // Check every minute if it is :00
+
+                return () => clearInterval(mainInterval);
+            }, []);
+
+            // EFFECT 3: TEXT & RELOAD CHECK (Runs every 10s)
+            useEffect(() => {
+                const loadTextAndCheckReload = async () => {
                     try {
                         const data = await getGoogleSheetMotto();
                         if(data) {
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
                             
-                            // *** NY OMLADDNINGSLOGIK MED 10 MIN SPÄRR ***
+                            // RELOAD LOGIC IS ISOLATED HERE
                             if (data.shouldReload === 'RELOAD') {
                                 const now = Date.now();
-                                if (now - lastForcedReloadTime.current > RELOAD_COOLDOWN_MS) {
-                                    lastForcedReloadTime.current = now; // Uppdatera tidstämpel
-                                    console.log("Force Reload Triggered by Google Sheet B1! Reloading.");
+                                const lastReload = parseInt(localStorage.getItem('last_reload_timestamp') || '0');
+                                
+                                if (now - lastReload > RELOAD_COOLDOWN_MS) {
+                                    localStorage.setItem('last_reload_timestamp', now.toString());
+                                    console.log("Force Reload Triggered by Google Sheet B1! Reloading page.");
                                     window.location.reload();
                                 } else {
-                                    const remaining = Math.ceil((RELOAD_COOLDOWN_MS - (now - lastForcedReloadTime.current)) / 60000);
-                                    console.log(`Reload request ignored. Cooldown remaining: ${remaining} minutes.`);
+                                    console.log("Reload ignored due to cooldown.");
                                 }
-                            } else {
-                                // Nollställ cooldowntiden så att nästa "RELOAD" fungerar direkt
-                                // Detta är viktigt om användaren tar bort RELOAD från B1 efter en lyckad reload
-                                lastForcedReloadTime.current = 0; 
-                            }
-                            // *** SLUT NY OMLADDNINGSLOGIK ***
+                            } 
                         }
                     } catch(e){}
                 };
 
-                loadMainData();
-                loadTextOnly();
+                // Run immediately
+                loadTextAndCheckReload();
 
-                // Snabb uppdatering av text/utlösare (var 10:e sekund)
-                const textInterval = setInterval(loadTextOnly, 10000);
-
-                // Uppdatering av tung data (varje heltimme)
-                const mainInterval = setInterval(() => {
-                    if (new Date().getMinutes() === 0) {
-                        loadMainData();
-                    }
-                }, 60000); 
-
-                return () => { clearInterval(t); clearInterval(textInterval); clearInterval(mainInterval); };
-            }, []);
+                const textInterval = setInterval(loadTextAndCheckReload, 10000);
+                return () => clearInterval(textInterval);
+            }, []); // Empty dependency array ensures this interval is set once and runs independently
 
             const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
