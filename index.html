@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Vertical Optimized + Rooms)</title>
+    <title>Crisp Dashboard (Final + Auto Update)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.292.0"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     
@@ -41,7 +40,7 @@
             backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
             border: 1px solid rgba(255, 255, 255, 0.08); 
             box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-            border-radius: 1.2rem;
+            border-radius: 1.5rem;
             overflow: hidden; display: flex; flex-direction: column; position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
@@ -88,7 +87,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
         // --- ICONS ---
         const createLucideIcon = (name) => {
@@ -108,8 +107,11 @@
         const Trophy = createLucideIcon('Trophy'); const Calendar = createLucideIcon('Calendar'); const MapPin = createLucideIcon('MapPin'); const PackageCheck = createLucideIcon('PackageCheck');
         const Star = createLucideIcon('Star'); const Image = createLucideIcon('Image'); const PartyPopper = createLucideIcon('PartyPopper'); const Umbrella = createLucideIcon('Umbrella');
         const Loader2 = createLucideIcon('Loader2'); const HelpCircle = createLucideIcon('HelpCircle'); const X = createLucideIcon('X');
-        const User = createLucideIcon('User'); const Bell = createLucideIcon('Bell'); const Gift = createLucideIcon('Gift');
-        const Clock = createLucideIcon('Clock'); const Users = createLucideIcon('Users');
+        const User = createLucideIcon('User');
+        const Bell = createLucideIcon('Bell');
+        const Gift = createLucideIcon('Gift');
+        const Users = createLucideIcon('Users');
+        const DoorOpen = createLucideIcon('DoorOpen');
 
         // --- CONFIG ---
         const DASHBOARD_CONFIG = {
@@ -117,74 +119,65 @@
             slideshowInterval: 8000,
             design: {
                 logoSymbolHeightMobile: "h-16", logoSymbolHeightDesktop: "h-24", 
-                logoTextHeightMobile: "h-8", logoTextHeightDesktop: "h-12",     
-                clockSizeMobile: "text-6xl", clockSizeDesktop: "text-8xl",
-                dateSizeMobile: "text-xl", dateSizeDesktop: "text-2xl",
-                weatherTempMobile: "text-6xl", weatherTempDesktop: "text-7xl"
+                logoTextHeightMobile: "h-8", logoTextHeightDesktop: "h-12",    
+                clockSizeMobile: "text-6xl", clockSizeDesktop: "text-9xl", dateSizeMobile: "text-xl", dateSizeDesktop: "text-3xl",
+                weatherTempMobile: "text-6xl", weatherTempDesktop: "text-7xl", headersMobile: "text-xl", headersDesktop: "text-2xl"
             },
             api: {
                 clickUpToken: "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9",
                 clickUpSpaceId: "90155050040", 
                 clickUpBirthdayListId: "901517968972", 
                 clickUpProjectsListId: "901515357300",
+                clickUpBudgetFieldId: "26f92511-130b-4909-a6e5-b51385752454",
                 googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
-                // Google Calendar CIDs
-                room1Cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com",
-                room2Cid: "c_5e0eb5196df089999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com"
+                
+                // TEXT SHEET URL
+                googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
+                
+                calendars: [
+                    { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
+                    { name: "Onlinerum", cid: "c_1e0eb5196df08999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10" }
+                ]
             }
         };
 
+        const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
 
         // --- MODULES ---
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
             return (
-                <div className="h-full flex flex-col relative overflow-hidden p-3 md:p-4">
+                <div className="h-full flex flex-col relative overflow-hidden p-5 md:p-6">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
-                    
-                    <div className="relative z-10 flex justify-between items-center mb-1 shrink-0">
-                          <div>
-                            <div className="flex items-center gap-2 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-0.5"><MapPin size={10} /> Stockholm</div>
-                            <div className="flex items-center gap-3">
-                                <div className={`font-bold tracking-tighter text-white leading-none ${DASHBOARD_CONFIG.design.weatherTempMobile} md:text-5xl`}>
+                    <div className="relative z-10 flex justify-between items-start mb-2">
+                         <div><div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-1"><MapPin size={12} /> Stockholm</div>
+                            <div className="flex items-center gap-4">
+                                <div className={`font-bold tracking-tighter text-white leading-none ${DASHBOARD_CONFIG.design.weatherTempMobile} md:${DASHBOARD_CONFIG.design.weatherTempDesktop}`}>
                                     {loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°
                                 </div>
-                                <div className="flex flex-col">
-                                    <div className="text-sm md:text-base text-slate-200 font-bold leading-tight">{statusText}</div>
-                                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase mt-0.5">
-                                        <span className="flex items-center gap-1"><Wind size={10}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</span>
-                                    </div>
-                                </div>
+                                <div className="flex flex-col"><div className="text-base md:text-lg text-slate-200 font-bold leading-tight">{statusText}</div><div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase mt-1"><span className="flex items-center gap-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</span></div></div>
                             </div>
                         </div>
-                        <div className="bg-white/5 rounded-full border border-white/10 shadow-xl p-2">
-                            {loading ? <Loader2 className="animate-spin text-slate-500" size={24} /> : (data?.icon || <Sun className="text-slate-500" size={24} />)}
-                        </div>
+                        <div className="bg-white/5 rounded-full border border-white/10 shadow-xl p-3">{loading ? <Loader2 className="animate-spin text-slate-500" size={32} /> : (data?.icon || <Sun className="text-slate-500" size={32} />)}</div>
                     </div>
-
-                    <div className="flex-grow flex flex-col justify-center py-1 relative z-10 min-h-0">
-                        {loading ? <div className="w-full h-12 bg-white/5 animate-pulse rounded-lg"></div> : (
-                            <div className="grid grid-cols-4 divide-x divide-white/10 h-full">
+                    <div className="flex-grow flex flex-col justify-center py-2 relative z-10">
+                        {loading ? <div className="w-full h-20 bg-white/5 animate-pulse rounded-lg"></div> : (
+                            <div className="grid grid-cols-4 divide-x divide-white/10">
                                 {data?.todayForecast?.map((item, i) => (
-                                    <div key={i} className="flex flex-col items-center justify-center px-1 text-center h-full">
-                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wide mb-0.5">{item.label}</span>
-                                        <div className="my-0.5 text-white scale-75 origin-center">{item.icon}</div>
-                                        <span className="text-[7px] uppercase text-blue-200 font-bold mb-0.5 truncate max-w-full px-1">{item.text}</span>
-                                        <span className="text-white font-bold text-sm leading-none">{Math.round(item.temp)}°</span>
+                                    <div key={i} className="flex flex-col items-center justify-start pt-1 px-1 text-center h-full">
+                                        <span className="text-slate-400 text-[8px] md:text-[9px] font-bold uppercase tracking-wide mb-1">{item.label}</span><div className="my-1 text-white">{item.icon}</div><span className="text-[8px] uppercase text-blue-200 font-bold mb-1 truncate max-w-full px-1">{item.text}</span><span className="text-white font-bold text-base leading-none mb-1">{Math.round(item.temp)}°</span>
+                                        <div className="flex flex-col gap-0.5 w-full items-center opacity-60 mt-auto pb-1"><div className="flex items-center gap-1 text-[8px]"><Wind size={10} className="text-slate-300"/> <span>{Math.round(item.wind)}</span></div><div className="flex items-center gap-1 text-[8px]"><Umbrella size={10} className="text-blue-300"/> <span>{item.rain}%</span></div></div>
                                     </div>
                                 ))}
                             </div>
                         )}
                     </div>
-
-                    <div className="pt-2 border-t border-white/10 relative z-10 mt-auto shrink-0">
-                        <div className="grid grid-cols-3 gap-2">
-                            {loading ? [1,2,3].map(i => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg"></div>) : data?.nextDays?.map((day, i) => (
-                                <div key={i} className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                    <span className="text-slate-400 text-[9px] font-bold uppercase">{day.day}</span>
-                                    <div className="scale-75 origin-center flex items-center">{day.icon} <span className="text-[8px] ml-1 uppercase text-slate-500 hidden md:inline">{day.text}</span></div>
-                                    <span className="text-white font-bold text-xs">{Math.round(day.temp)}°</span>
+                    <div className="pt-3 border-t border-white/10 relative z-10 mt-auto">
+                        <div className="grid grid-cols-3 gap-3">
+                            {loading ? [1,2,3].map(i => <div key={i} className="h-20 bg-white/5 animate-pulse rounded-xl"></div>) : data?.nextDays?.map((day, i) => (
+                                <div key={i} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                    <span className="text-slate-400 text-xs font-bold uppercase mb-1">{day.day}</span><div className="mb-1">{day.icon}</div><span className="text-[8px] uppercase text-slate-400 font-bold mb-1">{day.text}</span><span className="text-white font-bold text-sm">{Math.round(day.temp)}°</span>
                                 </div>
                             ))}
                         </div>
@@ -193,127 +186,133 @@
             );
         };
 
-        // --- INFO SIDEBAR MODULE (Combines NameDay and Birthdays) ---
+        // --- INFO SIDEBAR MODULE ---
         const InfoSidebarModule = ({ nameDays, nameDaysLoading, birthdays, birthdaysLoading }) => (
-             <div className="flex flex-col h-full gap-2"> 
-                <div className="glass-card px-3 py-2 flex items-center justify-between min-h-[50px] w-full shrink-0">
+             <div className="flex flex-col h-full gap-4">
+                <div className="glass-card px-4 py-3 flex items-center justify-between min-h-[60px] w-full shrink-0">
                     <div className="flex items-center gap-3 w-full">
                         <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
                             <Gift size={16} />
                         </div>
-                        <div className="flex flex-col w-full min-w-0">
-                            <div className="text-[9px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-0.5">Namnsdag Idag</div>
-                            <div className="flex items-baseline gap-2 flex-wrap min-w-0">
-                                <span className="text-white text-sm md:text-base font-bold tracking-tight leading-none truncate">
+                        <div className="flex flex-col w-full">
+                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">Namnsdag Idag</div>
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                                <span className="text-white text-lg font-bold tracking-tight leading-none">
                                     {nameDaysLoading ? "Laddar..." : nameDays}
                                 </span>
                                 {!nameDaysLoading && nameDays !== "Inga namnsdagar" && (
-                                    <span className="text-[8px] text-indigo-400 font-bold uppercase tracking-wider animate-pulse shrink-0">Fira dem!</span>
+                                    <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider animate-pulse">Fira dem!</span>
                                 )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="glass-card p-3 flex flex-col flex-grow min-h-0">
-                    <div className="flex items-center justify-between mb-2 shrink-0 flex-shrink-0">
-                        <div className="flex items-center gap-2 text-pink-400 min-w-0">
-                            <PartyPopper size={18} className="shrink-0" />
-                            <h3 className="text-xs md:text-sm font-bold uppercase tracking-widest text-white whitespace-nowrap truncate">Birthdays coming up</h3>
+                <div className="glass-card p-4 md:p-6 flex flex-col flex-grow">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 text-pink-400">
+                            <PartyPopper size={24} />
+                            <h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Birthdays coming up!</h3>
                         </div>
-                        {birthdaysLoading && <Loader2 className="animate-spin text-slate-600 shrink-0 ml-2" size={14} />}
+                        {birthdaysLoading && <Loader2 className="animate-spin text-slate-600" size={18} />}
                     </div>
-                    <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
+                    <div className="space-y-3 overflow-y-auto no-scrollbar flex-grow">
                         {birthdaysLoading ? 
-                            <div className="space-y-2"><div className="h-10 bg-white/5 rounded-lg animate-pulse"></div><div className="h-10 bg-white/5 rounded-lg animate-pulse"></div></div> 
+                            <div className="space-y-3"><div className="h-16 bg-white/5 rounded-xl animate-pulse"></div><div className="h-16 bg-white/5 rounded-xl animate-pulse"></div></div> 
                             : birthdays?.length > 0 ? birthdays.map((b, i) => (
-                            <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 shrink-0">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
-                                <div className="min-w-0 flex-grow">
-                                    <div className="text-white text-sm font-bold truncate leading-tight">{b.name}</div>
-                                    <div className="text-pink-300 text-[10px] font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div>
-                                </div>
+                            <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-base md:text-lg font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
+                                <div><div className="text-white text-lg md:text-xl font-bold">{b.name}</div><div className="text-pink-300 text-xs md:text-sm font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div></div>
                             </div>
-                        )) : <div className="h-full flex items-center justify-center text-slate-500 text-xs italic">Inga födelsedagar nära.</div>}
+                        )) : <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">Inga födelsedagar nära.</div>}
                     </div>
                 </div>
              </div>
         );
 
         const ProductionModule = ({ stats, recent, loading, onOpenDetails }) => {
-            const formatCurrency = (val) => {
-                if (val === undefined || val === null) return "-";
-                if (val === 0 && loading) return "-";
-                if (val > 1000000) return (val / 1000000).toFixed(1) + " Mkr";
-                return val.toLocaleString('sv-SE') + " kr";
+            const formatMoney = (amount) => {
+                if (!amount) return "0 kr";
+                return amount.toLocaleString('sv-SE') + " kr";
             };
 
-            const currentMonthName = new Date().toLocaleDateString('sv-SE', { month: 'short' });
-            const capitalizedMonth = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1);
+            const currentMonthShort = new Date().toLocaleDateString('sv-SE', { month: 'short' }).toUpperCase().replace('.', '');
 
             return (
-                <div className="h-full p-3 md:p-4 flex flex-col gap-3 relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2"><Trophy className="text-orange-400" size={24} /><h2 className="text-lg md:text-xl font-bold uppercase tracking-wide text-white">Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={18} />}</div>
+                <div className="h-full p-4 md:p-6 flex flex-col gap-4 relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                            <Trophy className="text-orange-400" size={28} />
+                            <h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2>
+                        </div>
+                        {loading && <Loader2 className="animate-spin text-slate-600" size={20} />}
+                    </div>
                     
-                    <div className="grid grid-cols-2 grid-rows-3 gap-2 shrink-0">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 shrink-0">
+                        {/* Active Projects */}
+                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
+                             <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
+                             {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 mt-1 font-bold">{formatMoney(stats?.budgetActive)}</div>}
+                        </div>
                         
-                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-xl p-2 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-xl md:text-2xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Aktiva projekt</span>
+                         {/* Delivered MONTH */}
+                         <div onClick={() => onOpenDetails(`Levererat (${currentMonthShort})`, stats?.lists?.deliveredMonth)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
+                             <span className={`text-2xl md:text-3xl font-black text-emerald-300 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.monthDelivered}</span>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat ({currentMonthShort})</span>
+                             {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300 mt-1 font-bold shadow-black drop-shadow-md">{formatMoney(stats?.budgetMonth)}</div>}
                         </div>
 
-                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="bg-slate-800/50 rounded-xl p-2 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-xl md:text-2xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Totalt antal</span>
+                        {/* Delivered YEAR */}
+                        <div onClick={() => onOpenDetails('Levererat (År)', stats?.lists?.delivered)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
+                             <span className={`text-2xl md:text-3xl font-black text-emerald-600 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat (År)</span>
+                             {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-700 mt-1 font-bold">{formatMoney(stats?.budgetDelivered)}</div>}
                         </div>
-
-                        <div onClick={() => onOpenDetails('Levererat i år', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-xl p-2 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-xl md:text-2xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Levererat (År)</span>
+                        
+                        {/* TOTAL YEAR */}
+                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="col-span-1 md:col-span-3 bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
+                             <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{DASHBOARD_CONFIG.year}</span>
+                             <div className="flex flex-col items-center mt-0.5 gap-0.5">
+                                 <span className="text-sm md:text-base font-bold text-white leading-none">
+                                     {loading ? "-" : stats?.totalProjectsCurrentYear} <span className="text-[10px] font-normal text-slate-400 uppercase">st</span>
+                                 </span>
+                                 {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 font-bold">{formatMoney(stats?.budgetTotal)}</div>}
+                             </div>
+                             <span className="text-[9px] font-bold text-slate-500 uppercase mt-1.5 tracking-widest">Totalt Helår</span>
                         </div>
-
-                        <div onClick={() => onOpenDetails(`Levererat ${capitalizedMonth}`, stats?.lists?.monthDelivered)} className="bg-slate-800/50 rounded-xl p-2 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-xl md:text-2xl font-black text-emerald-200 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.month}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Levererat ({capitalizedMonth})</span>
-                        </div>
-
-                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-xl p-2 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative overflow-hidden">
-                             <span className={`text-xl md:text-2xl font-black text-orange-400 tracking-tighter leading-none ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
-                             <span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest mb-0.5">Inspelningar</span>
-                             <div className="flex flex-col items-center leading-none">
-                                {!loading && (stats?.streams > 0 || stats?.vos > 0) && (
-                                    <div className="text-[7px] md:text-[8px] font-bold text-orange-300/80 uppercase tracking-wide">
-                                        {stats?.streams > 0 && <span>+ {stats.streams} Streams</span>}
-                                        {stats?.streams > 0 && stats?.vos > 0 && <span> • </span>}
-                                        {stats?.vos > 0 && <span>+ {stats.vos} VO</span>}
-                                    </div>
-                                )}
+                        
+                        {/* Recordings */}
+                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="col-span-1 md:col-span-3 bg-slate-800/50 rounded-xl p-3 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
+                             <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
+                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
+                                 {!loading && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats?.streams || 0} Streams)</span>}
+                                 {!loading && stats?.vos > 0 && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats.vos} VO)</span>}
                              </div>
                         </div>
-
-                        <div onClick={() => onOpenDetails('Omsättning / Budgetdetaljer', stats?.lists?.budgetDetails || [])} className="bg-slate-800/50 rounded-xl p-2 border border-yellow-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative group">
-                             <span className={`text-lg md:text-xl font-black text-yellow-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : formatCurrency(stats?.revenue)}</span>
-                             <span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Omsättning (ish)</span>
-                             <span className="absolute bottom-1 right-2 text-[8px] text-yellow-500/50 opacity-0 group-hover:opacity-100 transition-opacity">Visa detaljer</span>
-                        </div>
-
                     </div>
+
                     <div className="flex-grow flex flex-col min-h-0 animate-in pt-3 border-t border-white/5">
-                        <div className="flex items-center gap-2 mb-2 text-emerald-400 mt-1"><PackageCheck size={14} /><h3 className="text-[10px] font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
+                        <div className="flex items-center gap-3 mb-3 text-emerald-400 mt-2"><PackageCheck size={16} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
                         <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
                             {loading ? <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 20).map((del, i) => (
-                                <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-xs md:text-sm truncate mr-2">{del.name}</span><span className="text-[8px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-1.5 py-0.5 rounded">{del.date}</span></div>
-                            )) : <p className="text-xs text-slate-500 italic">Inget nyligen.</p>}
+                                <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-sm truncate mr-2">{del.name}</span><span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span></div>
+                            )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
                         </div>
                     </div>
                 </div>
             );
         };
 
-        const SlideshowModule = () => {
+        const SlideshowModule = ({ customText }) => {
             const [index, setIndex] = useState(0); const [validImages, setValidImages] = useState([]);
             useEffect(() => { const arr = []; for (let i=1; i<=20; i++) { arr.push(`bilder/${i}.jpg`); arr.push(`bilder/${i}.png`); arr.push(`bilder/${i}.jpeg`); } setValidImages(arr); }, []);
             useEffect(() => { if (validImages.length === 0) return; const t = setInterval(() => setIndex((p) => (p + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval); return () => clearInterval(t); }, [validImages]);
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
             
             return (
-                <div className="h-full w-full relative group overflow-hidden rounded-[1.2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
+                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
                     {validImages.length > 0 ? <>
                             {validImages.map((img, i) => (
                                 <img 
@@ -331,155 +330,256 @@
                             ))}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                             <div className="absolute bottom-6 left-6 pointer-events-none">
-                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={12} /> Life at Crisp</div>
-                                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Every frame counts</h2>
+                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={12} /> {customText.subtitle}</div>
+                                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{customText.title}</h2>
                             </div>
                         </> : <div className="h-full flex flex-col items-center justify-center text-slate-600"><Image size={48} /><p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p></div>}
                 </div>
             );
         };
 
-        // --- TIMELINE WITH ROOMS (UPDATED: Show End Time) ---
-        const TimelineModule = ({ items, rooms, loading }) => (
-            <div className="h-full p-3 md:p-4 flex flex-col">
-                <div className="flex items-center justify-between mb-3 shrink-0">
-                    <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Händer Framöver & Rum</h2>
-                    {loading && <Loader2 className="animate-spin text-slate-600" size={18}/>}
-                </div>
-                
-                {/* Split Layout: Events Left, Rooms Right */}
-                <div className="flex-grow flex gap-4 min-h-0">
-                    
-                    {/* LEFT: General Events */}
-                    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar pr-1">
-                        <div className="text-[10px] font-bold uppercase text-blue-400 mb-2 tracking-widest sticky top-0 bg-[#161618] py-1 z-10">Agenda</div>
-                        <div className="space-y-1.5">
-                            {loading && items.length === 0 ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
-                            : items.length > 0 ? items.map((item, idx) => {
-                                const isRec = item.type === 'recording';
-                                return (
-                                    <div key={idx} className="flex items-center gap-3 p-2 bg-white/5 rounded-xl border border-white/5 transition-all hover:bg-white/10">
-                                        <div className={`flex flex-col items-center justify-center w-8 h-8 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                                            <span className="font-bold text-xs leading-none">{item.dateMain}</span>
-                                            <span className="text-[6px] font-bold uppercase mt-0.5">{item.dateSub}</span>
-                                        </div>
-                                        <div className="flex-grow min-w-0">
-                                            <h3 className="text-xs font-semibold text-white truncate leading-tight">{item.title}</h3>
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                                {isRec ? <Video size={10} className="text-red-400"/> : <Star size={10} className="text-indigo-400"/>}
-                                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
-                                                {item.timeStr && <span className="text-[8px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1 py-0.5 rounded ml-1">{item.timeStr}</span>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            }) : <div className="py-4 text-center text-slate-600 text-xs">Inget bokat</div>}
-                        </div>
-                    </div>
+        const TimelineModule = ({ items, bookings, loading }) => {
+            const [width, setWidth] = useState(0);
+            const ref = useRef(null);
 
-                    {/* RIGHT: Rooms (UPDATED: Filters past end time automatically) */}
-                    <div className="flex-1 flex flex-col min-h-0 border-l border-white/5 pl-4">
-                        <div className="text-[10px] font-bold uppercase text-purple-400 mb-2 tracking-widest sticky top-0 bg-[#161618] py-1 z-10">Bokade Rum</div>
-                        <div className="overflow-y-auto no-scrollbar space-y-3 pr-1">
-                            {/* Room 1 */}
-                            <div>
-                                <h4 className="text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1"><Users size={10}/> Konferensrum</h4>
-                                <div className="space-y-1">
-                                    {rooms && rooms['room1'] && rooms['room1'].length > 0 ? rooms['room1'].map((evt, i) => (
-                                        <div key={i} className="bg-purple-500/10 border border-purple-500/10 rounded-lg p-1.5">
-                                            <div className="flex justify-between items-center mb-0.5">
-                                                <span className="text-[9px] font-bold text-purple-300">{evt.date}</span>
-                                                <span className="text-[9px] font-mono text-purple-200 bg-purple-500/20 px-1 rounded">{evt.time}</span>
-                                            </div>
-                                            <div className="text-[10px] text-white truncate font-medium">{evt.summary}</div>
-                                        </div>
-                                    )) : <div className="text-[10px] text-slate-600 italic">Ledigt framöver</div>}
-                                </div>
+            useEffect(() => {
+                if (!ref.current) return;
+                const ro = new ResizeObserver(entries => {
+                    if (entries[0]) setWidth(entries[0].contentRect.width);
+                });
+                ro.observe(ref.current);
+                return () => ro.disconnect();
+            }, []);
+
+            const konfBookings = bookings ? bookings.filter(b => b.roomName === 'Konferensrum') : [];
+            const onlineBookings = bookings ? bookings.filter(b => b.roomName === 'Onlinerum') : [];
+
+            let layoutClass = "flex-col"; 
+            
+            if (width > 900) layoutClass = "flex-row gap-6";
+            else if (width > 550) layoutClass = "flex-row gap-6";
+
+            const renderList = (list, emptyText) => (
+                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2 min-h-[100px]">
+                    {loading && (!bookings || bookings.length === 0) ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
+                    : list.length > 0 ? list.map((b, idx) => (
+                        <div key={idx} className="flex items-start gap-3 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10">
+                            <div className={`mt-1 p-1.5 rounded-lg shrink-0 ${b.roomColor} ${b.roomBg}`}>
+                                <DoorOpen size={14} />
                             </div>
-                            
-                            {/* Room 2 */}
-                            <div className="mt-2">
-                                <h4 className="text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1"><Users size={10}/> Lilla Rummet</h4>
-                                <div className="space-y-1">
-                                    {rooms && rooms['room2'] && rooms['room2'].length > 0 ? rooms['room2'].map((evt, i) => (
-                                        <div key={i} className="bg-blue-500/10 border border-blue-500/10 rounded-lg p-1.5">
-                                            <div className="flex justify-between items-center mb-0.5">
-                                                <span className="text-[9px] font-bold text-blue-300">{evt.date}</span>
-                                                <span className="text-[9px] font-mono text-blue-200 bg-blue-500/20 px-1 rounded">{evt.time}</span>
-                                            </div>
-                                            <div className="text-[10px] text-white truncate font-medium">{evt.summary}</div>
-                                        </div>
-                                    )) : <div className="text-[10px] text-slate-600 italic">Ledigt framöver</div>}
+                            <div className="min-w-0 flex-grow">
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-[10px] text-slate-500 font-bold">{b.time}</span>
                                 </div>
+                                <div className="font-semibold text-white text-sm truncate leading-tight mt-0.5">{b.title}</div>
+                                {b.attendees && <div className="text-[10px] text-slate-400 mt-0.5 truncate flex items-center gap-1"><Users size={10} /> {b.attendees}</div>}
                             </div>
                         </div>
+                    )) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><DoorOpen size={32} strokeWidth={1} /><p className="mt-2 text-xs">{emptyText}</p></div>}
+                </div>
+            );
+
+            return (
+                <div ref={ref} className="h-full p-4 md:p-6 flex flex-col">
+                    <div className="flex items-center justify-between mb-4"><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Händer & Bokningar</h2>{loading && <Loader2 className="animate-spin text-slate-600" size={20}/>}</div>
+                    
+                    {width > 900 ? (
+                         <div className="flex flex-row gap-6 h-full min-h-0">
+                             <div className="flex-[1.4] flex flex-col min-h-0">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3>
+                                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">
+                                    {loading && items.length === 0 ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
+                                    : items.length > 0 ? items.map((item, idx) => {
+                                         const isRec = item.type === 'recording';
+                                         return (
+                                            <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 md:p-2 bg-white/5 rounded-xl border border-white/5 transition-all hover:bg-white/10">
+                                                <div className={`flex flex-col items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                    <span className="font-bold text-sm md:text-base leading-none">{item.dateMain}</span>
+                                                    <span className="text-[7px] md:text-[8px] font-bold uppercase mt-0.5">{item.dateSub}</span>
+                                                </div>
+                                                <div className="flex-grow min-w-0">
+                                                    <h3 className="text-sm md:text-base font-semibold text-white truncate leading-tight">{item.title}</h3>
+                                                    <div className="flex items-center gap-3 mt-0.5">
+                                                        {isRec ? <Video size={12} className="text-red-400"/> : <Star size={12} className="text-indigo-400"/>}
+                                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
+                                                        {item.timeStr && <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1.5 py-0.5 rounded-full ml-2">{item.timeStr}</span>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                         );
+                                    }) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><Calendar size={48} strokeWidth={1} /><p className="mt-2 text-sm">Inget inbokat</p></div>}
+                                </div>
+                             </div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
+                                {renderList(konfBookings, "Ledigt")}
+                             </div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
+                                {renderList(onlineBookings, "Ledigt")}
+                             </div>
+                         </div>
+                    ) : width > 550 ? (
+                        <div className="flex flex-row gap-6 h-full min-h-0">
+                             <div className="flex-1 flex flex-col min-h-0">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3>
+                                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">
+                                     {items.length > 0 ? items.map((item, idx) => (
+                                         <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10">
+                                            <div className={`w-10 h-10 rounded-lg shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                <span className="font-bold text-sm leading-none">{item.dateMain}</span>
+                                                <span className="text-[7px] font-bold uppercase">{item.dateSub}</span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="text-sm font-semibold text-white truncate">{item.title}</h3>
+                                                <span className="text-[10px] text-slate-400">{item.timeStr || item.subtitle}</span>
+                                            </div>
+                                         </div>
+                                     )) : <div className="text-slate-500 text-sm p-4">Inget inbokat</div>}
+                                </div>
+                             </div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
+                                <div className="flex-1 flex flex-col min-h-0 mb-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
+                                    {renderList(konfBookings, "Ledigt")}
+                                </div>
+                                <div className="flex-1 flex flex-col min-h-0 border-t border-white/10 pt-2">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
+                                    {renderList(onlineBookings, "Ledigt")}
+                                </div>
+                             </div>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col h-full gap-4 overflow-y-auto no-scrollbar">
+                             <div className="flex-shrink-0">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3>
+                                <div className="space-y-1.5">
+                                     {items.slice(0, 4).map((item, idx) => (
+                                         <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5">
+                                            <div className={`w-8 h-8 rounded shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                <span className="font-bold text-xs leading-none">{item.dateMain}</span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="text-sm font-semibold text-white truncate">{item.title}</h3>
+                                            </div>
+                                         </div>
+                                     ))}
+                                     {items.length === 0 && <div className="text-slate-500 text-sm">Inget inbokat</div>}
+                                </div>
+                             </div>
+                             <div className="flex-shrink-0 border-t border-white/10 pt-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
+                                <div className="space-y-1.5">
+                                    {konfBookings.length > 0 ? konfBookings.map((b,i) => (
+                                        <div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>
+                                    )) : <div className="text-slate-500 text-xs">Ledigt</div>}
+                                </div>
+                             </div>
+                             <div className="flex-shrink-0 border-t border-white/10 pt-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
+                                <div className="space-y-1.5">
+                                    {onlineBookings.length > 0 ? onlineBookings.map((b,i) => (
+                                        <div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>
+                                    )) : <div className="text-slate-500 text-xs">Ledigt</div>}
+                                </div>
+                             </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- MODALS ---
+        const DetailsModal = ({ title, items, onClose }) => (
+            <div className="modal-overlay open" onClick={onClose}>
+                <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">{title} <span className="text-slate-500 text-sm font-normal">({items?.length || 0})</span></h2>
+                        <button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button>
+                    </div>
+                    <div className="overflow-y-auto flex-grow no-scrollbar space-y-2">
+                        {items && items.length > 0 ? items.map((item, i) => (
+                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 text-sm flex justify-between items-center">
+                                <div className="flex-grow min-w-0 mr-4">
+                                    <div className="flex items-center gap-2">
+                                        {item.type && (
+                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide 
+                                                ${item.type === 'Inspelning' ? 'bg-orange-500/20 text-orange-400' : item.type === 'Stream' ? 'bg-blue-500/20 text-blue-400' : item.type === 'VO' ? 'bg-purple-500/20 text-purple-400' : ''}`}>
+                                                {item.type}
+                                            </span>
+                                        )}
+                                        <div className="text-white font-medium truncate">{item.name}</div>
+                                    </div>
+                                    {item.folder && <div className="text-blue-300 text-xs mt-0.5">{item.folder}</div>}
+                                </div>
+                                <div className="shrink-0 flex flex-col items-end">
+                                    {item.status && <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-[10px] uppercase font-bold">{item.status}</span>}
+                                    {item.date && <div className="text-slate-500 text-[10px] mt-1 text-right">{item.date}</div>}
+                                    {item.budget > 0 && <div className="text-emerald-400 text-[10px] mt-0.5 font-mono">{item.budget.toLocaleString('sv-SE')} kr</div>}
+                                </div>
+                            </div>
+                        )) : <div className="text-slate-500 italic">Ingen data att visa.</div>}
                     </div>
                 </div>
             </div>
         );
 
-        // --- APP ---
+        const HelpModal = ({ onClose }) => (
+            <div className="modal-overlay open" onClick={onClose}>
+                <div className="glass-card p-8 max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white flex items-center gap-2"><HelpCircle /> Dashboard Info</h2><button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button></div>
+                    <div className="space-y-4 text-slate-300 text-sm font-medium">
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Omsättning</strong> hämtas från fältet "Budget".</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 2.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Uppdatera</strong> genom att kryssa i rutan i Text-Sheetet.</div></div>
+                    </div>
+                </div>
+            </div>
+        );
+
         const App = () => {
             const [time, setTime] = useState(new Date());
             const [weather, setWeather] = useState(null); const [loadingWeather, setLoadingWeather] = useState(true);
             const [birthdays, setBirthdays] = useState([]); const [loadingBirthdays, setLoadingBirthdays] = useState(true);
             const [events, setEvents] = useState([]); 
-            const [roomEventsRaw, setRoomEventsRaw] = useState({ room1: [], room2: [] }); // Stores raw objects with Date()
             const [prodStats, setProdStats] = useState(null); const [loadingProd, setLoadingProd] = useState(true);
             const [nameDays, setNameDays] = useState("Laddar..."); const [loadingNameDays, setLoadingNameDays] = useState(true); 
+            const [bookings, setBookings] = useState([]);
+            const [customText, setCustomText] = useState({ title: "Every frame counts", subtitle: "Life at Crisp" });
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
 
-            // ALIGNED LAYOUT
             const [modules, setModules] = useState([ 
-                { id: 'weather', colSpan: 8, rowSpan: 3, component: 'WeatherModule' }, 
-                { id: 'infoSidebar', colSpan: 4, rowSpan: 3, component: 'InfoSidebarModule', noGlass: true }, 
-                { id: 'timeline', colSpan: 6, rowSpan: 6, component: 'TimelineModule' }, 
-                { id: 'production', colSpan: 6, rowSpan: 6, component: 'ProductionModule' }, 
-                { id: 'slideshow', colSpan: 12, rowSpan: 4, component: 'SlideshowModule' }, 
+                { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
+                { id: 'infoSidebar', colSpan: 4, rowSpan: 2, component: 'InfoSidebarModule', noGlass: true }, 
+                { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
+                { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
+                { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, 
             ]);
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
 
-            // ... (Drag/Drop handlers same as before) ...
             const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
             const onDragEnd = (e) => { setDraggedId(null); e.currentTarget.classList.remove('dragging'); };
             const onDrop = (targetId) => { if (window.innerWidth < 768 || !draggedId || draggedId === targetId) return; const n = [...modules]; const d = n.findIndex(m => m.id === draggedId); const t = n.findIndex(m => m.id === targetId); const tmp = n[d]; n.splice(d, 1); n.splice(t, 0, tmp); setModules(n); };
-            const handleResizeStart = (e, id) => { if (window.innerWidth < 768) return; e.preventDefault(); e.stopPropagation(); setResizingId(id); const sx = e.clientX; const sy = e.clientY; const idx = modules.findIndex(m => m.id === id); const sc = modules[idx].colSpan; const sr = modules[idx].rowSpan; const cw = (window.innerWidth - 64) / 12; const ch = 80; const onMM = (me) => { const c = Math.max(3, Math.min(12, sc + Math.round((me.clientX-sx)/cw))); const r = Math.max(2, Math.min(12, sr + Math.round((me.clientY-sy)/ch))); setModules(p => { const nx = [...p]; if(nx[idx].colSpan !== c || nx[idx].rowSpan !== r) nx[idx]={...nx[idx], colSpan:c, rowSpan:r}; return nx; }); }; const onMU = () => { setResizingId(null); document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); }; document.addEventListener('mousemove', onMM); document.addEventListener('mouseup', onMU); };
+            const handleResizeStart = (e, id) => { if (window.innerWidth < 768) return; e.preventDefault(); e.stopPropagation(); setResizingId(id); const sx = e.clientX; const sy = e.clientY; const idx = modules.findIndex(m => m.id === id); const sc = modules[idx].colSpan; const sr = modules[idx].rowSpan; const cw = (window.innerWidth - 64) / 12; const ch = 184; const onMM = (me) => { const c = Math.max(3, Math.min(12, sc + Math.round((me.clientX-sx)/cw))); const r = Math.max(1, Math.min(6, sr + Math.round((me.clientY-sy)/ch))); setModules(p => { const nx = [...p]; if(nx[idx].colSpan !== c || nx[idx].rowSpan !== r) nx[idx]={...nx[idx], colSpan:c, rowSpan:r}; return nx; }); }; const onMU = () => { setResizingId(null); document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); }; document.addEventListener('mousemove', onMM); document.addEventListener('mouseup', onMU); };
 
-            const openDetails = (title, items) => { setDetailModal({ title, items }); };
-
-            // Process Rooms based on CURRENT time (updates every second)
-            const getProcessedRooms = () => {
-                const now = time; // uses the state that updates every second
-                const processList = (list) => {
-                    return list
-                        .filter(e => e.endObj > now) // Only show if it ends in future
-                        .slice(0, 5)
-                        .map(e => ({
-                            date: e.startObj.toLocaleDateString('sv-SE', {day:'numeric', month:'short'}),
-                            // New format: HH:MM - HH:MM
-                            time: `${e.startObj.toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit'})} - ${e.endObj.toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit'})}`,
-                            summary: e.summary
-                        }));
-                };
-                return {
-                    room1: processList(roomEventsRaw.room1),
-                    room2: processList(roomEventsRaw.room2)
-                };
+            const openDetails = (title, items) => {
+                setDetailModal({ title, items });
             };
 
             const renderModuleContent = (mod) => {
                  const allUpcoming = [
                     ...(events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
                     ...(prodStats?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: r.isStream ? 'Stream' : (r.isVO ? 'Voiceover' : 'Inspelning') }))
-                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 50); 
-                
+                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
                 switch(mod.component) { 
                     case 'WeatherModule': return <WeatherModule data={weather} loading={loadingWeather} />; 
                     case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} onOpenDetails={openDetails} />; 
-                    case 'SlideshowModule': return <SlideshowModule />; 
-                    case 'TimelineModule': return <TimelineModule items={allUpcoming} rooms={getProcessedRooms()} loading={loadingProd} />; 
+                    case 'SlideshowModule': return <SlideshowModule customText={customText} />; 
+                    case 'TimelineModule': return <TimelineModule items={allUpcoming} bookings={bookings} loading={loadingProd} />; 
                     case 'InfoSidebarModule': return <InfoSidebarModule nameDays={nameDays} nameDaysLoading={loadingNameDays} birthdays={birthdays} birthdaysLoading={loadingBirthdays} />; 
                     default: return null; 
                 }
@@ -487,56 +587,73 @@
 
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
-                
                 const loadFast = async () => { 
-                    setLoadingWeather(true); setLoadingBirthdays(true); setLoadingNameDays(true); 
+                    setLoadingWeather(true); 
+                    setLoadingBirthdays(true); 
+                    setLoadingNameDays(true); 
+                    
                     try { setWeather(await getRealWeather()); } catch(e){} 
                     try { setEvents(await getGoogleSheetEvents()); } catch(e){} 
                     try { setBirthdays(await getClickUpBirthdays()); } catch(e){} 
+                    try { setBookings(await getRoomBookings()); } catch(e){}
+                    
                     try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
-                    setLoadingWeather(false); setLoadingBirthdays(false); setLoadingNameDays(false); 
-                };
 
-                const loadRooms = async () => {
-                    try {
-                        const r1 = await getPublicCalendarEvents(DASHBOARD_CONFIG.api.room1Cid);
-                        const r2 = await getPublicCalendarEvents(DASHBOARD_CONFIG.api.room2Cid);
-                        setRoomEventsRaw({ room1: r1, room2: r2 });
-                    } catch(e) { console.error("Rooms failed", e); }
+                    setLoadingWeather(false); 
+                    setLoadingBirthdays(false); 
+                    setLoadingNameDays(false); 
                 };
-
                 const loadHeavy = async () => { setLoadingProd(true); try { setProdStats(await getClickUpProductionData()); } catch(e) { console.error(e); } setLoadingProd(false); };
                 
                 loadFast(); 
                 loadHeavy(); 
-                loadRooms();
+                
+                const i = setInterval(() => { if (new Date().getMinutes() === 0) { loadFast(); loadHeavy(); } }, 60000); 
+                
+                // CHECK GOOGLE SHEET EVERY 5 SECONDS FOR TEXT UPDATES OR RELOAD TRIGGER
+                const textInterval = setInterval(async () => {
+                    try { 
+                        const data = await getGoogleSheetMotto();
+                        if(data) {
+                            if(data.title && data.subtitle) setCustomText(data);
+                            
+                            // CHECK RELOAD FLAG (Column C)
+                            // If TRUE, and we haven't reloaded for this session yet (or user toggled it)
+                            if (data.shouldReload === 'TRUE') {
+                                const hasReloaded = sessionStorage.getItem('has_forced_reload');
+                                if (!hasReloaded) {
+                                    console.log("Force Reload Triggered by Sheet!");
+                                    sessionStorage.setItem('has_forced_reload', 'true');
+                                    window.location.reload(); 
+                                }
+                            } else {
+                                // If flag is FALSE, clear the session storage so we can reload again next time it becomes TRUE
+                                sessionStorage.removeItem('has_forced_reload');
+                            }
+                        }
+                    } catch(e){}
+                }, 5000);
 
-                // Polling intervals
-                const iFast = setInterval(loadFast, 300000); // 5 min
-                const iHeavy = setInterval(loadHeavy, 3600000); // 1 hour
-                const iRooms = setInterval(loadRooms, 60000); // 1 min (Fast updates for rooms)
-
-                return () => { clearInterval(t); clearInterval(iFast); clearInterval(iHeavy); clearInterval(iRooms); };
+                return () => { clearInterval(t); clearInterval(i); clearInterval(textInterval); };
             }, []);
 
             const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
             return (
-                <div className="min-h-screen p-4 md:p-6 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
-                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-2 px-2 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto text-center md:text-left relative">
+                <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
+                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-3 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
                          <div className="flex flex-col items-center md:items-start w-full md:w-auto">
-                             <div className="flex items-center gap-3 mb-1"><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
-                            <p className="text-slate-400 text-base md:text-lg font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
+                             <div className="flex items-center gap-3 mb-2"><img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} /><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
+                            <p className="text-slate-400 text-lg md:text-xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
-                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-2 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1`}>{dateStr}</div></div>
+                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-4 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1`}>{dateStr}</div></div>
                     </header>
                     
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[60px] gap-3 flex-grow pb-4 grid-flow-dense relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
                             <div 
                                 key={mod.id} 
@@ -545,7 +662,7 @@
                                 onDragEnd={onDragEnd} 
                                 onDragOver={(e) => e.preventDefault()} 
                                 onDrop={() => onDrop(mod.id)} 
-                                className={`${mod.noGlass ? 'transparent-container' : 'glass-card'} animate-in col-span-1 md:col-span-${mod.colSpan} md:row-span-${mod.rowSpan} min-h-[140px] md:min-h-0 ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}
+                                className={`${mod.noGlass ? 'transparent-container' : 'glass-card'} animate-in col-span-1 md:col-span-${mod.colSpan} md:row-span-${mod.rowSpan} min-h-[300px] md:min-h-0 ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}
                             > 
                                 {renderModuleContent(mod)} 
                                 <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, mod.id)}></div> 
@@ -557,64 +674,6 @@
         };
 
         // --- HELPERS ---
-        async function getPublicCalendarEvents(cid) {
-            try {
-                const url = `https://corsproxy.io/?https://calendar.google.com/calendar/ical/${encodeURIComponent(cid)}/public/basic.ics`;
-                const res = await fetch(url);
-                if (!res.ok) return [];
-                const text = await res.text();
-                
-                const events = [];
-                const lines = text.split(/\r\n|\n/);
-                let currentEvent = {};
-                
-                // --- PARSER ---
-                const parseICalDate = (val) => {
-                    // YYYYMMDDTHHMMSSZ or YYYYMMDD
-                    const clean = val.replace(/[^0-9T]/g, ''); // Basic clean
-                    const y = parseInt(clean.substring(0,4));
-                    const m = parseInt(clean.substring(4,6)) - 1;
-                    const d = parseInt(clean.substring(6,8));
-                    let h=0, min=0;
-                    if(clean.includes('T')) {
-                        const tPart = clean.split('T')[1];
-                        h = parseInt(tPart.substring(0,2));
-                        min = parseInt(tPart.substring(2,4));
-                    }
-                    // Treat as UTC then convert to object (simplified for display)
-                    return new Date(Date.UTC(y, m, d, h, min));
-                };
-
-                for (let line of lines) {
-                    if (line.startsWith('BEGIN:VEVENT')) {
-                        currentEvent = {};
-                    } else if (line.startsWith('END:VEVENT')) {
-                        if (currentEvent.startObj && currentEvent.summary) {
-                            // If no end time, assume 1 hour or same day
-                            if (!currentEvent.endObj) {
-                                currentEvent.endObj = new Date(currentEvent.startObj.getTime() + 3600000);
-                            }
-                            events.push(currentEvent);
-                        }
-                    } else if (line.startsWith('DTSTART')) {
-                        currentEvent.startObj = parseICalDate(line.split(':')[1]);
-                    } else if (line.startsWith('DTEND')) {
-                        currentEvent.endObj = parseICalDate(line.split(':')[1]);
-                    } else if (line.startsWith('SUMMARY')) {
-                        currentEvent.summary = line.substring(8);
-                    }
-                }
-                
-                // Return RAW objects (filtering happens in render)
-                return events.sort((a,b) => a.startObj - b.startObj);
-
-            } catch (e) {
-                console.error("Calendar Fetch Error", e);
-                return [];
-            }
-        }
-
-        // ... [Rest of helper functions (getNamnsdagar, getRealWeather, etc) remain unchanged] ...
         async function getNamnsdagar() {
             try {
                 const url = "https://sholiday.faboul.se/dagar/v2.1/";
@@ -637,76 +696,153 @@
                 const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetCsvUrl + '&t=' + Date.now())}`;
                 const res = await fetch(url); 
                 if (!res.ok) return []; 
-                
-                const text = await res.text();
-                
-                // USE PAPAPARSE
-                const result = Papa.parse(text, {
-                    header: false, // We read raw rows
-                    skipEmptyLines: true
-                });
-                
-                const rows = result.data;
+                const rows = (await res.text()).split(/\r\n|\n/); 
                 const events = []; 
                 const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0); 
 
                 const parseDateRobustly = (dateStr) => {
                     if (!dateStr) return null;
-                    let s = dateStr.replace(/^"|"$/g, '').trim();
-                    s = s.split(' ')[0].split('T')[0]; // Remove time
-
-                    let d = new Date(s);
+                    const cleanStr = dateStr.trim().split(' ')[0];
+                    let d = new Date(cleanStr);
                     if (!isNaN(d.getTime())) return d;
-
-                    let parts = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
-                    if (parts) {
-                        d = new Date(parts[3], parts[2] - 1, parts[1]);
-                        if (!isNaN(d.getTime())) return d;
-                    }
-
-                    parts = s.match(/^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})/);
-                    if (parts) {
-                        d = new Date(parts[1], parts[2] - 1, parts[3]);
-                        if (!isNaN(d.getTime())) return d;
-                    }
+                    const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+                    if (parts) { d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`); if (!isNaN(d.getTime())) return d; }
                     return null;
                 };
                 
                 rows.forEach((row, i) => { 
-                    // Need at least 4 columns (0,1,2,3)
-                    if(row.length >= 4){ 
-                        const rawTitle = row[1] ? row[1].trim() : "";
-                        const cleanTitle = row[2] ? row[2].trim() : "";
-                        const n = cleanTitle || rawTitle;
-                        const ds = row[3] ? row[3].trim() : ""; 
-                        
-                        if (!n) return;
-
+                    if(i===0) return; 
+                    const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
+                    if(c.length>=4){ 
+                        const n = c[2].replace(/^"|"$/g,'').trim(); 
+                        const ds = c[3].replace(/^"|"$/g,'').trim(); 
                         let timeLabel = "";
-                        const tStart = row.length > 4 && row[4] ? row[4].trim() : "";
-                        const tEnd = row.length > 6 && row[6] ? row[6].trim() : "";
-                        
-                        if(tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`;
-                        else if(tStart) timeLabel = tStart;
-                        else if(tEnd) timeLabel = tEnd;
-
+                        const tStart = c[4] ? c[4].replace(/^"|"$/g,'').trim() : "";
+                        const tEnd = c.length > 6 && c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
+                        if(tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`; else if(tStart) timeLabel = tStart; else if(tEnd) timeLabel = tEnd;
                         const d = parseDateRobustly(ds);
-                        
-                        if(d && !isNaN(d.getTime()) && d >= yest) {
-                            events.push({ 
-                                name:n, 
-                                sortDate:d.getTime(), 
-                                dateMain:d.getDate(), 
-                                dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(),
-                                timeStr: timeLabel 
-                            }); 
-                        }
+                        if(d && d>=yest) { events.push({ name:n, sortDate:d.getTime(), dateMain:d.getDate(), dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), timeStr: timeLabel }); }
                     } 
                 }); 
                 return events; 
-            } catch(e) { 
-                return []; 
-            } 
+            } catch(e) { return []; } 
+        }
+
+        async function getGoogleSheetMotto() {
+            if (!DASHBOARD_CONFIG.api.googleSheetTextUrl) return null;
+            try {
+                // Add timestamp to prevent caching
+                const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetTextUrl + '&t=' + Date.now())}`;
+                const res = await fetch(url);
+                if (!res.ok) return null;
+                const textData = await res.text();
+                const rows = textData.split(/\r\n|\n/);
+                // Assume Row 2: Col A = Title, Col B = Subtitle, Col C = Checkbox (TRUE/FALSE)
+                if (rows.length >= 2) {
+                    const cols = rows[1].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if (cols.length >= 2) {
+                        const title = cols[0].replace(/^"|"$/g, '').trim();
+                        const subtitle = cols[1].replace(/^"|"$/g, '').trim();
+                        // Check Col C for reload flag
+                        const shouldReload = cols.length > 2 ? cols[2].replace(/^"|"$/g, '').trim().toUpperCase() : "FALSE";
+                        
+                        return { title, subtitle, shouldReload };
+                    }
+                }
+                return null;
+            } catch (e) { return null; }
+        }
+
+        async function getRoomBookings() {
+            if (!DASHBOARD_CONFIG.api.calendars) return [];
+            let allBookings = [];
+            
+            // Helper to parse ICS date string (YYYYMMDDTHHMMSSZ or YYYYMMDD)
+            const parseICSDate = (str) => {
+                if(!str) return null;
+                const year = str.substring(0, 4);
+                const month = str.substring(4, 6) - 1;
+                const day = str.substring(6, 8);
+                const hour = str.length > 8 ? str.substring(9, 11) : 0;
+                const min = str.length > 8 ? str.substring(11, 13) : 0;
+                
+                // Usually Z (UTC) is at end. We construct UTC date then let JS convert to local
+                const d = new Date(Date.UTC(year, month, day, hour, min, 0));
+                return d;
+            };
+
+            for (const cal of DASHBOARD_CONFIG.api.calendars) {
+                try {
+                    const url = `https://corsproxy.io/?${encodeURIComponent('https://calendar.google.com/calendar/ical/' + cal.cid + '/public/basic.ics')}`;
+                    const res = await fetch(url);
+                    if (!res.ok) continue;
+                    const text = await res.text();
+                    
+                    // Simple Regex Parser for VEVENT
+                    const eventRegex = /BEGIN:VEVENT([\s\S]*?)END:VEVENT/g;
+                    let match;
+                    const now = new Date();
+                    // Show events from 1 hour ago (so ongoing meetings show) up to 7 days ahead
+                    const cutoff = new Date(now.getTime() - 60*60*1000); 
+
+                    while ((match = eventRegex.exec(text)) !== null) {
+                        const eventBlock = match[1];
+                        
+                        const getField = (field) => {
+                            const r = new RegExp(`${field}[:;](.*)`);
+                            const m = eventBlock.match(r);
+                            return m ? m[1].trim() : null;
+                        };
+                        
+                        // Extract Start
+                        let dtStart = getField('DTSTART');
+                        if (dtStart && dtStart.includes('VALUE=DATE')) dtStart = dtStart.split(':')[1]; // Handle full day
+                        
+                        // Extract End
+                        let dtEnd = getField('DTEND');
+                        if (dtEnd && dtEnd.includes('VALUE=DATE')) dtEnd = dtEnd.split(':')[1];
+
+                        // Summary
+                        const summary = getField('SUMMARY') || "Bokat";
+                        // Description (Might contain names)
+                        const description = getField('DESCRIPTION');
+                        
+                        // Parse Date
+                        if (dtStart) {
+                            const startDate = parseICSDate(dtStart);
+                            const endDate = dtEnd ? parseICSDate(dtEnd) : null;
+                            
+                            if (startDate >= cutoff) {
+                                const isToday = startDate.getDate() === now.getDate() && startDate.getMonth() === now.getMonth();
+                                const timeStr = isToday 
+                                    ? `${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}${endDate ? ' - ' + endDate.getHours().toString().padStart(2,'0') + ':' + endDate.getMinutes().toString().padStart(2,'0') : ''}`
+                                    : startDate.toLocaleDateString('sv-SE', {weekday:'short', day:'numeric', month:'short'}) + ` ${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}`;
+
+                                // Attempt to find attendees in description if not in summary
+                                let attendees = "";
+                                if (summary.includes('(')) {
+                                   // often "Title (Name)"
+                                } else if (description) {
+                                   // Sometimes public feeds strip description, but if it exists, use first line
+                                   // attendees = description.split('\\n')[0]; 
+                                }
+
+                                allBookings.push({
+                                    roomName: cal.name,
+                                    roomColor: cal.color,
+                                    roomBg: cal.bg,
+                                    title: summary.replace(/\\/g, ''),
+                                    time: timeStr,
+                                    dateObj: startDate,
+                                    attendees: attendees
+                                });
+                            }
+                        }
+                    }
+                } catch (e) { console.error("Cal parse error", e); }
+            }
+            // Sort by date
+            return allBookings.sort((a,b) => a.dateObj - b.dateObj).slice(0, 10);
         }
 
         async function getClickUpBirthdays() { if (!DASHBOARD_CONFIG.api.clickUpBirthdayListId) return []; try { const r = await fetch(`https://corsproxy.io/?https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpBirthdayListId}/task`, { headers: { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken } }); return (await r.json()).tasks.map(t => { const d = new Date(parseInt(t.due_date)); const today = new Date(); let next = new Date(today.getFullYear(), d.getMonth(), d.getDate()); if(next<today) next.setFullYear(today.getFullYear()+1); const diff = Math.ceil((next-today)/(86400000)); return { name: t.name, dateStr: next.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}), diff, isSoon: diff<14 }; }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3); } catch(e) { return []; } }
@@ -715,168 +851,164 @@
             if (!DASHBOARD_CONFIG.api.clickUpSpaceId) return {};
             const headers = { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken };
             const proxy = "https://corsproxy.io/?";
-            
-            // Safe Fetch Wrapper to avoid crashing everything if one call fails
-            const safeFetch = async (url) => {
-                try {
-                    const res = await fetch(url, { headers });
-                    if (!res.ok) return { tasks: [] };
-                    return await res.json();
-                } catch (e) {
-                    console.error("Fetch failed for", url, e);
-                    return { tasks: [] };
-                }
-            };
-
             try {
-                const tRes = await safeFetch(`${proxy}https://api.clickup.com/api/v2/team`);
-                if (!tRes.teams || tRes.teams.length === 0) return {};
-                const teamId = tRes.teams[0].id;
+                const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
                 const startTimestamp = new Date("2024-01-01").getTime(); 
+                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
                 
-                // Helper to fetch pages
-                const getTasks = async (archived, listId = null) => { 
-                    let all = []; let p = 0; 
-                    const baseUrl = listId 
-                        ? `${proxy}https://api.clickup.com/api/v2/list/${listId}/task?` 
-                        : `${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&`;
-                    
-                    while(p < 50) { 
-                        try { 
-                            // For budget list, we don't filter by update date to be safe, just get everything
-                            const dateFilter = listId ? "" : `&date_updated_gt=${startTimestamp}`;
-                            const res = await fetch(`${baseUrl}archived=${archived}&include_closed=true&subtasks=true&limit=100${dateFilter}&page=${p}`, { headers }); 
-                            const j = await res.json(); 
-                            if(!j.tasks || j.tasks.length===0) break; 
-                            all.push(...j.tasks); 
-                            p++; 
-                        } catch(e) { break; } 
-                    } 
-                    return all; 
-                };
-
+                // Get Projects from Project Hub List
                 const getProj = async () => { if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
 
-                // ADDED: Fetch Budget List
-                const getBudgetTasks = async () => {
-                    if (!DASHBOARD_CONFIG.api.clickUpBudgetListId) return [];
-                    const [act, arch] = await Promise.all([
-                        getTasks(false, DASHBOARD_CONFIG.api.clickUpBudgetListId),
-                        getTasks(true, DASHBOARD_CONFIG.api.clickUpBudgetListId)
-                    ]);
-                    return [...act, ...arch];
-                };
-
-                const [active, archived, projects, budgetTasks] = await Promise.all([getTasks(false), getTasks(true), getProj(), getBudgetTasks()]);
+                const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
                 const tasks = [...active, ...archived];
                 
                 const shortYear = DASHBOARD_CONFIG.year.slice(-2); const fullYear = DASHBOARD_CONFIG.year;
                 
                 const listActive = []; const listTotal = []; const listDelivered = [];
+                const listDeliveredMonth = []; // New list for current month
                 const listRec = []; const listStream = []; const listVO = [];
 
-                const validProjects = projects.filter(t => t.name.startsWith(shortYear));
+                // BUDGET CALCULATIONS
+                let activeBudget = 0;
+                let deliveredBudget = 0;
+                let totalBudget = 0;
+                let monthDeliveredBudget = 0;
+                const budgetFieldId = DASHBOARD_CONFIG.api.clickUpBudgetFieldId;
+
+                const validProjects = projects.filter(t => t.name.startsWith(shortYear) || t.name.startsWith(fullYear));
+                
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYearNum = now.getFullYear();
+
                 validProjects.forEach(t => {
                     const s = t.status.status.toLowerCase();
-                    const item = { name: t.name, status: s, folder: "Project Hub" };
+                    
+                    // Extract Budget
+                    let budget = 0;
+                    if(t.custom_fields) {
+                        const bf = t.custom_fields.find(f => f.id === budgetFieldId);
+                        if(bf && bf.value) {
+                             budget = parseFloat(bf.value) || 0;
+                        }
+                    }
+
+                    const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
                     
                     if(s === 'production') {
                         listActive.push(item);
                         listTotal.push(item);
+                        activeBudget += budget;
+                        totalBudget += budget;
                     }
                     
                     if(s === 'delivered') {
                         const d = parseInt(t.date_closed||t.date_updated||0);
-                        const delItem = { ...item, rawDate: d, date: d > 0 ? new Date(d).toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) : '-' };
+                        const dateObj = new Date(d);
+                        
+                        const delItem = { ...item, date: d > 0 ? dateObj.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) : '-' };
+                        
                         listDelivered.push(delItem);
                         listTotal.push(delItem);
+                        deliveredBudget += budget;
+                        totalBudget += budget;
+
+                        // CHECK IF DELIVERED THIS MONTH
+                        if (d > 0 && dateObj.getMonth() === currentMonth && dateObj.getFullYear() === currentYearNum) {
+                            listDeliveredMonth.push(delItem);
+                            monthDeliveredBudget += budget;
+                        }
                     }
                 });
                 
-                // --- BUDGET CALCULATION IMPROVED & DEBUGGING ---
-                let totalRevenue = 0;
-                let budgetDebugList = []; // New list for debug info
+                let recCount = 0; let streamCount = 0; let voCount = 0; const upcomingRecs = [];
+                const ignoreWords = ["genomgång", "brief", "planering", "förberedelse", "casting", "check", "koll", "recce", "schema", "annons", "annonser"];
 
-                budgetTasks.forEach(t => {
-                    if (!t.custom_fields) return;
+                tasks.forEach(t => {
+                    const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
+                    
+                    const is2025 = fName.startsWith("25") || lName.startsWith("25") || fName.startsWith("2025") || lName.startsWith("2025");
+                    const is24185 = fName.startsWith("24185") || lName.startsWith("24185");
 
-                    // Bredare sökning: Letar efter "budget" i namnet ELLER typen "currency"
-                    const budgetField = t.custom_fields.find(f => {
-                        const name = (f.name || "").toLowerCase();
-                        const type = (f.type || "").toLowerCase();
-                        return name.includes('budget') || type === 'currency';
-                    });
+                    if (!is2025 && !is24185) return;
 
-                    if (budgetField && budgetField.value) {
-                        // Ibland kan currency vara ett objekt, ibland en sträng/nummer
-                        let rawVal = budgetField.value;
-                        // Om det är ett objekt med value-property (vissa API versioner)
-                        if (typeof rawVal === 'object' && rawVal !== null && rawVal.value !== undefined) {
-                            rawVal = rawVal.value;
-                        }
+                    const listNameClean = lName.toLowerCase();
+                    if (!listNameClean.includes('production') && !listNameClean.includes('stream') && !listNameClean.includes('live') && !listNameClean.includes('studio')) return; 
+
+                    const name = t.name;
+                    if (ignoreWords.some(w => name.toLowerCase().includes(w))) return; 
+
+                    const isVO = /\b(VO|Röst|Voiceover)\b/i.test(name);
+                    const isStream = /\b(Stream)\b/i.test(name);
+                    const isRec = /\b(Inspelning)\b/i.test(name);
+
+                    if (is24185 && !isStream) return;
+
+                    const status = t.status.status.toLowerCase();
+                    const isDone = ['complete', 'closed', 'klar', 'done'].includes(status);
+
+                    if (isDone) {
+                        const displayFolder = fName || lName;
+                        const item = { name: t.name, status: status, folder: displayFolder };
                         
-                        // Clean up string values (e.g. "kr170,000" -> 170000)
-                        let parsedVal = 0;
-                        if (typeof rawVal === 'string') {
-                            // Remove anything that is not a digit, dot, or minus
-                            const cleanString = rawVal.replace(/[^0-9.-]/g, '');
-                            parsedVal = parseFloat(cleanString);
-                        } else if (typeof rawVal === 'number') {
-                            parsedVal = rawVal;
+                        if (isVO) { 
+                            voCount++; 
+                            listVO.push({ ...item, type: 'VO' }); 
+                        } else if (isStream) { 
+                            streamCount++; 
+                            listStream.push({ ...item, type: 'Stream' }); 
+                        } else if (isRec) { 
+                            recCount++; 
+                            listRec.push({ ...item, type: 'Inspelning' }); 
                         }
-                        
-                        if (!isNaN(parsedVal)) {
-                            totalRevenue += parsedVal;
-                            
-                            // Add to debug list
-                            budgetDebugList.push({
-                                name: t.name,
-                                status: "OK", 
-                                debugRawValue: JSON.stringify(rawVal),
-                                parsedValue: parsedVal.toLocaleString('sv-SE') + " kr",
-                                folder: "Budget List"
+                    }
+
+                    if ((isVO || isStream || isRec) && !isDone) {
+                        const d = parseInt(t.start_date||t.due_date||0);
+                        if (d >= Date.now() - 86400000) {
+                            let pName = t.folder ? t.folder.name : (t.list ? t.list.name : "Projekt");
+                            if(pName.length>6 && pName.includes('_')) pName = pName.substring(6).replace(/_/g,' ');
+                            upcomingRecs.push({
+                                id: t.id, project: pName, sortDate: d,
+                                dateMain: new Date(d).getDate(),
+                                dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(),
+                                isStream: isStream, isVO: isVO
                             });
                         }
-                    } else if (budgetTasks.length < 5) {
-                         budgetDebugList.push({
-                            name: t.name,
-                            status: "No Value",
-                            debugRawValue: "No matching field found",
-                            parsedValue: "-",
-                            folder: "Budget List"
-                        });
                     }
                 });
-                
-                if (budgetDebugList.length === 0) {
-                     budgetDebugList.push({
-                        name: "No tasks found",
-                        status: "Error",
-                        debugRawValue: "Check List ID",
-                        parsedValue: "-",
-                        folder: "-"
-                    });
-                }
+
+                const uniqueRecs = []; const seen = new Set();
+                upcomingRecs.sort((a,b) => a.sortDate - b.sortDate);
+                for(const r of upcomingRecs) { if(!seen.has(r.project)) { seen.add(r.project); uniqueRecs.push(r); } if(uniqueRecs.length>=5) break; }
+
+                const recentDel = listDelivered.slice(0,5);
+                const recentDelSidebar = validProjects
+                    .filter(t => t.status.status.toLowerCase() === 'delivered')
+                    .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
+                    .slice(0,20) // Changed to 20
+                    .map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
 
                 return { 
                     stats: { 
-                        year: listDelivered.length, 
-                        month: deliveredListMonth.length,
-                        revenue: totalRevenue, 
+                        year: listDelivered.length,
+                        monthDelivered: listDeliveredMonth.length, // Count
                         occasions: recCount, 
                         streams: streamCount, 
                         vos: voCount, 
                         activeProjects: listActive.length, 
                         totalProjectsCurrentYear: listTotal.length,
+                        // STATS
+                        budgetActive: activeBudget,
+                        budgetDelivered: deliveredBudget,
+                        budgetMonth: monthDeliveredBudget, // Month Budget
+                        budgetTotal: totalBudget,
                         lists: { 
                             active: listActive, 
                             total: listTotal, 
                             delivered: listDelivered, 
-                            monthDelivered: deliveredListMonth, 
-                            rec: listRec, 
-                            stream: listStream, 
-                            vo: listVO,
-                            budgetDetails: budgetDebugList 
+                            deliveredMonth: listDeliveredMonth, // List
+                            rec: listRec, stream: listStream, vo: listVO 
                         }
                     }, 
                     recordings: uniqueRecs, 
