@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + No Cache)</title>
+    <title>Crisp Dashboard (Final + Fixed Modals)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -392,6 +392,7 @@
         }
 
         // --- COMPONENTS ---
+
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
             return (
@@ -733,6 +734,56 @@
             );
         };
 
+        // --- MODALS (Added) ---
+        const DetailsModal = ({ title, items, onClose }) => (
+            <div className="modal-overlay open" onClick={onClose}>
+                <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2">{title} <span className="text-slate-500 text-sm font-normal">({items?.length || 0})</span></h2>
+                        <button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button>
+                    </div>
+                    <div className="overflow-y-auto flex-grow no-scrollbar space-y-2">
+                        {items && items.length > 0 ? items.map((item, i) => (
+                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 text-sm flex justify-between items-center">
+                                <div className="flex-grow min-w-0 mr-4">
+                                    <div className="flex items-center gap-2">
+                                        {item.type && (
+                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide 
+                                                ${item.type === 'Inspelning' ? 'bg-orange-500/20 text-orange-400' : item.type === 'Stream' ? 'bg-blue-500/20 text-blue-400' : item.type === 'VO' ? 'bg-purple-500/20 text-purple-400' : ''}`}>
+                                                {item.type}
+                                            </span>
+                                        )}
+                                        <div className="text-white font-medium truncate">{item.name}</div>
+                                    </div>
+                                    {item.folder && <div className="text-blue-300 text-xs mt-0.5">{item.folder}</div>}
+                                </div>
+                                <div className="shrink-0 flex flex-col items-end">
+                                    {item.status && <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-[10px] uppercase font-bold">{item.status}</span>}
+                                    {item.date && <div className="text-slate-500 text-[10px] mt-1 text-right">{item.date}</div>}
+                                    {item.budget > 0 && <div className="text-emerald-400 text-[10px] mt-0.5 font-mono">{item.budget.toLocaleString('sv-SE')} kr</div>}
+                                </div>
+                            </div>
+                        )) : <div className="text-slate-500 italic">Ingen data att visa.</div>}
+                    </div>
+                </div>
+            </div>
+        );
+
+        const HelpModal = ({ onClose }) => (
+            <div className="modal-overlay open" onClick={onClose}>
+                <div className="glass-card p-8 max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white flex items-center gap-2"><HelpCircle /> Dashboard Info</h2><button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button></div>
+                    <div className="space-y-4 text-slate-300 text-sm font-medium">
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Omsättning</strong> hämtas från fältet "Budget".</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1).</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Texten uppdateras automatiskt</strong> var 10:e sekund.</div></div>
+                    </div>
+                </div>
+            </div>
+        );
+
         function App() {
             const [time, setTime] = useState(new Date());
             const [weather, setWeather] = useState(null); const [loadingWeather, setLoadingWeather] = useState(true);
@@ -782,12 +833,11 @@
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
 
-                // FUNKTION: Ladda tung data (Väder, Kalender, ClickUp) - Körs varje timme
                 const loadMainData = async () => {
                     setLoadingWeather(true);
                     setLoadingBirthdays(true);
                     setLoadingNameDays(true);
-                    setLoadingProd(true); // Visar spinners
+                    setLoadingProd(true); 
 
                     try { setWeather(await getRealWeather()); } catch(e){}
                     try { setEvents(await getGoogleSheetEvents()); } catch(e){}
@@ -802,31 +852,24 @@
                     setLoadingProd(false);
                 };
 
-                // FUNKTION: Ladda BARA texten - Körs ofta (var 10:e sekund)
                 const loadTextOnly = async () => {
                     try {
                         const data = await getGoogleSheetMotto();
                         if(data) {
-                            // Jämför med nuvarande för att undvika onödig re-render om samma
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
                         }
                     } catch(e){}
                 };
 
-                // Kör direkt vid start
                 loadMainData();
                 loadTextOnly();
 
-                // Schemaläggare
-                // 1. Texten uppdateras var 10:e sekund (märks knappt, drar lite data)
                 const textInterval = setInterval(loadTextOnly, 10000);
-
-                // 2. Allt annat uppdateras varje heltimme
                 const mainInterval = setInterval(() => {
                     if (new Date().getMinutes() === 0) {
                         loadMainData();
                     }
-                }, 60000); // Kollar varje minut om klockan är XX:00
+                }, 60000); 
 
                 return () => { clearInterval(t); clearInterval(textInterval); clearInterval(mainInterval); };
             }, []);
