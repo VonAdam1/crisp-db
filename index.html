@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + Fixed Modals)</title>
+    <title>Crisp Dashboard (Final + External Reload)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -186,7 +186,7 @@
                         const ds = c[3].replace(/^"|"$/g,'').trim(); 
                         let timeLabel = "";
                         const tStart = c[4] ? c[4].replace(/^"|"$/g,'').trim() : "";
-                        const tEnd = c.length > 6 && c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
+                        const tEnd = c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
                         if(tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`; else if(tStart) timeLabel = tStart; else if(tEnd) timeLabel = tEnd;
                         const d = parseDateRobustly(ds);
                         if(d && d>=yest) { events.push({ name:n, sortDate:d.getTime(), dateMain:d.getDate(), dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), timeStr: timeLabel }); }
@@ -234,16 +234,30 @@
                 };
                 const rows = parseCSV(textData);
                 
-                // --- FIX: CHECK IF ROW 0, COL 0 (A1) EXISTS AND IS NOT EMPTY ---
-                if (rows.length > 0 && rows[0].length >= 1) {
-                    const a1Text = rows[0][0]; // Cell A1
-                    const cleanText = a1Text ? a1Text.trim() : "";
-                    const title = cleanText.length > 0 ? cleanText : "Every frame counts";
-                    return { title: title, subtitle: "Life at Crisp" };
+                // --- Kollar A1 och B1 ---
+                let title = "Every frame counts";
+                let shouldReload = "FALSE"; 
+
+                if (rows.length > 0) {
+                    // Check A1 (Index [0][0]) for primary text
+                    if (rows[0].length > 0) {
+                        const a1Text = rows[0][0]; 
+                        const cleanText = a1Text ? a1Text.trim() : "";
+                        if (cleanText.length > 0) {
+                            title = cleanText;
+                        }
+                    }
+
+                    // Check B1 (Index [0][1]) for reload command
+                    if (rows[0].length > 1) {
+                        const b1Text = rows[0][1];
+                        if (b1Text && b1Text.trim().toUpperCase() === "RELOAD") {
+                            shouldReload = "RELOAD";
+                        }
+                    }
                 }
                 
-                // If A1 doesn't exist at all, return default
-                return { title: "Every frame counts", subtitle: "Life at Crisp" };
+                return { title: title, subtitle: "Life at Crisp", shouldReload: shouldReload };
 
             } catch (e) { return null; }
         }
@@ -734,7 +748,6 @@
             );
         };
 
-        // --- MODALS (Added) ---
         const DetailsModal = ({ title, items, onClose }) => (
             <div className="modal-overlay open" onClick={onClose}>
                 <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -777,8 +790,8 @@
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Omsättning</strong> hämtas från fältet "Budget".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1).</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Texten uppdateras automatiskt</strong> var 10:e sekund.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1) och uppdateras var 10:e sekund.</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>**Tvinga Omladdning:** Skriv **RELOAD** i cell **B1** i ditt text-Sheet. Dashboarden läser in all data på nytt (ClickUp, etc.) inom 10 sekunder.</div></div>
                     </div>
                 </div>
             </div>
@@ -796,6 +809,10 @@
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
+            // För att spåra den senaste tvingade omladdningen
+            const lastForcedReloadTime = useRef(0);
+            // 10 minuter i millisekunder
+            const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
             const [modules, setModules] = useState([ 
                 { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
@@ -857,6 +874,24 @@
                         const data = await getGoogleSheetMotto();
                         if(data) {
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
+                            
+                            // *** NY OMLADDNINGSLOGIK MED 10 MIN SPÄRR ***
+                            if (data.shouldReload === 'RELOAD') {
+                                const now = Date.now();
+                                if (now - lastForcedReloadTime.current > RELOAD_COOLDOWN_MS) {
+                                    lastForcedReloadTime.current = now; // Uppdatera tidstämpel
+                                    console.log("Force Reload Triggered by Google Sheet B1! Reloading.");
+                                    window.location.reload();
+                                } else {
+                                    const remaining = Math.ceil((RELOAD_COOLDOWN_MS - (now - lastForcedReloadTime.current)) / 60000);
+                                    console.log(`Reload request ignored. Cooldown remaining: ${remaining} minutes.`);
+                                }
+                            } else {
+                                // Nollställ cooldowntiden så att nästa "RELOAD" fungerar direkt
+                                // Detta är viktigt om användaren tar bort RELOAD från B1 efter en lyckad reload
+                                lastForcedReloadTime.current = 0; 
+                            }
+                            // *** SLUT NY OMLADDNINGSLOGIK ***
                         }
                     } catch(e){}
                 };
@@ -864,7 +899,10 @@
                 loadMainData();
                 loadTextOnly();
 
+                // Snabb uppdatering av text/utlösare (var 10:e sekund)
                 const textInterval = setInterval(loadTextOnly, 10000);
+
+                // Uppdatering av tung data (varje heltimme)
                 const mainInterval = setInterval(() => {
                     if (new Date().getMinutes() === 0) {
                         loadMainData();
