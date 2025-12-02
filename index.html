@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final + Default Text)</title>
+    <title>Crisp Dashboard (Final + No Cache)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -199,10 +199,21 @@
         async function getGoogleSheetMotto() {
             if (!DASHBOARD_CONFIG.api.googleSheetTextUrl) return null;
             try {
-                const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetTextUrl + '&t=' + Date.now())}`;
-                const res = await fetch(url);
+                // Aggressive Cache Busting: Timestamp + Random ID
+                const uniqueParam = `nocache=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+                const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetTextUrl + '&' + uniqueParam)}`;
+                
+                const res = await fetch(url, {
+                    cache: 'no-store',
+                    headers: {
+                        'Pragma': 'no-cache',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+
                 if (!res.ok) return null;
                 const textData = await res.text();
+                
                 const parseCSV = (str) => {
                     const arr = [];
                     let quote = false;
@@ -223,16 +234,15 @@
                 };
                 const rows = parseCSV(textData);
                 
-                // --- FIX: CHECK IF ROW 0, COL 1 EXISTS AND IS NOT EMPTY ---
-                if (rows.length > 0 && rows[0].length >= 2) {
-                    const b1Text = rows[0][1]; // Cell B1
-                    // Trim to remove whitespace. If result is empty string, fall back to default
-                    const cleanText = b1Text ? b1Text.trim() : "";
+                // --- FIX: CHECK IF ROW 0, COL 0 (A1) EXISTS AND IS NOT EMPTY ---
+                if (rows.length > 0 && rows[0].length >= 1) {
+                    const a1Text = rows[0][0]; // Cell A1
+                    const cleanText = a1Text ? a1Text.trim() : "";
                     const title = cleanText.length > 0 ? cleanText : "Every frame counts";
                     return { title: title, subtitle: "Life at Crisp" };
                 }
                 
-                // If B1 doesn't exist at all, return default
+                // If A1 doesn't exist at all, return default
                 return { title: "Every frame counts", subtitle: "Life at Crisp" };
 
             } catch (e) { return null; }
