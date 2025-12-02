@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Side-by-Side Fix)</title>
+    <title>Crisp Dashboard (Vertical Optimized + Rooms)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.292.0"></script>
-    <!-- ADDED: PapaParse for robust CSV handling -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -42,7 +41,7 @@
             backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
             border: 1px solid rgba(255, 255, 255, 0.08); 
             box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-            border-radius: 1.5rem;
+            border-radius: 1.2rem;
             overflow: hidden; display: flex; flex-direction: column; position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
@@ -109,9 +108,8 @@
         const Trophy = createLucideIcon('Trophy'); const Calendar = createLucideIcon('Calendar'); const MapPin = createLucideIcon('MapPin'); const PackageCheck = createLucideIcon('PackageCheck');
         const Star = createLucideIcon('Star'); const Image = createLucideIcon('Image'); const PartyPopper = createLucideIcon('PartyPopper'); const Umbrella = createLucideIcon('Umbrella');
         const Loader2 = createLucideIcon('Loader2'); const HelpCircle = createLucideIcon('HelpCircle'); const X = createLucideIcon('X');
-        const User = createLucideIcon('User');
-        const Bell = createLucideIcon('Bell');
-        const Gift = createLucideIcon('Gift');
+        const User = createLucideIcon('User'); const Bell = createLucideIcon('Bell'); const Gift = createLucideIcon('Gift');
+        const Clock = createLucideIcon('Clock'); const Users = createLucideIcon('Users');
 
         // --- CONFIG ---
         const DASHBOARD_CONFIG = {
@@ -120,26 +118,29 @@
             design: {
                 logoSymbolHeightMobile: "h-16", logoSymbolHeightDesktop: "h-24", 
                 logoTextHeightMobile: "h-8", logoTextHeightDesktop: "h-12",     
-                clockSizeMobile: "text-6xl", clockSizeDesktop: "text-9xl", dateSizeMobile: "text-xl", dateSizeDesktop: "text-3xl",
-                weatherTempMobile: "text-6xl", weatherTempDesktop: "text-7xl", headersMobile: "text-xl", headersDesktop: "text-2xl"
+                clockSizeMobile: "text-6xl", clockSizeDesktop: "text-8xl",
+                dateSizeMobile: "text-xl", dateSizeDesktop: "text-2xl",
+                weatherTempMobile: "text-6xl", weatherTempDesktop: "text-7xl"
             },
             api: {
                 clickUpToken: "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9",
-                clickUpSpaceId: "90155050040", clickUpBirthdayListId: "901517968972", clickUpProjectsListId: "901515357300",
-                // ADDED: Corrected list ID for budget
-                clickUpBudgetListId: "901515357300",
-                googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv"
+                clickUpSpaceId: "90155050040", 
+                clickUpBirthdayListId: "901517968972", 
+                clickUpProjectsListId: "901515357300",
+                googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
+                // Google Calendar CIDs
+                room1Cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com",
+                room2Cid: "c_5e0eb5196df089999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com"
             }
         };
 
-        const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
 
         // --- MODULES ---
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
             return (
-                <div className="h-full flex flex-col relative overflow-hidden p-4">
+                <div className="h-full flex flex-col relative overflow-hidden p-3 md:p-4">
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
                     
                     <div className="relative z-10 flex justify-between items-center mb-1 shrink-0">
@@ -192,6 +193,7 @@
             );
         };
 
+        // --- INFO SIDEBAR MODULE (Combines NameDay and Birthdays) ---
         const InfoSidebarModule = ({ nameDays, nameDaysLoading, birthdays, birthdaysLoading }) => (
              <div className="flex flex-col h-full gap-2"> 
                 <div className="glass-card px-3 py-2 flex items-center justify-between min-h-[50px] w-full shrink-0">
@@ -239,7 +241,6 @@
         );
 
         const ProductionModule = ({ stats, recent, loading, onOpenDetails }) => {
-            
             const formatCurrency = (val) => {
                 if (val === undefined || val === null) return "-";
                 if (val === 0 && loading) return "-";
@@ -251,33 +252,33 @@
             const capitalizedMonth = currentMonthName.charAt(0).toUpperCase() + currentMonthName.slice(1);
 
             return (
-                <div className="h-full p-4 md:p-6 flex flex-col gap-4 relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2"><Trophy className="text-orange-400" size={28} /><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={20} />}</div>
+                <div className="h-full p-3 md:p-4 flex flex-col gap-3 relative overflow-hidden">
+                    <div className="flex items-center justify-between mb-1"><div className="flex items-center gap-2"><Trophy className="text-orange-400" size={24} /><h2 className="text-lg md:text-xl font-bold uppercase tracking-wide text-white">Produktion {DASHBOARD_CONFIG.year}</h2></div>{loading && <Loader2 className="animate-spin text-slate-600" size={18} />}</div>
                     
-                    <div className="grid grid-cols-2 grid-rows-3 gap-3 shrink-0">
+                    <div className="grid grid-cols-2 grid-rows-3 gap-2 shrink-0">
                         
-                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-xl p-2.5 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
+                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="bg-slate-800/50 rounded-xl p-2 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-xl md:text-2xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Aktiva projekt</span>
                         </div>
 
-                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="bg-slate-800/50 rounded-xl p-2.5 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Totalt antal</span>
+                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="bg-slate-800/50 rounded-xl p-2 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-xl md:text-2xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.totalProjectsCurrentYear}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Totalt antal</span>
                         </div>
 
-                        <div onClick={() => onOpenDetails('Levererat i år', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-xl p-2.5 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat (År)</span>
+                        <div onClick={() => onOpenDetails('Levererat i år', stats?.lists?.delivered)} className="bg-slate-800/50 rounded-xl p-2 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-xl md:text-2xl font-black text-emerald-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Levererat (År)</span>
                         </div>
 
-                        <div onClick={() => onOpenDetails(`Levererat ${capitalizedMonth}`, stats?.lists?.monthDelivered)} className="bg-slate-800/50 rounded-xl p-2.5 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-emerald-200 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.month}</span><span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat ({capitalizedMonth})</span>
+                        <div onClick={() => onOpenDetails(`Levererat ${capitalizedMonth}`, stats?.lists?.monthDelivered)} className="bg-slate-800/50 rounded-xl p-2 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                             <span className={`text-xl md:text-2xl font-black text-emerald-200 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.month}</span><span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Levererat ({capitalizedMonth})</span>
                         </div>
 
-                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-xl p-2.5 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative overflow-hidden">
-                             <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter leading-none ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
-                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest mb-0.5">Inspelningar</span>
+                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="bg-slate-800/50 rounded-xl p-2 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative overflow-hidden">
+                             <span className={`text-xl md:text-2xl font-black text-orange-400 tracking-tighter leading-none ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
+                             <span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest mb-0.5">Inspelningar</span>
                              <div className="flex flex-col items-center leading-none">
                                 {!loading && (stats?.streams > 0 || stats?.vos > 0) && (
-                                    <div className="text-[8px] font-bold text-orange-300/80 uppercase tracking-wide">
+                                    <div className="text-[7px] md:text-[8px] font-bold text-orange-300/80 uppercase tracking-wide">
                                         {stats?.streams > 0 && <span>+ {stats.streams} Streams</span>}
                                         {stats?.streams > 0 && stats?.vos > 0 && <span> • </span>}
                                         {stats?.vos > 0 && <span>+ {stats.vos} VO</span>}
@@ -286,19 +287,19 @@
                              </div>
                         </div>
 
-                        <div onClick={() => onOpenDetails('Omsättning / Budgetdetaljer', stats?.lists?.budgetDetails || [])} className="bg-slate-800/50 rounded-xl p-2.5 border border-yellow-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative group">
-                             <span className={`text-xl md:text-2xl font-black text-yellow-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : formatCurrency(stats?.revenue)}</span>
-                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Omsättning (ish)</span>
+                        <div onClick={() => onOpenDetails('Omsättning / Budgetdetaljer', stats?.lists?.budgetDetails || [])} className="bg-slate-800/50 rounded-xl p-2 border border-yellow-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative group">
+                             <span className={`text-lg md:text-xl font-black text-yellow-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : formatCurrency(stats?.revenue)}</span>
+                             <span className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-widest">Omsättning (ish)</span>
                              <span className="absolute bottom-1 right-2 text-[8px] text-yellow-500/50 opacity-0 group-hover:opacity-100 transition-opacity">Visa detaljer</span>
                         </div>
 
                     </div>
                     <div className="flex-grow flex flex-col min-h-0 animate-in pt-3 border-t border-white/5">
-                        <div className="flex items-center gap-3 mb-3 text-emerald-400 mt-2"><PackageCheck size={16} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
+                        <div className="flex items-center gap-2 mb-2 text-emerald-400 mt-1"><PackageCheck size={14} /><h3 className="text-[10px] font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
                         <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
                             {loading ? <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 20).map((del, i) => (
-                                <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-sm truncate mr-2">{del.name}</span><span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span></div>
-                            )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
+                                <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-xs md:text-sm truncate mr-2">{del.name}</span><span className="text-[8px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-1.5 py-0.5 rounded">{del.date}</span></div>
+                            )) : <p className="text-xs text-slate-500 italic">Inget nyligen.</p>}
                         </div>
                     </div>
                 </div>
@@ -312,7 +313,7 @@
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
             
             return (
-                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
+                <div className="h-full w-full relative group overflow-hidden rounded-[1.2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
                     {validImages.length > 0 ? <>
                             {validImages.map((img, i) => (
                                 <img 
@@ -338,139 +339,147 @@
             );
         };
 
-        const TimelineModule = ({ items, loading }) => (
-            <div className="h-full p-4 md:p-6 flex flex-col">
-                <div className="flex items-center justify-between mb-4 md:mb-6"><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Händer Framöver</h2>{loading && <Loader2 className="animate-spin text-slate-600" size={20}/>}</div>
-                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">
-                    {loading && items.length === 0 ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
-                    : items.length > 0 ? items.map((item, idx) => {
-                         const isRec = item.type === 'recording';
-                         return (
-                            <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 md:p-2 bg-white/5 rounded-xl border border-white/5 transition-all hover:bg-white/10">
-                                <div className={`flex flex-col items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                                    <span className="font-bold text-sm md:text-base leading-none">{item.dateMain}</span>
-                                    <span className="text-[7px] md:text-[8px] font-bold uppercase mt-0.5">{item.dateSub}</span>
-                                </div>
-                                <div className="flex-grow min-w-0">
-                                    <h3 className="text-sm md:text-base font-semibold text-white truncate leading-tight">{item.title}</h3>
-                                    <div className="flex items-center gap-3 mt-0.5">
-                                        {isRec ? <Video size={12} className="text-red-400"/> : <Star size={12} className="text-indigo-400"/>}
-                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
-                                        {item.timeStr && <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1.5 py-0.5 rounded-full ml-2">{item.timeStr}</span>}
-                                    </div>
-                                </div>
-                            </div>
-                         );
-                    }) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><Calendar size={64} strokeWidth={1} /><p className="mt-4 text-xl font-medium">Kalendern är tom</p></div>}
+        // --- TIMELINE WITH ROOMS (UPDATED: Show End Time) ---
+        const TimelineModule = ({ items, rooms, loading }) => (
+            <div className="h-full p-3 md:p-4 flex flex-col">
+                <div className="flex items-center justify-between mb-3 shrink-0">
+                    <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Händer Framöver & Rum</h2>
+                    {loading && <Loader2 className="animate-spin text-slate-600" size={18}/>}
                 </div>
-            </div>
-        );
-
-        // --- MODALS ---
-        const DetailsModal = ({ title, items, onClose }) => (
-            <div className="modal-overlay open" onClick={onClose}>
-                <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">{title} <span className="text-slate-500 text-sm font-normal">({items?.length || 0})</span></h2>
-                        <button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button>
-                    </div>
-                    <div className="overflow-y-auto flex-grow no-scrollbar space-y-2">
-                        {items && items.length > 0 ? items.map((item, i) => (
-                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 text-sm flex justify-between items-center">
-                                <div className="flex-grow min-w-0 mr-4">
-                                    <div className="flex items-center gap-2">
-                                        {item.type && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide 
-                                                ${item.type === 'Inspelning' ? 'bg-orange-500/20 text-orange-400' : item.type === 'Stream' ? 'bg-blue-500/20 text-blue-400' : item.type === 'VO' ? 'bg-purple-500/20 text-purple-400' : ''}`}>
-                                                {item.type}
-                                            </span>
-                                        )}
-                                        <div className="text-white font-medium truncate">{item.name}</div>
-                                    </div>
-                                    {item.folder && <div className="text-blue-300 text-xs mt-0.5">{item.folder}</div>}
-                                    
-                                    {/* DEBUG DISPLAY FOR BUDGET */}
-                                    {item.debugRawValue !== undefined && (
-                                        <div className="text-[10px] text-yellow-400/70 mt-1 font-mono">
-                                            Raw: "{item.debugRawValue}" -> Parsed: {item.parsedValue}
+                
+                {/* Split Layout: Events Left, Rooms Right */}
+                <div className="flex-grow flex gap-4 min-h-0">
+                    
+                    {/* LEFT: General Events */}
+                    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar pr-1">
+                        <div className="text-[10px] font-bold uppercase text-blue-400 mb-2 tracking-widest sticky top-0 bg-[#161618] py-1 z-10">Agenda</div>
+                        <div className="space-y-1.5">
+                            {loading && items.length === 0 ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
+                            : items.length > 0 ? items.map((item, idx) => {
+                                const isRec = item.type === 'recording';
+                                return (
+                                    <div key={idx} className="flex items-center gap-3 p-2 bg-white/5 rounded-xl border border-white/5 transition-all hover:bg-white/10">
+                                        <div className={`flex flex-col items-center justify-center w-8 h-8 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                            <span className="font-bold text-xs leading-none">{item.dateMain}</span>
+                                            <span className="text-[6px] font-bold uppercase mt-0.5">{item.dateSub}</span>
                                         </div>
-                                    )}
-                                </div>
-                                <div className="shrink-0">
-                                    {item.status && <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-[10px] uppercase font-bold">{item.status}</span>}
-                                    {item.date && <div className="text-slate-500 text-[10px] mt-1 text-right">{item.date}</div>}
+                                        <div className="flex-grow min-w-0">
+                                            <h3 className="text-xs font-semibold text-white truncate leading-tight">{item.title}</h3>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                {isRec ? <Video size={10} className="text-red-400"/> : <Star size={10} className="text-indigo-400"/>}
+                                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
+                                                {item.timeStr && <span className="text-[8px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1 py-0.5 rounded ml-1">{item.timeStr}</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            }) : <div className="py-4 text-center text-slate-600 text-xs">Inget bokat</div>}
+                        </div>
+                    </div>
+
+                    {/* RIGHT: Rooms (UPDATED: Filters past end time automatically) */}
+                    <div className="flex-1 flex flex-col min-h-0 border-l border-white/5 pl-4">
+                        <div className="text-[10px] font-bold uppercase text-purple-400 mb-2 tracking-widest sticky top-0 bg-[#161618] py-1 z-10">Bokade Rum</div>
+                        <div className="overflow-y-auto no-scrollbar space-y-3 pr-1">
+                            {/* Room 1 */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1"><Users size={10}/> Konferensrum</h4>
+                                <div className="space-y-1">
+                                    {rooms && rooms['room1'] && rooms['room1'].length > 0 ? rooms['room1'].map((evt, i) => (
+                                        <div key={i} className="bg-purple-500/10 border border-purple-500/10 rounded-lg p-1.5">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <span className="text-[9px] font-bold text-purple-300">{evt.date}</span>
+                                                <span className="text-[9px] font-mono text-purple-200 bg-purple-500/20 px-1 rounded">{evt.time}</span>
+                                            </div>
+                                            <div className="text-[10px] text-white truncate font-medium">{evt.summary}</div>
+                                        </div>
+                                    )) : <div className="text-[10px] text-slate-600 italic">Ledigt framöver</div>}
                                 </div>
                             </div>
-                        )) : (
-                            <div className="text-slate-500 italic p-4 text-center">
-                                <p>Inga data att visa.</p>
-                                {title.includes("Budget") && <p className="text-xs mt-2 text-slate-600">Om detta är tomt, hittades inga uppgifter i listan med ID {DASHBOARD_CONFIG.api.clickUpBudgetListId}</p>}
+                            
+                            {/* Room 2 */}
+                            <div className="mt-2">
+                                <h4 className="text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1"><Users size={10}/> Lilla Rummet</h4>
+                                <div className="space-y-1">
+                                    {rooms && rooms['room2'] && rooms['room2'].length > 0 ? rooms['room2'].map((evt, i) => (
+                                        <div key={i} className="bg-blue-500/10 border border-blue-500/10 rounded-lg p-1.5">
+                                            <div className="flex justify-between items-center mb-0.5">
+                                                <span className="text-[9px] font-bold text-blue-300">{evt.date}</span>
+                                                <span className="text-[9px] font-mono text-blue-200 bg-blue-500/20 px-1 rounded">{evt.time}</span>
+                                            </div>
+                                            <div className="text-[10px] text-white truncate font-medium">{evt.summary}</div>
+                                        </div>
+                                    )) : <div className="text-[10px] text-slate-600 italic">Ledigt framöver</div>}
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>
         );
 
-        const HelpModal = ({ onClose }) => (
-            <div className="modal-overlay open" onClick={onClose}>
-                <div className="glass-card p-8 max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white flex items-center gap-2"><HelpCircle /> Dashboard Info</h2><button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button></div>
-                    <div className="space-y-4 text-slate-300 text-sm font-medium">
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div>Ändra antal av <strong>nyligen levererat</strong> eller <strong>händer framöver</strong> genom "slice" i koden.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Streams</strong> söker efter exakt ordet "stream".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Igång nu</strong> och <strong>leveranser</strong> baseras på Project Hub.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Bilder</strong> läggs i mappen 'bilder' (namn 1.jpg till 20.jpg).</div></div>
-                    </div>
-                </div>
-            </div>
-        );
-
+        // --- APP ---
         const App = () => {
             const [time, setTime] = useState(new Date());
             const [weather, setWeather] = useState(null); const [loadingWeather, setLoadingWeather] = useState(true);
             const [birthdays, setBirthdays] = useState([]); const [loadingBirthdays, setLoadingBirthdays] = useState(true);
             const [events, setEvents] = useState([]); 
+            const [roomEventsRaw, setRoomEventsRaw] = useState({ room1: [], room2: [] }); // Stores raw objects with Date()
             const [prodStats, setProdStats] = useState(null); const [loadingProd, setLoadingProd] = useState(true);
             const [nameDays, setNameDays] = useState("Laddar..."); const [loadingNameDays, setLoadingNameDays] = useState(true); 
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
 
+            // ALIGNED LAYOUT
             const [modules, setModules] = useState([ 
                 { id: 'weather', colSpan: 8, rowSpan: 3, component: 'WeatherModule' }, 
-                { id: 'infoSidebar', colSpan: 4, rowSpan: 4, component: 'InfoSidebarModule', noGlass: true }, 
+                { id: 'infoSidebar', colSpan: 4, rowSpan: 3, component: 'InfoSidebarModule', noGlass: true }, 
                 { id: 'timeline', colSpan: 6, rowSpan: 6, component: 'TimelineModule' }, 
                 { id: 'production', colSpan: 6, rowSpan: 6, component: 'ProductionModule' }, 
                 { id: 'slideshow', colSpan: 12, rowSpan: 4, component: 'SlideshowModule' }, 
             ]);
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
 
+            // ... (Drag/Drop handlers same as before) ...
             const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
             const onDragEnd = (e) => { setDraggedId(null); e.currentTarget.classList.remove('dragging'); };
             const onDrop = (targetId) => { if (window.innerWidth < 768 || !draggedId || draggedId === targetId) return; const n = [...modules]; const d = n.findIndex(m => m.id === draggedId); const t = n.findIndex(m => m.id === targetId); const tmp = n[d]; n.splice(d, 1); n.splice(t, 0, tmp); setModules(n); };
-            
             const handleResizeStart = (e, id) => { if (window.innerWidth < 768) return; e.preventDefault(); e.stopPropagation(); setResizingId(id); const sx = e.clientX; const sy = e.clientY; const idx = modules.findIndex(m => m.id === id); const sc = modules[idx].colSpan; const sr = modules[idx].rowSpan; const cw = (window.innerWidth - 64) / 12; const ch = 80; const onMM = (me) => { const c = Math.max(3, Math.min(12, sc + Math.round((me.clientX-sx)/cw))); const r = Math.max(2, Math.min(12, sr + Math.round((me.clientY-sy)/ch))); setModules(p => { const nx = [...p]; if(nx[idx].colSpan !== c || nx[idx].rowSpan !== r) nx[idx]={...nx[idx], colSpan:c, rowSpan:r}; return nx; }); }; const onMU = () => { setResizingId(null); document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); }; document.addEventListener('mousemove', onMM); document.addEventListener('mouseup', onMU); };
 
-            const openDetails = (title, items) => {
-                setDetailModal({ title, items });
+            const openDetails = (title, items) => { setDetailModal({ title, items }); };
+
+            // Process Rooms based on CURRENT time (updates every second)
+            const getProcessedRooms = () => {
+                const now = time; // uses the state that updates every second
+                const processList = (list) => {
+                    return list
+                        .filter(e => e.endObj > now) // Only show if it ends in future
+                        .slice(0, 5)
+                        .map(e => ({
+                            date: e.startObj.toLocaleDateString('sv-SE', {day:'numeric', month:'short'}),
+                            // New format: HH:MM - HH:MM
+                            time: `${e.startObj.toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit'})} - ${e.endObj.toLocaleTimeString('sv-SE', {hour:'2-digit', minute:'2-digit'})}`,
+                            summary: e.summary
+                        }));
+                };
+                return {
+                    room1: processList(roomEventsRaw.room1),
+                    room2: processList(roomEventsRaw.room2)
+                };
             };
 
             const renderModuleContent = (mod) => {
                  const allUpcoming = [
                     ...(events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
                     ...(prodStats?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: r.isStream ? 'Stream' : (r.isVO ? 'Voiceover' : 'Inspelning') }))
-                ]
-                .sort((a, b) => a.sortDate - b.sortDate)
-                .slice(0, 50); 
+                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 50); 
                 
                 switch(mod.component) { 
                     case 'WeatherModule': return <WeatherModule data={weather} loading={loadingWeather} />; 
                     case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} onOpenDetails={openDetails} />; 
                     case 'SlideshowModule': return <SlideshowModule />; 
-                    case 'TimelineModule': return <TimelineModule items={allUpcoming} loading={loadingProd} />; 
+                    case 'TimelineModule': return <TimelineModule items={allUpcoming} rooms={getProcessedRooms()} loading={loadingProd} />; 
                     case 'InfoSidebarModule': return <InfoSidebarModule nameDays={nameDays} nameDaysLoading={loadingNameDays} birthdays={birthdays} birthdaysLoading={loadingBirthdays} />; 
                     default: return null; 
                 }
@@ -478,35 +487,48 @@
 
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
+                
                 const loadFast = async () => { 
-                    setLoadingWeather(true); 
-                    setLoadingBirthdays(true); 
-                    setLoadingNameDays(true); 
-                    
+                    setLoadingWeather(true); setLoadingBirthdays(true); setLoadingNameDays(true); 
                     try { setWeather(await getRealWeather()); } catch(e){} 
                     try { setEvents(await getGoogleSheetEvents()); } catch(e){} 
                     try { setBirthdays(await getClickUpBirthdays()); } catch(e){} 
-                    
                     try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
-
-                    setLoadingWeather(false); 
-                    setLoadingBirthdays(false); 
-                    setLoadingNameDays(false); 
+                    setLoadingWeather(false); setLoadingBirthdays(false); setLoadingNameDays(false); 
                 };
+
+                const loadRooms = async () => {
+                    try {
+                        const r1 = await getPublicCalendarEvents(DASHBOARD_CONFIG.api.room1Cid);
+                        const r2 = await getPublicCalendarEvents(DASHBOARD_CONFIG.api.room2Cid);
+                        setRoomEventsRaw({ room1: r1, room2: r2 });
+                    } catch(e) { console.error("Rooms failed", e); }
+                };
+
                 const loadHeavy = async () => { setLoadingProd(true); try { setProdStats(await getClickUpProductionData()); } catch(e) { console.error(e); } setLoadingProd(false); };
-                loadFast(); loadHeavy(); const i = setInterval(() => { if (new Date().getMinutes() === 0) { loadFast(); loadHeavy(); } }, 60000); return () => { clearInterval(t); clearInterval(i); };
+                
+                loadFast(); 
+                loadHeavy(); 
+                loadRooms();
+
+                // Polling intervals
+                const iFast = setInterval(loadFast, 300000); // 5 min
+                const iHeavy = setInterval(loadHeavy, 3600000); // 1 hour
+                const iRooms = setInterval(loadRooms, 60000); // 1 min (Fast updates for rooms)
+
+                return () => { clearInterval(t); clearInterval(iFast); clearInterval(iHeavy); clearInterval(iRooms); };
             }, []);
 
             const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
             return (
-                <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
-                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-3 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
+                <div className="min-h-screen p-4 md:p-6 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
+                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-2 px-2 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto text-center md:text-left relative">
                          <div className="flex flex-col items-center md:items-start w-full md:w-auto">
-                             <div className="flex items-center gap-3 mb-2"><img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} /><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
-                            <p className="text-slate-400 text-lg md:text-xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
+                             <div className="flex items-center gap-3 mb-1"><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
+                            <p className="text-slate-400 text-base md:text-lg font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
-                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-4 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1`}>{dateStr}</div></div>
+                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-2 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1`}>{dateStr}</div></div>
                     </header>
                     
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
@@ -514,7 +536,7 @@
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
                     
-                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[60px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[60px] gap-3 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
                             <div 
                                 key={mod.id} 
@@ -535,6 +557,64 @@
         };
 
         // --- HELPERS ---
+        async function getPublicCalendarEvents(cid) {
+            try {
+                const url = `https://corsproxy.io/?https://calendar.google.com/calendar/ical/${encodeURIComponent(cid)}/public/basic.ics`;
+                const res = await fetch(url);
+                if (!res.ok) return [];
+                const text = await res.text();
+                
+                const events = [];
+                const lines = text.split(/\r\n|\n/);
+                let currentEvent = {};
+                
+                // --- PARSER ---
+                const parseICalDate = (val) => {
+                    // YYYYMMDDTHHMMSSZ or YYYYMMDD
+                    const clean = val.replace(/[^0-9T]/g, ''); // Basic clean
+                    const y = parseInt(clean.substring(0,4));
+                    const m = parseInt(clean.substring(4,6)) - 1;
+                    const d = parseInt(clean.substring(6,8));
+                    let h=0, min=0;
+                    if(clean.includes('T')) {
+                        const tPart = clean.split('T')[1];
+                        h = parseInt(tPart.substring(0,2));
+                        min = parseInt(tPart.substring(2,4));
+                    }
+                    // Treat as UTC then convert to object (simplified for display)
+                    return new Date(Date.UTC(y, m, d, h, min));
+                };
+
+                for (let line of lines) {
+                    if (line.startsWith('BEGIN:VEVENT')) {
+                        currentEvent = {};
+                    } else if (line.startsWith('END:VEVENT')) {
+                        if (currentEvent.startObj && currentEvent.summary) {
+                            // If no end time, assume 1 hour or same day
+                            if (!currentEvent.endObj) {
+                                currentEvent.endObj = new Date(currentEvent.startObj.getTime() + 3600000);
+                            }
+                            events.push(currentEvent);
+                        }
+                    } else if (line.startsWith('DTSTART')) {
+                        currentEvent.startObj = parseICalDate(line.split(':')[1]);
+                    } else if (line.startsWith('DTEND')) {
+                        currentEvent.endObj = parseICalDate(line.split(':')[1]);
+                    } else if (line.startsWith('SUMMARY')) {
+                        currentEvent.summary = line.substring(8);
+                    }
+                }
+                
+                // Return RAW objects (filtering happens in render)
+                return events.sort((a,b) => a.startObj - b.startObj);
+
+            } catch (e) {
+                console.error("Calendar Fetch Error", e);
+                return [];
+            }
+        }
+
+        // ... [Rest of helper functions (getNamnsdagar, getRealWeather, etc) remain unchanged] ...
         async function getNamnsdagar() {
             try {
                 const url = "https://sholiday.faboul.se/dagar/v2.1/";
@@ -572,7 +652,7 @@
 
                 const parseDateRobustly = (dateStr) => {
                     if (!dateStr) return null;
-                    let s = dateStr.trim();
+                    let s = dateStr.replace(/^"|"$/g, '').trim();
                     s = s.split(' ')[0].split('T')[0]; // Remove time
 
                     let d = new Date(s);
@@ -635,8 +715,23 @@
             if (!DASHBOARD_CONFIG.api.clickUpSpaceId) return {};
             const headers = { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken };
             const proxy = "https://corsproxy.io/?";
+            
+            // Safe Fetch Wrapper to avoid crashing everything if one call fails
+            const safeFetch = async (url) => {
+                try {
+                    const res = await fetch(url, { headers });
+                    if (!res.ok) return { tasks: [] };
+                    return await res.json();
+                } catch (e) {
+                    console.error("Fetch failed for", url, e);
+                    return { tasks: [] };
+                }
+            };
+
             try {
-                const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
+                const tRes = await safeFetch(`${proxy}https://api.clickup.com/api/v2/team`);
+                if (!tRes.teams || tRes.teams.length === 0) return {};
+                const teamId = tRes.teams[0].id;
                 const startTimestamp = new Date("2024-01-01").getTime(); 
                 
                 // Helper to fetch pages
@@ -646,7 +741,7 @@
                         ? `${proxy}https://api.clickup.com/api/v2/list/${listId}/task?` 
                         : `${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&`;
                     
-                    while(p < 30) { 
+                    while(p < 50) { 
                         try { 
                             // For budget list, we don't filter by update date to be safe, just get everything
                             const dateFilter = listId ? "" : `&date_updated_gt=${startTimestamp}`;
@@ -698,92 +793,11 @@
                     }
                 });
                 
-                let recCount = 0; let streamCount = 0; let voCount = 0; const upcomingRecs = [];
-                const ignoreWords = ["genomgång", "brief", "planering", "förberedelse", "casting", "check", "koll", "recce", "schema", "annons", "annonser"];
-
-                tasks.forEach(t => {
-                    const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
-                    
-                    const is2025 = fName.startsWith("25") || lName.startsWith("25") || fName.startsWith("2025") || lName.startsWith("2025");
-                    const is24185 = fName.startsWith("24185") || lName.startsWith("24185");
-
-                    if (!is2025 && !is24185) return;
-
-                    const listNameClean = lName.toLowerCase();
-                    if (!listNameClean.includes('production') && !listNameClean.includes('stream') && !listNameClean.includes('live') && !listNameClean.includes('studio')) return; 
-
-                    const name = t.name;
-                    if (ignoreWords.some(w => name.toLowerCase().includes(w))) return; 
-
-                    const isVO = /\b(VO|Röst|Voiceover)\b/i.test(name);
-                    const isStream = /\b(Stream)\b/i.test(name);
-                    const isRec = /\b(Inspelning)\b/i.test(name);
-
-                    if (is24185 && !isStream) return;
-
-                    const status = t.status.status.toLowerCase();
-                    const isDone = ['complete', 'closed', 'klar', 'done'].includes(status);
-
-                    if (isDone) {
-                        const displayFolder = fName || lName;
-                        const item = { name: t.name, status: status, folder: displayFolder };
-                        
-                        if (isVO) { 
-                            voCount++; 
-                            listVO.push({ ...item, type: 'VO' }); 
-                        } else if (isStream) { 
-                            streamCount++; 
-                            listStream.push({ ...item, type: 'Stream' }); 
-                        } else if (isRec) { 
-                            recCount++; 
-                            listRec.push({ ...item, type: 'Inspelning' }); 
-                        }
-                    }
-
-                    if ((isVO || isStream || isRec) && !isDone) {
-                        const d = parseInt(t.start_date||t.due_date||0);
-                        if (d >= Date.now() - 86400000) {
-                            let pName = t.folder ? t.folder.name : (t.list ? t.list.name : "Projekt");
-                            if(pName.length>6 && pName.includes('_')) pName = pName.substring(6).replace(/_/g,' ');
-                            upcomingRecs.push({
-                                id: t.id, project: pName, sortDate: d,
-                                dateMain: new Date(d).getDate(),
-                                dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(),
-                                isStream: isStream, isVO: isVO
-                            });
-                        }
-                    }
-                });
-
-                const uniqueRecs = []; const seen = new Set();
-                upcomingRecs.sort((a,b) => a.sortDate - b.sortDate);
-                for(const r of upcomingRecs) { if(!seen.has(r.project)) { seen.add(r.project); uniqueRecs.push(r); } if(uniqueRecs.length>=5) break; }
-
-                const recentDel = listDelivered.slice(0,5);
-                const recentDelSidebar = validProjects
-                    .filter(t => t.status.status.toLowerCase() === 'delivered')
-                    .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
-                    .slice(0,20)
-                    .map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
-
-                // Calculate delivered this month + LIST
-                const now = new Date();
-                const deliveredListMonth = listDelivered.filter(i => {
-                    if(!i.rawDate) return false;
-                    const d = new Date(i.rawDate);
-                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-                })
-                .sort((a, b) => b.rawDate - a.rawDate);
-
                 // --- BUDGET CALCULATION IMPROVED & DEBUGGING ---
                 let totalRevenue = 0;
                 let budgetDebugList = []; // New list for debug info
 
                 budgetTasks.forEach(t => {
-                    // Filter: Only include tasks starting with "25" or "2025" (current year)
-                    const name = t.name || "";
-                    if (!name.startsWith(shortYear) && !name.startsWith(fullYear)) return;
-
                     if (!t.custom_fields) return;
 
                     // Bredare sökning: Letar efter "budget" i namnet ELLER typen "currency"
