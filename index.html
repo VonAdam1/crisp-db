@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final Separated)</title>
+    <title>Crisp Dashboard (Vertical Weather)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -39,9 +39,10 @@
             overflow: hidden; display: flex; flex-direction: column; position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
-        .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
-        .glass-card:active { cursor: grabbing; transform: scale(0.99); }
-        
+        @media (min-width: 768px) {
+            .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
+            .glass-card:active { cursor: grabbing; transform: scale(0.99); }
+        }
         .transparent-container {
             background: transparent;
             border: none;
@@ -50,6 +51,12 @@
             -webkit-backdrop-filter: none;
             overflow: visible;
         }
+        .transparent-container:hover {
+            border-color: transparent;
+            box-shadow: none;
+            cursor: default;
+        }
+        .glass-card.dragging { opacity: 0.5; border: 2px dashed rgba(255,255,255,0.3); background: transparent; box-shadow: none; cursor: grabbing; }
         .resize-handle { position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; cursor: nwse-resize; z-index: 50; opacity: 0; transition: opacity 0.2s; display: none; }
         @media (min-width: 768px) { .resize-handle { display: block; } .glass-card:hover .resize-handle { opacity: 1; } }
         .resize-handle::after { content: ''; position: absolute; bottom: 8px; right: 8px; width: 8px; height: 8px; border-bottom: 2px solid rgba(255,255,255,0.4); border-right: 2px solid rgba(255,255,255,0.4); border-radius: 1px; }
@@ -85,7 +92,10 @@
                 clickUpProjectsListId: "901515357300",
                 clickUpBudgetFieldId: "26f92511-130b-4909-a6e5-b51385752454",
                 googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
+                
+                // TEXT SHEET URL
                 googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
+                
                 calendars: [
                     { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
                     { name: "Onlinerum", cid: "c_1e0eb5196df08999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10" }
@@ -189,7 +199,7 @@
         async function getGoogleSheetMotto() {
             if (!DASHBOARD_CONFIG.api.googleSheetTextUrl) return null;
             try {
-                // Cache Busting
+                // Aggressive Cache Busting
                 const uniqueParam = `nocache=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
                 const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetTextUrl + '&' + uniqueParam)}`;
                 
@@ -390,42 +400,57 @@
 
         // --- COMPONENTS ---
 
+        // --- VERTICAL WEATHER MODULE ---
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
+            
             return (
-                <div className="h-full flex flex-col relative overflow-hidden p-5 md:p-6">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none"></div>
-                    <div className="relative z-10 flex justify-between items-start mb-2">
-                         <div><div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest mb-1"><MapPin size={12} /> Stockholm</div>
-                            <div className="flex items-center gap-4">
-                                <div className={`font-bold tracking-tighter text-white leading-none ${DASHBOARD_CONFIG.design.weatherTempMobile} md:${DASHBOARD_CONFIG.design.weatherTempDesktop}`}>
-                                    {loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°
-                                </div>
-                                <div className="flex flex-col"><div className="text-base md:text-lg text-slate-200 font-bold leading-tight">{statusText}</div><div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase mt-1"><span className="flex items-center gap-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</span></div></div>
-                            </div>
+                <div className="h-full flex flex-col p-5 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none"></div>
+                    
+                    {/* TOP: Current Weather */}
+                    <div className="relative z-10 flex flex-col items-center text-center mb-4">
+                        <div className="flex items-center gap-2 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-2"><MapPin size={12} /> Stockholm</div>
+                        
+                        {/* Icon + Temp */}
+                        <div className="flex flex-col items-center">
+                             <div className="mb-2 scale-125">
+                                {loading ? <Loader2 className="animate-spin text-slate-500" size={48} /> : (data?.icon || <Sun className="text-slate-500" size={48} />)}
+                             </div>
+                             <div className={`font-bold tracking-tighter text-white leading-none text-7xl mb-1`}>
+                                {loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°
+                             </div>
+                             <div className="text-lg text-slate-200 font-bold leading-tight">{statusText}</div>
+                             <div className="flex items-center gap-1 text-xs text-slate-400 font-bold uppercase mt-1">
+                                <Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s
+                             </div>
                         </div>
-                        <div className="bg-white/5 rounded-full border border-white/10 shadow-xl p-3">{loading ? <Loader2 className="animate-spin text-slate-500" size={32} /> : (data?.icon || <Sun className="text-slate-500" size={32} />)}</div>
                     </div>
-                    <div className="flex-grow flex flex-col justify-center py-2 relative z-10">
-                        {loading ? <div className="w-full h-20 bg-white/5 animate-pulse rounded-lg"></div> : (
-                            <div className="grid grid-cols-4 divide-x divide-white/10">
-                                {data?.todayForecast?.map((item, i) => (
-                                    <div key={i} className="flex flex-col items-center justify-start pt-1 px-1 text-center h-full">
-                                        <span className="text-slate-400 text-[8px] md:text-[9px] font-bold uppercase tracking-wide mb-1">{item.label}</span><div className="my-1 text-white">{item.icon}</div><span className="text-[8px] uppercase text-blue-200 font-bold mb-1 truncate max-w-full px-1">{item.text}</span><span className="text-white font-bold text-base leading-none mb-1">{Math.round(item.temp)}°</span>
-                                        <div className="flex flex-col gap-0.5 w-full items-center opacity-60 mt-auto pb-1"><div className="flex items-center gap-1 text-[8px]"><Wind size={10} className="text-slate-300"/> <span>{Math.round(item.wind)}</span></div><div className="flex items-center gap-1 text-[8px]"><Umbrella size={10} className="text-blue-300"/> <span>{item.rain}%</span></div></div>
+
+                    {/* MIDDLE: Hourly Forecast Grid (2x2) */}
+                    <div className="relative z-10 flex-grow flex flex-col justify-center mb-4">
+                        <div className="grid grid-cols-2 gap-2">
+                             {loading ? [1,2,3,4].map(i => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-lg"></div>) : 
+                                data?.todayForecast?.map((item, i) => (
+                                    <div key={i} className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5">
+                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wide mb-0.5">{item.label}</span>
+                                        <div className="my-0.5 scale-75">{item.icon}</div>
+                                        <span className="text-white font-bold text-sm">{Math.round(item.temp)}°</span>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                    <div className="pt-3 border-t border-white/10 relative z-10 mt-auto">
-                        <div className="grid grid-cols-3 gap-3">
-                            {loading ? [1,2,3].map(i => <div key={i} className="h-20 bg-white/5 animate-pulse rounded-xl"></div>) : data?.nextDays?.map((day, i) => (
-                                <div key={i} className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                    <span className="text-slate-400 text-xs font-bold uppercase mb-1">{day.day}</span><div className="mb-1">{day.icon}</div><span className="text-[8px] uppercase text-slate-400 font-bold mb-1">{day.text}</span><span className="text-white font-bold text-sm">{Math.round(day.temp)}°</span>
-                                </div>
                             ))}
                         </div>
+                    </div>
+
+                    {/* BOTTOM: Next Days List */}
+                    <div className="relative z-10 mt-auto space-y-1.5 border-t border-white/10 pt-3">
+                        {loading ? [1,2,3].map(i => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg"></div>) : 
+                        data?.nextDays?.map((day, i) => (
+                            <div key={i} className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                <span className="text-slate-400 text-xs font-bold uppercase w-8">{day.day}</span>
+                                <div className="flex items-center justify-center scale-75">{day.icon}</div>
+                                <span className="text-white font-bold text-sm w-6 text-right">{Math.round(day.temp)}°</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
             );
@@ -444,31 +469,31 @@
                                 <span className="text-white text-lg font-bold tracking-tight leading-none">
                                     {nameDaysLoading ? "Laddar..." : nameDays}
                                 </span>
-                                {!nameDaysLoading && nameDays !== "Inga namnsdagar" && (
-                                    <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider animate-pulse">Fira dem!</span>
-                                )}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="glass-card p-4 md:p-6 flex flex-col flex-grow">
-                    <div className="flex items-center justify-between mb-4">
+                <div className="glass-card p-3 flex flex-col flex-grow">
+                    <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 text-pink-400">
-                            <PartyPopper size={24} />
-                            <h3 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-widest text-white`}>Birthdays coming up!</h3>
+                            <PartyPopper size={18} />
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-white">Birthdays</h3>
                         </div>
-                        {birthdaysLoading && <Loader2 className="animate-spin text-slate-600" size={18} />}
+                        {birthdaysLoading && <Loader2 className="animate-spin text-slate-600" size={14} />}
                     </div>
-                    <div className="space-y-3 overflow-y-auto no-scrollbar flex-grow">
+                    <div className="space-y-1.5 overflow-y-auto no-scrollbar flex-grow">
                         {birthdaysLoading ? 
-                            <div className="space-y-3"><div className="h-16 bg-white/5 rounded-xl animate-pulse"></div><div className="h-16 bg-white/5 rounded-xl animate-pulse"></div></div> 
+                            <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> 
                             : birthdays?.length > 0 ? birthdays.map((b, i) => (
-                            <div key={i} className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
-                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-base md:text-lg font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
-                                <div><div className="text-white text-lg md:text-xl font-bold">{b.name}</div><div className="text-pink-300 text-xs md:text-sm font-bold uppercase tracking-wide mt-0.5">{b.dateStr} {b.isSoon && "🎂"}</div></div>
+                            <div key={i} className="flex items-center gap-2 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
+                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
+                                <div className="min-w-0">
+                                    <div className="text-white text-xs font-bold truncate">{b.name}</div>
+                                    <div className="text-pink-300 text-[8px] font-bold uppercase tracking-wide">{b.dateStr} {b.isSoon && "🎂"}</div>
+                                </div>
                             </div>
-                        )) : <div className="h-full flex items-center justify-center text-slate-500 text-sm italic">Inga födelsedagar nära.</div>}
+                        )) : <div className="h-full flex items-center justify-center text-slate-500 text-[10px] italic">Inga födelsedagar nära.</div>}
                     </div>
                 </div>
              </div>
@@ -535,10 +560,10 @@
 
                     <div className="flex-grow flex flex-col min-h-0 animate-in pt-3 border-t border-white/5">
                         <div className="flex items-center gap-3 mb-3 text-emerald-400 mt-2"><PackageCheck size={16} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
-                        <div className="space-y-2 overflow-y-auto no-scrollbar flex-grow">
-                            {loading ? <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 20).map((del, i) => (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto no-scrollbar flex-grow content-start">
+                            {loading ? <div className="col-span-2 space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 20).map((del, i) => (
                                 <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-sm truncate mr-2">{del.name}</span><span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span></div>
-                            )) : <p className="text-sm text-slate-500 italic">Inget nyligen.</p>}
+                            )) : <p className="col-span-2 text-sm text-slate-500 italic">Inget nyligen.</p>}
                         </div>
                     </div>
                 </div>
@@ -774,7 +799,7 @@
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Omsättning</strong> hämtas från fältet "Budget".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1).</div></div>
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1) och uppdateras var 10:e sekund.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Texten uppdateras automatiskt</strong> var 10:e sekund.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Manuell omladdning</strong>: Skriv **RELOAD** i cell **B1** för att tvinga en omladdning (max en gång per 10 min).</div></div>
                     </div>
@@ -794,15 +819,17 @@
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
+            // För att spåra den senaste tvingade omladdningen
+            const lastForcedReloadTime = useRef(0);
             // 10 minuter i millisekunder
             const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
             const [modules, setModules] = useState([ 
-                { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
-                { id: 'infoSidebar', colSpan: 4, rowSpan: 2, component: 'InfoSidebarModule', noGlass: true }, 
-                { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
+                { id: 'weather', colSpan: 3, rowSpan: 5, component: 'WeatherModule' }, 
+                { id: 'infoSidebar', colSpan: 3, rowSpan: 2, component: 'InfoSidebarModule', noGlass: true }, 
+                { id: 'slideshow', colSpan: 6, rowSpan: 2, component: 'SlideshowModule' }, 
+                { id: 'production', colSpan: 9, rowSpan: 3, component: 'ProductionModule' }, 
                 { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
-                { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, 
             ]);
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
 
@@ -830,16 +857,10 @@
                 }
             };
 
-            // EFFECT 1: CLOCK (Runs every second)
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
-                return () => clearInterval(t);
-            }, []);
 
-            // EFFECT 2: HEAVY DATA (Runs once + every hour)
-            useEffect(() => {
                 const loadMainData = async () => {
-                    console.log("Loading Main Data...");
                     setLoadingWeather(true);
                     setLoadingBirthdays(true);
                     setLoadingNameDays(true);
@@ -858,48 +879,42 @@
                     setLoadingProd(false);
                 };
 
-                loadMainData(); // Run immediately on mount
-
-                const mainInterval = setInterval(() => {
-                    if (new Date().getMinutes() === 0) {
-                        loadMainData();
-                    }
-                }, 60000); // Check every minute if it is :00
-
-                return () => clearInterval(mainInterval);
-            }, []);
-
-            // EFFECT 3: TEXT & RELOAD CHECK (Runs every 10s)
-            useEffect(() => {
-                const loadTextAndCheckReload = async () => {
+                const loadTextOnly = async () => {
                     try {
                         const data = await getGoogleSheetMotto();
                         if(data) {
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
                             
-                            // RELOAD LOGIC IS ISOLATED HERE
+                            // *** NY OMLADDNINGSLOGIK MED 10 MIN SPÄRR (Persistent) ***
                             if (data.shouldReload === 'RELOAD') {
                                 const now = Date.now();
                                 const lastReload = parseInt(localStorage.getItem('last_reload_timestamp') || '0');
                                 
                                 if (now - lastReload > RELOAD_COOLDOWN_MS) {
                                     localStorage.setItem('last_reload_timestamp', now.toString());
-                                    console.log("Force Reload Triggered by Google Sheet B1! Reloading page.");
+                                    console.log("Force Reload Triggered by Google Sheet B1! Reloading.");
                                     window.location.reload();
                                 } else {
                                     console.log("Reload ignored due to cooldown.");
                                 }
                             } 
+                            // *** SLUT NY OMLADDNINGSLOGIK ***
                         }
                     } catch(e){}
                 };
 
-                // Run immediately
-                loadTextAndCheckReload();
+                loadMainData();
+                loadTextOnly();
 
-                const textInterval = setInterval(loadTextAndCheckReload, 10000);
-                return () => clearInterval(textInterval);
-            }, []); // Empty dependency array ensures this interval is set once and runs independently
+                const textInterval = setInterval(loadTextOnly, 10000);
+                const mainInterval = setInterval(() => {
+                    if (new Date().getMinutes() === 0) {
+                        loadMainData();
+                    }
+                }, 60000); 
+
+                return () => { clearInterval(t); clearInterval(textInterval); clearInterval(mainInterval); };
+            }, []);
 
             const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
