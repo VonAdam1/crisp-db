@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Vertical Weather)</title>
+    <title>Crisp Dashboard (Final Persistent)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -39,10 +39,9 @@
             overflow: hidden; display: flex; flex-direction: column; position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
-        @media (min-width: 768px) {
-            .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
-            .glass-card:active { cursor: grabbing; transform: scale(0.99); }
-        }
+        .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
+        .glass-card:active { cursor: grabbing; transform: scale(0.99); }
+        
         .transparent-container {
             background: transparent;
             border: none;
@@ -51,12 +50,6 @@
             -webkit-backdrop-filter: none;
             overflow: visible;
         }
-        .transparent-container:hover {
-            border-color: transparent;
-            box-shadow: none;
-            cursor: default;
-        }
-        .glass-card.dragging { opacity: 0.5; border: 2px dashed rgba(255,255,255,0.3); background: transparent; box-shadow: none; cursor: grabbing; }
         .resize-handle { position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; cursor: nwse-resize; z-index: 50; opacity: 0; transition: opacity 0.2s; display: none; }
         @media (min-width: 768px) { .resize-handle { display: block; } .glass-card:hover .resize-handle { opacity: 1; } }
         .resize-handle::after { content: ''; position: absolute; bottom: 8px; right: 8px; width: 8px; height: 8px; border-bottom: 2px solid rgba(255,255,255,0.4); border-right: 2px solid rgba(255,255,255,0.4); border-radius: 1px; }
@@ -92,10 +85,7 @@
                 clickUpProjectsListId: "901515357300",
                 clickUpBudgetFieldId: "26f92511-130b-4909-a6e5-b51385752454",
                 googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
-                
-                // TEXT SHEET URL
                 googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
-                
                 calendars: [
                     { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
                     { name: "Onlinerum", cid: "c_1e0eb5196df08999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10" }
@@ -103,7 +93,6 @@
             }
         };
 
-        const LOGO_SYMBOL = "./Crisp-Symbol-White.png";
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
 
         // --- ICONS ---
@@ -129,6 +118,7 @@
         const Gift = createLucideIcon('Gift');
         const Users = createLucideIcon('Users');
         const DoorOpen = createLucideIcon('DoorOpen');
+        const RotateCcw = createLucideIcon('RotateCcw');
 
         // --- HELPERS ---
         async function getNamnsdagar() {
@@ -199,26 +189,17 @@
         async function getGoogleSheetMotto() {
             if (!DASHBOARD_CONFIG.api.googleSheetTextUrl) return null;
             try {
-                // Aggressive Cache Busting
                 const uniqueParam = `nocache=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
                 const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetTextUrl + '&' + uniqueParam)}`;
-                
-                const res = await fetch(url, {
-                    cache: 'no-store',
-                    headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' }
-                });
-
+                const res = await fetch(url, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } });
                 if (!res.ok) return null;
                 const textData = await res.text();
                 
                 const parseCSV = (str) => {
-                    const arr = [];
-                    let quote = false;
-                    let row = 0, col = 0;
+                    const arr = []; let quote = false; let row = 0, col = 0;
                     for (let c = 0; c < str.length; c++) {
                         let cc = str[c], nc = str[c+1];
-                        arr[row] = arr[row] || [];
-                        arr[row][col] = arr[row][col] || '';
+                        arr[row] = arr[row] || []; arr[row][col] = arr[row][col] || '';
                         if (cc == '"' && quote && nc == '"') { arr[row][col] += cc; ++c; }
                         else if (cc == '"') { quote = !quote; }
                         else if (cc == ',' && !quote) { ++col; }
@@ -230,28 +211,12 @@
                     return arr;
                 };
                 const rows = parseCSV(textData);
-                
-                let title = "Every frame counts";
-                let shouldReload = "FALSE"; 
-
+                let title = "Every frame counts"; let shouldReload = "FALSE"; 
                 if (rows.length > 0) {
-                    if (rows[0].length > 0) {
-                        const a1Text = rows[0][0]; 
-                        const cleanText = a1Text ? a1Text.trim() : "";
-                        if (cleanText.length > 0) {
-                            title = cleanText;
-                        }
-                    }
-                    if (rows[0].length > 1) {
-                        const b1Text = rows[0][1];
-                        if (b1Text && b1Text.trim().toUpperCase() === "RELOAD") {
-                            shouldReload = "RELOAD";
-                        }
-                    }
+                    if (rows[0].length > 0) { const a1Text = rows[0][0]; const cleanText = a1Text ? a1Text.trim() : ""; if (cleanText.length > 0) title = cleanText; }
+                    if (rows[0].length > 1) { const b1Text = rows[0][1]; if (b1Text && b1Text.trim().toUpperCase() === "RELOAD") shouldReload = "RELOAD"; }
                 }
-                
                 return { title: title, subtitle: "Life at Crisp", shouldReload: shouldReload };
-
             } catch (e) { return null; }
         }
 
@@ -260,13 +225,9 @@
             let allBookings = [];
             const parseICSDate = (str) => {
                 if(!str) return null;
-                const year = str.substring(0, 4);
-                const month = str.substring(4, 6) - 1;
-                const day = str.substring(6, 8);
-                const hour = str.length > 8 ? str.substring(9, 11) : 0;
-                const min = str.length > 8 ? str.substring(11, 13) : 0;
-                const d = new Date(Date.UTC(year, month, day, hour, min, 0));
-                return d;
+                const year = str.substring(0, 4); const month = str.substring(4, 6) - 1; const day = str.substring(6, 8);
+                const hour = str.length > 8 ? str.substring(9, 11) : 0; const min = str.length > 8 ? str.substring(11, 13) : 0;
+                return new Date(Date.UTC(year, month, day, hour, min, 0));
             };
             for (const cal of DASHBOARD_CONFIG.api.calendars) {
                 try {
@@ -280,11 +241,7 @@
                     const cutoff = new Date(now.getTime() - 60*60*1000); 
                     while ((match = eventRegex.exec(text)) !== null) {
                         const eventBlock = match[1];
-                        const getField = (field) => {
-                            const r = new RegExp(`${field}[:;](.*)`);
-                            const m = eventBlock.match(r);
-                            return m ? m[1].trim() : null;
-                        };
+                        const getField = (field) => { const r = new RegExp(`${field}[:;](.*)`); const m = eventBlock.match(r); return m ? m[1].trim() : null; };
                         let dtStart = getField('DTSTART');
                         if (dtStart && dtStart.includes('VALUE=DATE')) dtStart = dtStart.split(':')[1];
                         let dtEnd = getField('DTEND');
@@ -319,10 +276,8 @@
 
                 const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
                 const tasks = [...active, ...archived];
-                
                 const shortYear = DASHBOARD_CONFIG.year.slice(-2); const fullYear = DASHBOARD_CONFIG.year;
-                const listActive = []; const listTotal = []; const listDelivered = [];
-                const listDeliveredMonth = []; 
+                const listActive = []; const listTotal = []; const listDelivered = []; const listDeliveredMonth = []; 
                 const listRec = []; const listStream = []; const listVO = [];
 
                 let activeBudget = 0; let deliveredBudget = 0; let totalBudget = 0; let monthDeliveredBudget = 0;
@@ -335,7 +290,6 @@
                     let budget = 0;
                     if(t.custom_fields) { const bf = t.custom_fields.find(f => f.id === budgetFieldId); if(bf && bf.value) budget = parseFloat(bf.value) || 0; }
                     const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
-                    
                     if(s === 'production') { listActive.push(item); listTotal.push(item); activeBudget += budget; totalBudget += budget; }
                     if(s === 'delivered') {
                         const d = parseInt(t.date_closed||t.date_updated||0);
@@ -456,33 +410,22 @@
             );
         };
 
+        // COMBINED MODULE: Namnsdag + Birthdays
         const InfoSidebarModule = ({ nameDays, nameDaysLoading, birthdays, birthdaysLoading }) => (
-             <div className="flex flex-col h-full gap-4">
-                <div className="glass-card px-4 py-3 flex items-center justify-between min-h-[60px] w-full shrink-0">
-                    <div className="flex items-center gap-3 w-full">
-                        <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0">
-                            <Gift size={16} />
-                        </div>
-                        <div className="flex flex-col w-full">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 leading-none mb-1">Namnsdag Idag</div>
-                            <div className="flex items-baseline gap-2 flex-wrap">
-                                <span className="text-white text-lg font-bold tracking-tight leading-none">
-                                    {nameDaysLoading ? "Laddar..." : nameDays}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+             <div className="glass-card flex flex-col h-full relative overflow-hidden p-3">
+                 {/* NAMNSDAG - Compact */}
+                 <div className="flex-shrink-0 mb-2 pb-2 border-b border-white/10 flex items-center gap-3">
+                     <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0"><Gift size={14} /></div>
+                     <div className="text-sm font-bold text-white truncate">{nameDaysLoading ? "..." : nameDays}</div>
+                 </div>
 
-                <div className="glass-card p-3 flex flex-col flex-grow">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2 text-pink-400">
-                            <PartyPopper size={18} />
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-white">Birthdays</h3>
-                        </div>
-                        {birthdaysLoading && <Loader2 className="animate-spin text-slate-600" size={14} />}
+                 {/* BIRTHDAYS - Compact */}
+                 <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
+                    <div className="flex items-center gap-2 text-pink-400 mb-1.5">
+                        <PartyPopper size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Födelsedagar</span>
                     </div>
-                    <div className="space-y-1.5 overflow-y-auto no-scrollbar flex-grow">
+                    <div className="space-y-1 overflow-y-auto no-scrollbar">
                         {birthdaysLoading ? 
                             <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> 
                             : birthdays?.length > 0 ? birthdays.map((b, i) => (
@@ -495,7 +438,7 @@
                             </div>
                         )) : <div className="h-full flex items-center justify-center text-slate-500 text-[10px] italic">Inga födelsedagar nära.</div>}
                     </div>
-                </div>
+                 </div>
              </div>
         );
 
@@ -504,7 +447,6 @@
                 if (!amount) return "0 kr";
                 return amount.toLocaleString('sv-SE') + " kr";
             };
-
             const currentMonthShort = new Date().toLocaleDateString('sv-SE', { month: 'short' }).toUpperCase().replace('.', '');
 
             return (
@@ -518,25 +460,21 @@
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 shrink-0">
-                        {/* Active Projects */}
                         <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span>
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
                              {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 mt-1 font-bold">{formatMoney(stats?.budgetActive)}</div>}
                         </div>
-                        
                          <div onClick={() => onOpenDetails(`Levererat (${currentMonthShort})`, stats?.lists?.deliveredMonth)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-2xl md:text-3xl font-black text-emerald-300 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.monthDelivered}</span>
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat ({currentMonthShort})</span>
                              {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300 mt-1 font-bold shadow-black drop-shadow-md">{formatMoney(stats?.budgetMonth)}</div>}
                         </div>
-
                         <div onClick={() => onOpenDetails('Levererat (År)', stats?.lists?.delivered)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-2xl md:text-3xl font-black text-emerald-600 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span>
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat (År)</span>
                              {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-700 mt-1 font-bold">{formatMoney(stats?.budgetDelivered)}</div>}
                         </div>
-                        
                         <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="col-span-1 md:col-span-3 bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{DASHBOARD_CONFIG.year}</span>
                              <div className="flex flex-col items-center mt-0.5 gap-0.5">
@@ -547,7 +485,6 @@
                              </div>
                              <span className="text-[9px] font-bold text-slate-500 uppercase mt-1.5 tracking-widest">Totalt Helår</span>
                         </div>
-                        
                         <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="col-span-1 md:col-span-3 bg-slate-800/50 rounded-xl p-3 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
                              <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
@@ -557,7 +494,6 @@
                              </div>
                         </div>
                     </div>
-
                     <div className="flex-grow flex flex-col min-h-0 animate-in pt-3 border-t border-white/5">
                         <div className="flex items-center gap-3 mb-3 text-emerald-400 mt-2"><PackageCheck size={16} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto no-scrollbar flex-grow content-start">
@@ -575,69 +511,37 @@
             useEffect(() => { const arr = []; for (let i=1; i<=20; i++) { arr.push(`bilder/${i}.jpg`); arr.push(`bilder/${i}.png`); arr.push(`bilder/${i}.jpeg`); } setValidImages(arr); }, []);
             useEffect(() => { if (validImages.length === 0) return; const t = setInterval(() => setIndex((p) => (p + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval); return () => clearInterval(t); }, [validImages]);
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
-            
             return (
                 <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
-                    {/* Render text overlay independently */}
                     <div className="absolute bottom-6 left-6 pointer-events-none z-20">
                          {customText.subtitle && <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={12} /> {customText.subtitle}</div>}
                         <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{customText.title}</h2>
                     </div>
-
                     {validImages.length > 0 ? <>
                             {validImages.map((img, i) => (
-                                <img 
-                                    key={img} 
-                                    src={img} 
-                                    onError={() => err(img)} 
-                                    className="absolute inset-0 w-full h-full object-cover object-center"
-                                    style={{ 
-                                        opacity: index === i ? 1 : 0, 
-                                        transition: 'opacity 1.5s ease-in-out', 
-                                        willChange: 'opacity' 
-                                    }} 
-                                    alt="Crisp" 
-                                />
+                                <img key={img} src={img} onError={() => err(img)} className="absolute inset-0 w-full h-full object-cover object-center" style={{ opacity: index === i ? 1 : 0, transition: 'opacity 1.5s ease-in-out', willChange: 'opacity' }} alt="Crisp" />
                             ))}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                         </> : (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-600">
-                                <Image size={48} />
-                                <p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p>
-                            </div>
+                            <div className="h-full flex flex-col items-center justify-center text-slate-600"><Image size={48} /><p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p></div>
                         )}
                 </div>
             );
         };
 
         const TimelineModule = ({ items, bookings, loading }) => {
-            const [width, setWidth] = useState(0);
-            const ref = useRef(null);
-
-            useEffect(() => {
-                if (!ref.current) return;
-                const ro = new ResizeObserver(entries => {
-                    if (entries[0]) setWidth(entries[0].contentRect.width);
-                });
-                ro.observe(ref.current);
-                return () => ro.disconnect();
-            }, []);
-
+            const [width, setWidth] = useState(0); const ref = useRef(null);
+            useEffect(() => { if (!ref.current) return; const ro = new ResizeObserver(entries => { if (entries[0]) setWidth(entries[0].contentRect.width); }); ro.observe(ref.current); return () => ro.disconnect(); }, []);
             const konfBookings = bookings ? bookings.filter(b => b.roomName === 'Konferensrum') : [];
             const onlineBookings = bookings ? bookings.filter(b => b.roomName === 'Onlinerum') : [];
-
             const renderList = (list, emptyText) => (
                 <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2 min-h-[100px]">
                     {loading && (!bookings || bookings.length === 0) ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
                     : list.length > 0 ? list.map((b, idx) => (
                         <div key={idx} className="flex items-start gap-3 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10">
-                            <div className={`mt-1 p-1.5 rounded-lg shrink-0 ${b.roomColor} ${b.roomBg}`}>
-                                <DoorOpen size={14} />
-                            </div>
+                            <div className={`mt-1 p-1.5 rounded-lg shrink-0 ${b.roomColor} ${b.roomBg}`}><DoorOpen size={14} /></div>
                             <div className="min-w-0 flex-grow">
-                                <div className="flex justify-between items-baseline">
-                                    <span className="text-[10px] text-slate-500 font-bold">{b.time}</span>
-                                </div>
+                                <div className="flex justify-between items-baseline"><span className="text-[10px] text-slate-500 font-bold">{b.time}</span></div>
                                 <div className="font-semibold text-white text-sm truncate leading-tight mt-0.5">{b.title}</div>
                                 {b.attendees && <div className="text-[10px] text-slate-400 mt-0.5 truncate flex items-center gap-1"><Users size={10} /> {b.attendees}</div>}
                             </div>
@@ -645,11 +549,9 @@
                     )) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><DoorOpen size={32} strokeWidth={1} /><p className="mt-2 text-xs">{emptyText}</p></div>}
                 </div>
             );
-
             return (
                 <div ref={ref} className="h-full p-4 md:p-6 flex flex-col">
                     <div className="flex items-center justify-between mb-4"><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Händer & Bokningar</h2>{loading && <Loader2 className="animate-spin text-slate-600" size={20}/>}</div>
-                    
                     {width > 900 ? (
                          <div className="flex flex-row gap-6 h-full min-h-0">
                              <div className="flex-[1.4] flex flex-col min-h-0">
@@ -660,97 +562,23 @@
                                          const isRec = item.type === 'recording';
                                          return (
                                             <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 md:p-2 bg-white/5 rounded-xl border border-white/5 transition-all hover:bg-white/10">
-                                                <div className={`flex flex-col items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                                                    <span className="font-bold text-sm md:text-base leading-none">{item.dateMain}</span>
-                                                    <span className="text-[7px] md:text-[8px] font-bold uppercase mt-0.5">{item.dateSub}</span>
-                                                </div>
-                                                <div className="flex-grow min-w-0">
-                                                    <h3 className="text-sm md:text-base font-semibold text-white truncate leading-tight">{item.title}</h3>
-                                                    <div className="flex items-center gap-3 mt-0.5">
-                                                        {isRec ? <Video size={12} className="text-red-400"/> : <Star size={12} className="text-indigo-400"/>}
-                                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
-                                                        {item.timeStr && <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1.5 py-0.5 rounded-full ml-2">{item.timeStr}</span>}
-                                                    </div>
-                                                </div>
+                                                <div className={`flex flex-col items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}><span className="font-bold text-sm md:text-base leading-none">{item.dateMain}</span><span className="text-[7px] md:text-[8px] font-bold uppercase mt-0.5">{item.dateSub}</span></div>
+                                                <div className="flex-grow min-w-0"><h3 className="text-sm md:text-base font-semibold text-white truncate leading-tight">{item.title}</h3><div className="flex items-center gap-3 mt-0.5">{isRec ? <Video size={12} className="text-red-400"/> : <Star size={12} className="text-indigo-400"/>}<span className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>{item.timeStr && <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1.5 py-0.5 rounded-full ml-2">{item.timeStr}</span>}</div></div>
                                             </div>
                                          );
                                     }) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><Calendar size={48} strokeWidth={1} /><p className="mt-2 text-sm">Inget inbokat</p></div>}
                                 </div>
                              </div>
-                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
-                                {renderList(konfBookings, "Ledigt")}
-                             </div>
-                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
-                                {renderList(onlineBookings, "Ledigt")}
-                             </div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>{renderList(konfBookings, "Ledigt")}</div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>{renderList(onlineBookings, "Ledigt")}</div>
                          </div>
                     ) : width > 550 ? (
                         <div className="flex flex-row gap-6 h-full min-h-0">
-                             <div className="flex-1 flex flex-col min-h-0">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3>
-                                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">
-                                     {items.length > 0 ? items.map((item, idx) => (
-                                         <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10">
-                                            <div className={`w-10 h-10 rounded-lg shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                                                <span className="font-bold text-sm leading-none">{item.dateMain}</span>
-                                                <span className="text-[7px] font-bold uppercase">{item.dateSub}</span>
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h3 className="text-sm font-semibold text-white truncate">{item.title}</h3>
-                                                <span className="text-[10px] text-slate-400">{item.timeStr || item.subtitle}</span>
-                                            </div>
-                                         </div>
-                                     )) : <div className="text-slate-500 text-sm p-4">Inget inbokat</div>}
-                                </div>
-                             </div>
-                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
-                                <div className="flex-1 flex flex-col min-h-0 mb-4">
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
-                                    {renderList(konfBookings, "Ledigt")}
-                                </div>
-                                <div className="flex-1 flex flex-col min-h-0 border-t border-white/10 pt-2">
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
-                                    {renderList(onlineBookings, "Ledigt")}
-                                </div>
-                             </div>
+                             <div className="flex-1 flex flex-col min-h-0"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3><div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">{items.length > 0 ? items.map((item, idx) => (<div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10"><div className={`w-10 h-10 rounded-lg shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}><span className="font-bold text-sm leading-none">{item.dateMain}</span><span className="text-[7px] font-bold uppercase">{item.dateSub}</span></div><div className="min-w-0"><h3 className="text-sm font-semibold text-white truncate">{item.title}</h3><span className="text-[10px] text-slate-400">{item.timeStr || item.subtitle}</span></div></div>)) : <div className="text-slate-500 text-sm p-4">Inget inbokat</div>}</div></div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4"><div className="flex-1 flex flex-col min-h-0 mb-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>{renderList(konfBookings, "Ledigt")}</div><div className="flex-1 flex flex-col min-h-0 border-t border-white/10 pt-2"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>{renderList(onlineBookings, "Ledigt")}</div></div>
                         </div>
                     ) : (
-                        <div className="flex flex-col h-full gap-4 overflow-y-auto no-scrollbar">
-                             <div className="flex-shrink-0">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3>
-                                <div className="space-y-1.5">
-                                     {items.slice(0, 4).map((item, idx) => (
-                                         <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5">
-                                            <div className={`w-8 h-8 rounded shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
-                                                <span className="font-bold text-xs leading-none">{item.dateMain}</span>
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h3 className="text-sm font-semibold text-white truncate">{item.title}</h3>
-                                            </div>
-                                         </div>
-                                     ))}
-                                     {items.length === 0 && <div className="text-slate-500 text-sm">Inget inbokat</div>}
-                                </div>
-                             </div>
-                             <div className="flex-shrink-0 border-t border-white/10 pt-4">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
-                                <div className="space-y-1.5">
-                                    {konfBookings.length > 0 ? konfBookings.map((b,i) => (
-                                        <div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>
-                                    )) : <div className="text-slate-500 text-xs">Ledigt</div>}
-                                </div>
-                             </div>
-                             <div className="flex-shrink-0 border-t border-white/10 pt-4">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
-                                <div className="space-y-1.5">
-                                    {onlineBookings.length > 0 ? onlineBookings.map((b,i) => (
-                                        <div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>
-                                    )) : <div className="text-slate-500 text-xs">Ledigt</div>}
-                                </div>
-                             </div>
-                        </div>
+                        <div className="flex flex-col h-full gap-4 overflow-y-auto no-scrollbar"><div className="flex-shrink-0"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3><div className="space-y-1.5">{items.slice(0, 4).map((item, idx) => (<div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5"><div className={`w-8 h-8 rounded shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}><span className="font-bold text-xs leading-none">{item.dateMain}</span></div><div className="min-w-0"><h3 className="text-sm font-semibold text-white truncate">{item.title}</h3></div></div>))}{items.length === 0 && <div className="text-slate-500 text-sm">Inget inbokat</div>}</div></div><div className="flex-shrink-0 border-t border-white/10 pt-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3><div className="space-y-1.5">{konfBookings.length > 0 ? konfBookings.map((b,i) => (<div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>)) : <div className="text-slate-500 text-xs">Ledigt</div>}</div></div><div className="flex-shrink-0 border-t border-white/10 pt-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3><div className="space-y-1.5">{onlineBookings.length > 0 ? onlineBookings.map((b,i) => (<div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>)) : <div className="text-slate-500 text-xs">Ledigt</div>}</div></div></div>
                     )}
                 </div>
             );
@@ -791,17 +619,25 @@
             </div>
         );
 
-        const HelpModal = ({ onClose }) => (
+        const HelpModal = ({ onClose, onResetLayout }) => (
             <div className="modal-overlay open" onClick={onClose}>
                 <div className="glass-card p-8 max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white flex items-center gap-2"><HelpCircle /> Dashboard Info</h2><button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button></div>
                     <div className="space-y-4 text-slate-300 text-sm font-medium">
+                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Layout</strong> sparas automatiskt.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Omsättning</strong> hämtas från fältet "Budget".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1) och uppdateras var 10:e sekund.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Texten uppdateras automatiskt</strong> var 10:e sekund.</div></div>
                         <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Manuell omladdning</strong>: Skriv **RELOAD** i cell **B1** för att tvinga en omladdning (max en gång per 10 min).</div></div>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-white/10">
+                        <button 
+                            onClick={() => { onResetLayout(); onClose(); }}
+                            className="w-full py-2 px-4 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+                        >
+                            <RotateCcw size={16} /> Återställ Layout till Standard
+                        </button>
                     </div>
                 </div>
             </div>
@@ -819,19 +655,39 @@
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
-            // För att spåra den senaste tvingade omladdningen
             const lastForcedReloadTime = useRef(0);
-            // 10 minuter i millisekunder
             const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
-            const [modules, setModules] = useState([ 
+            // Default layout for reset
+            const defaultModules = [ 
                 { id: 'weather', colSpan: 3, rowSpan: 5, component: 'WeatherModule' }, 
-                { id: 'infoSidebar', colSpan: 3, rowSpan: 2, component: 'InfoSidebarModule', noGlass: true }, 
+                { id: 'infoSidebar', colSpan: 3, rowSpan: 2, component: 'InfoSidebarModule', noGlass: false }, 
                 { id: 'slideshow', colSpan: 6, rowSpan: 2, component: 'SlideshowModule' }, 
                 { id: 'production', colSpan: 9, rowSpan: 3, component: 'ProductionModule' }, 
-                { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
-            ]);
+                { id: 'timeline', colSpan: 12, rowSpan: 4, component: 'TimelineModule' }, 
+            ];
+
+            // Initialize state from localStorage if available, else default
+            const [modules, setModules] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('crisp_dashboard_layout');
+                    return saved ? JSON.parse(saved) : defaultModules;
+                } catch(e) {
+                    return defaultModules;
+                }
+            });
+            
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
+
+            // Save layout whenever it changes
+            useEffect(() => {
+                localStorage.setItem('crisp_dashboard_layout', JSON.stringify(modules));
+            }, [modules]);
+
+            const resetLayout = () => {
+                setModules(defaultModules);
+                localStorage.removeItem('crisp_dashboard_layout');
+            };
 
             const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
             const onDragEnd = (e) => { setDraggedId(null); e.currentTarget.classList.remove('dragging'); };
@@ -885,7 +741,6 @@
                         if(data) {
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
                             
-                            // *** NY OMLADDNINGSLOGIK MED 10 MIN SPÄRR (Persistent) ***
                             if (data.shouldReload === 'RELOAD') {
                                 const now = Date.now();
                                 const lastReload = parseInt(localStorage.getItem('last_reload_timestamp') || '0');
@@ -898,7 +753,6 @@
                                     console.log("Reload ignored due to cooldown.");
                                 }
                             } 
-                            // *** SLUT NY OMLADDNINGSLOGIK ***
                         }
                     } catch(e){}
                 };
@@ -919,10 +773,10 @@
             const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
             return (
-                <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
+                <div className="min-h-screen p-2 md:p-4 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
                     <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-3 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
                          <div className="flex flex-col items-center md:items-start w-full md:w-auto">
-                             <div className="flex items-center gap-3 mb-2"><img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} /><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
+                             <div className="flex items-center gap-3 mb-2"><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
                             <p className="text-slate-400 text-lg md:text-xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
                         </div>
                         <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-4 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1`}>{dateStr}</div></div>
@@ -930,9 +784,9 @@
                     
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
-                    {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+                    {showHelp && <HelpModal onClose={() => setShowHelp(false)} onResetLayout={resetLayout} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
-                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[120px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
                             <div 
                                 key={mod.id} 
