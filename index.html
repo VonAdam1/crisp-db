@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Final Persistent)</title>
+    <title>Crisp Dashboard (Centered Clock & Header Info)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -22,14 +22,9 @@
             min-height: 100vh;
             background: radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000000 80%);
             -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
         }
-        @media (min-width: 768px) {
-            body {
-                overflow-y: auto; 
-                height: auto;
-                min-height: 100vh;
-            }
-        }
+        
         .glass-card { 
             background: rgba(20, 20, 22, 0.7); 
             backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
@@ -39,8 +34,11 @@
             overflow: hidden; display: flex; flex-direction: column; position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
-        .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
-        .glass-card:active { cursor: grabbing; transform: scale(0.99); }
+        
+        @media (min-width: 768px) {
+            .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
+            .glass-card:active { cursor: grabbing; transform: scale(0.99); }
+        }
         
         .transparent-container {
             background: transparent;
@@ -50,15 +48,20 @@
             -webkit-backdrop-filter: none;
             overflow: visible;
         }
+        
+        .glass-card.dragging { opacity: 0.5; border: 2px dashed rgba(255,255,255,0.3); background: transparent; box-shadow: none; cursor: grabbing; }
         .resize-handle { position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; cursor: nwse-resize; z-index: 50; opacity: 0; transition: opacity 0.2s; display: none; }
         @media (min-width: 768px) { .resize-handle { display: block; } .glass-card:hover .resize-handle { opacity: 1; } }
         .resize-handle::after { content: ''; position: absolute; bottom: 8px; right: 8px; width: 8px; height: 8px; border-bottom: 2px solid rgba(255,255,255,0.4); border-right: 2px solid rgba(255,255,255,0.4); border-radius: 1px; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .animate-in { animation: fadeIn 0.6s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        
         .gpu-accelerate { transform: translateZ(0); backface-visibility: hidden; }
     </style>
 </head>
@@ -68,34 +71,36 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // --- CONFIG ---
+        // --- 1. CONFIGURATION ---
         const DASHBOARD_CONFIG = {
             year: "2025",
             slideshowInterval: 8000,
             design: {
-                logoSymbolHeightMobile: "h-16", logoSymbolHeightDesktop: "h-24", 
-                logoTextHeightMobile: "h-8", logoTextHeightDesktop: "h-12",    
-                clockSizeMobile: "text-6xl", clockSizeDesktop: "text-9xl", dateSizeMobile: "text-xl", dateSizeDesktop: "text-3xl",
-                weatherTempMobile: "text-6xl", weatherTempDesktop: "text-7xl", headersMobile: "text-xl", headersDesktop: "text-2xl"
-            },
-            api: {
-                clickUpToken: "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9",
-                clickUpSpaceId: "90155050040", 
-                clickUpBirthdayListId: "901517968972", 
-                clickUpProjectsListId: "901515357300",
-                clickUpBudgetFieldId: "26f92511-130b-4909-a6e5-b51385752454",
-                googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
-                googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
-                calendars: [
-                    { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
-                    { name: "Onlinerum", cid: "c_1e0eb5196df08999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10" }
-                ]
+                logoSymbolHeightMobile: "h-12", logoSymbolHeightDesktop: "h-16", 
+                logoTextHeightMobile: "h-6", logoTextHeightDesktop: "h-8",     
+                clockSizeMobile: "text-5xl", clockSizeDesktop: "text-7xl", 
+                dateSizeMobile: "text-lg", dateSizeDesktop: "text-2xl",
             }
         };
 
-        const LOGO_TEXT = "./Crisp_text-logo_white.png";
+        const API_CONFIG = {
+            clickUpToken: "pk_206499020_MHKUBIAUIQI6N64DO4IMSVAYIEW3HKM9",
+            clickUpSpaceId: "90155050040", 
+            clickUpBirthdayListId: "901517968972", 
+            clickUpProjectsListId: "901515357300",
+            clickUpBudgetFieldId: "26f92511-130b-4909-a6e5-b51385752454",
+            googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
+            googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
+            calendars: [
+                { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
+                { name: "Onlinerum", cid: "c_1e0eb5196df08999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10" }
+            ]
+        };
 
-        // --- ICONS ---
+        const LOGO_TEXT = "./Crisp_text-logo_white.png";
+        const LOGO_SYMBOL = "./Crisp_symbol.png"; 
+
+        // --- 2. ICONS ---
         const createLucideIcon = (name) => {
             if (!window.lucide || !window.lucide.icons) return () => null;
             const iconData = window.lucide.icons[name];
@@ -113,15 +118,12 @@
         const Trophy = createLucideIcon('Trophy'); const Calendar = createLucideIcon('Calendar'); const MapPin = createLucideIcon('MapPin'); const PackageCheck = createLucideIcon('PackageCheck');
         const Star = createLucideIcon('Star'); const Image = createLucideIcon('Image'); const PartyPopper = createLucideIcon('PartyPopper'); const Umbrella = createLucideIcon('Umbrella');
         const Loader2 = createLucideIcon('Loader2'); const HelpCircle = createLucideIcon('HelpCircle'); const X = createLucideIcon('X');
-        const User = createLucideIcon('User');
-        const Bell = createLucideIcon('Bell');
-        const Gift = createLucideIcon('Gift');
-        const Users = createLucideIcon('Users');
-        const DoorOpen = createLucideIcon('DoorOpen');
-        const RotateCcw = createLucideIcon('RotateCcw');
+        const User = createLucideIcon('User'); const Bell = createLucideIcon('Bell'); const Gift = createLucideIcon('Gift');
+        const Users = createLucideIcon('Users'); const DoorOpen = createLucideIcon('DoorOpen'); const RotateCcw = createLucideIcon('RotateCcw');
+        const Settings = createLucideIcon('Settings');
 
-        // --- HELPERS ---
-        async function getNamnsdagar() {
+        // --- 3. DATA HELPERS ---
+        const getNamnsdagar = async () => {
             try {
                 const url = "https://sholiday.faboul.se/dagar/v2.1/";
                 const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`);
@@ -129,10 +131,10 @@
                 const data = await res.json();
                 const names = data.dagar[0]?.namnsdag || [];
                 return names.length > 0 ? names.join(', ') : "Inga namnsdagar";
-            } catch(e) { return "Kunde inte hämta"; }
-        }
+            } catch(e) { return "Hämtar..."; }
+        };
         
-        async function getRealWeather() { 
+        const getRealWeather = async () => { 
             try { 
                 const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=4&wind_speed_unit=ms`); 
                 if (!r.ok) throw new Error("API Err"); 
@@ -148,12 +150,12 @@
                 const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],32,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] })); 
                 return { temp: current.temperature_2m, condition: getText(current.weather_code), wind: current.wind_speed_10m, icon: getIcon(current.weather_code, 40, current.weather_code===0), todayForecast, nextDays }; 
             } catch(e) { return null; } 
-        }
+        };
         
-        async function getGoogleSheetEvents() { 
-            if (!DASHBOARD_CONFIG.api.googleSheetCsvUrl) return []; 
+        const getGoogleSheetEvents = async () => { 
+            if (!API_CONFIG.googleSheetCsvUrl) return []; 
             try { 
-                const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetCsvUrl + '&t=' + Date.now())}`;
+                const url = `https://corsproxy.io/?${encodeURIComponent(API_CONFIG.googleSheetCsvUrl + '&t=' + Date.now())}`;
                 const res = await fetch(url); 
                 if (!res.ok) return []; 
                 const rows = (await res.text()).split(/\r\n|\n/); 
@@ -184,13 +186,13 @@
                 }); 
                 return events; 
             } catch(e) { return []; } 
-        }
+        };
 
-        async function getGoogleSheetMotto() {
-            if (!DASHBOARD_CONFIG.api.googleSheetTextUrl) return null;
+        const getGoogleSheetMotto = async () => {
+            if (!API_CONFIG.googleSheetTextUrl) return null;
             try {
                 const uniqueParam = `nocache=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-                const url = `https://corsproxy.io/?${encodeURIComponent(DASHBOARD_CONFIG.api.googleSheetTextUrl + '&' + uniqueParam)}`;
+                const url = `https://corsproxy.io/?${encodeURIComponent(API_CONFIG.googleSheetTextUrl + '&' + uniqueParam)}`;
                 const res = await fetch(url, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } });
                 if (!res.ok) return null;
                 const textData = await res.text();
@@ -218,10 +220,10 @@
                 }
                 return { title: title, subtitle: "Life at Crisp", shouldReload: shouldReload };
             } catch (e) { return null; }
-        }
+        };
 
-        async function getRoomBookings() {
-            if (!DASHBOARD_CONFIG.api.calendars) return [];
+        const getRoomBookings = async () => {
+            if (!API_CONFIG.calendars) return [];
             let allBookings = [];
             const parseICSDate = (str) => {
                 if(!str) return null;
@@ -229,7 +231,7 @@
                 const hour = str.length > 8 ? str.substring(9, 11) : 0; const min = str.length > 8 ? str.substring(11, 13) : 0;
                 return new Date(Date.UTC(year, month, day, hour, min, 0));
             };
-            for (const cal of DASHBOARD_CONFIG.api.calendars) {
+            for (const cal of API_CONFIG.calendars) {
                 try {
                     const url = `https://corsproxy.io/?${encodeURIComponent('https://calendar.google.com/calendar/ical/' + cal.cid + '/public/basic.ics')}`;
                     const res = await fetch(url);
@@ -260,28 +262,43 @@
                 } catch (e) { }
             }
             return allBookings.sort((a,b) => a.dateObj - b.dateObj).slice(0, 10);
-        }
+        };
 
-        async function getClickUpBirthdays() { if (!DASHBOARD_CONFIG.api.clickUpBirthdayListId) return []; try { const r = await fetch(`https://corsproxy.io/?https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpBirthdayListId}/task`, { headers: { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken } }); return (await r.json()).tasks.map(t => { const d = new Date(parseInt(t.due_date)); const today = new Date(); let next = new Date(today.getFullYear(), d.getMonth(), d.getDate()); if(next<today) next.setFullYear(today.getFullYear()+1); const diff = Math.ceil((next-today)/(86400000)); return { name: t.name, dateStr: next.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}), diff, isSoon: diff<14 }; }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3); } catch(e) { return []; } }
+        const getClickUpBirthdays = async () => { 
+            if (!API_CONFIG.clickUpBirthdayListId) return []; 
+            try { 
+                const r = await fetch(`https://corsproxy.io/?https://api.clickup.com/api/v2/list/${API_CONFIG.clickUpBirthdayListId}/task`, { headers: { 'Authorization': API_CONFIG.clickUpToken } }); 
+                return (await r.json()).tasks.map(t => { 
+                    const d = new Date(parseInt(t.due_date)); const today = new Date(); let next = new Date(today.getFullYear(), d.getMonth(), d.getDate()); 
+                    if(next<today) next.setFullYear(today.getFullYear()+1); const diff = Math.ceil((next-today)/(86400000)); 
+                    return { name: t.name, dateStr: next.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}), diff, isSoon: diff<14 }; 
+                }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3); 
+            } catch(e) { return []; } 
+        };
 
-        async function getClickUpProductionData() {
-            if (!DASHBOARD_CONFIG.api.clickUpSpaceId) return {};
-            const headers = { 'Authorization': DASHBOARD_CONFIG.api.clickUpToken };
+        const getClickUpProductionData = async (targetYear) => {
+            if (!API_CONFIG.clickUpSpaceId) return {};
+            const headers = { 'Authorization': API_CONFIG.clickUpToken };
             const proxy = "https://corsproxy.io/?";
             try {
                 const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
-                const startTimestamp = new Date("2024-01-01").getTime(); 
-                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${DASHBOARD_CONFIG.api.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
-                const getProj = async () => { if (!DASHBOARD_CONFIG.api.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${DASHBOARD_CONFIG.api.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
+                const startTimestamp = new Date("2023-01-01").getTime(); 
+                
+                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${API_CONFIG.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
+                const getProj = async () => { if (!API_CONFIG.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${API_CONFIG.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
 
                 const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
                 const tasks = [...active, ...archived];
-                const shortYear = DASHBOARD_CONFIG.year.slice(-2); const fullYear = DASHBOARD_CONFIG.year;
+                
+                const shortYear = targetYear.slice(-2); 
+                const fullYear = targetYear;
+
                 const listActive = []; const listTotal = []; const listDelivered = []; const listDeliveredMonth = []; 
                 const listRec = []; const listStream = []; const listVO = [];
 
                 let activeBudget = 0; let deliveredBudget = 0; let totalBudget = 0; let monthDeliveredBudget = 0;
-                const budgetFieldId = DASHBOARD_CONFIG.api.clickUpBudgetFieldId;
+                const budgetFieldId = API_CONFIG.clickUpBudgetFieldId;
+                
                 const validProjects = projects.filter(t => t.name.startsWith(shortYear) || t.name.startsWith(fullYear));
                 const now = new Date(); const currentMonth = now.getMonth(); const currentYearNum = now.getFullYear();
 
@@ -290,6 +307,7 @@
                     let budget = 0;
                     if(t.custom_fields) { const bf = t.custom_fields.find(f => f.id === budgetFieldId); if(bf && bf.value) budget = parseFloat(bf.value) || 0; }
                     const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
+                    
                     if(s === 'production') { listActive.push(item); listTotal.push(item); activeBudget += budget; totalBudget += budget; }
                     if(s === 'delivered') {
                         const d = parseInt(t.date_closed||t.date_updated||0);
@@ -305,9 +323,11 @@
 
                 tasks.forEach(t => {
                     const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
-                    const is2025 = fName.startsWith("25") || lName.startsWith("25") || fName.startsWith("2025") || lName.startsWith("2025");
-                    const is24185 = fName.startsWith("24185") || lName.startsWith("24185");
-                    if (!is2025 && !is24185) return;
+                    const isTargetYear = fName.includes(shortYear) || lName.includes(shortYear) || fName.includes(fullYear) || lName.includes(fullYear);
+                    const is24185 = (fName.startsWith("24185") || lName.startsWith("24185")) && targetYear === '2025';
+
+                    if (!isTargetYear && !is24185) return;
+
                     const listNameClean = lName.toLowerCase();
                     if (!listNameClean.includes('production') && !listNameClean.includes('stream') && !listNameClean.includes('live') && !listNameClean.includes('studio')) return; 
                     const name = t.name;
@@ -315,6 +335,7 @@
                     const isVO = /\b(VO|Röst|Voiceover)\b/i.test(name);
                     const isStream = /\b(Stream)\b/i.test(name);
                     const isRec = /\b(Inspelning)\b/i.test(name);
+                    
                     if (is24185 && !isStream) return;
                     const status = t.status.status.toLowerCase();
                     const isDone = ['complete', 'closed', 'klar', 'done'].includes(status);
@@ -338,7 +359,6 @@
                 upcomingRecs.sort((a,b) => a.sortDate - b.sortDate);
                 for(const r of upcomingRecs) { if(!seen.has(r.project)) { seen.add(r.project); uniqueRecs.push(r); } if(uniqueRecs.length>=5) break; }
 
-                const recentDel = listDelivered.slice(0,5);
                 const recentDelSidebar = validProjects.filter(t => t.status.status.toLowerCase() === 'delivered').sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0)).slice(0,20).map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
 
                 return { 
@@ -350,99 +370,126 @@
                     recordings: uniqueRecs, recentDeliveries: recentDelSidebar 
                 };
             } catch(e) { return {}; }
-        }
+        };
 
         // --- COMPONENTS ---
 
-        // --- VERTICAL WEATHER MODULE ---
+        // --- ADAPTIVE WEATHER MODULE ---
         const WeatherModule = ({ data, loading }) => {
             let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
-            
-            return (
-                <div className="h-full flex flex-col p-5 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none"></div>
-                    
-                    {/* TOP: Current Weather */}
-                    <div className="relative z-10 flex flex-col items-center text-center mb-4">
-                        <div className="flex items-center gap-2 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-2"><MapPin size={12} /> Stockholm</div>
-                        
-                        {/* Icon + Temp */}
-                        <div className="flex flex-col items-center">
-                             <div className="mb-2 scale-125">
-                                {loading ? <Loader2 className="animate-spin text-slate-500" size={48} /> : (data?.icon || <Sun className="text-slate-500" size={48} />)}
-                             </div>
-                             <div className={`font-bold tracking-tighter text-white leading-none text-7xl mb-1`}>
-                                {loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°
-                             </div>
-                             <div className="text-lg text-slate-200 font-bold leading-tight">{statusText}</div>
-                             <div className="flex items-center gap-1 text-xs text-slate-400 font-bold uppercase mt-1">
-                                <Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s
-                             </div>
-                        </div>
-                    </div>
+            const ref = useRef(null);
+            const [isVertical, setIsVertical] = useState(true);
 
-                    {/* MIDDLE: Hourly Forecast Grid (2x2) */}
-                    <div className="relative z-10 flex-grow flex flex-col justify-center mb-4">
-                        <div className="grid grid-cols-2 gap-2">
-                             {loading ? [1,2,3,4].map(i => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-lg"></div>) : 
-                                data?.todayForecast?.map((item, i) => (
-                                    <div key={i} className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5">
-                                        <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wide mb-0.5">{item.label}</span>
-                                        <div className="my-0.5 scale-75">{item.icon}</div>
-                                        <span className="text-white font-bold text-sm">{Math.round(item.temp)}°</span>
-                                    </div>
+            useEffect(() => {
+                if(!ref.current) return;
+                const obs = new ResizeObserver(entries => {
+                    const { width, height } = entries[0].contentRect;
+                    setIsVertical(width < height * 1.2);
+                });
+                obs.observe(ref.current);
+                return () => obs.disconnect();
+            }, []);
+            
+            if (isVertical) {
+                return (
+                    <div ref={ref} className="h-full flex flex-col p-5 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none"></div>
+                        <div className="relative z-10 flex flex-col items-center text-center mb-4">
+                            <div className="flex items-center gap-2 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-2"><MapPin size={12} /> Stockholm</div>
+                            <div className="flex flex-col items-center">
+                                <div className="mb-2 scale-125">{loading ? <Loader2 className="animate-spin text-slate-500" size={48} /> : (data?.icon || <Sun className="text-slate-500" size={48} />)}</div>
+                                <div className={`font-bold tracking-tighter text-white leading-none text-7xl mb-1`}>{loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°</div>
+                                <div className="text-lg text-slate-200 font-bold leading-tight">{statusText}</div>
+                                <div className="flex items-center gap-1 text-xs text-slate-400 font-bold uppercase mt-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</div>
+                            </div>
+                        </div>
+                        <div className="relative z-10 flex-grow flex flex-col justify-center mb-4">
+                            <div className="grid grid-cols-2 gap-2">
+                                {loading ? [1,2,3,4].map(i => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-lg"></div>) : 
+                                    data?.todayForecast?.map((item, i) => (
+                                        <div key={i} className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5">
+                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wide mb-0.5">{item.label}</span>
+                                            <div className="my-0.5 scale-75">{item.icon}</div>
+                                            <span className="text-white font-bold text-sm">{Math.round(item.temp)}°</span>
+                                        </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="relative z-10 mt-auto space-y-1.5 border-t border-white/10 pt-3">
+                            {loading ? [1,2,3].map(i => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg"></div>) : 
+                            data?.nextDays?.map((day, i) => (
+                                <div key={i} className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                                    <span className="text-slate-400 text-xs font-bold uppercase w-8">{day.day}</span>
+                                    <div className="flex items-center justify-center scale-75">{day.icon}</div>
+                                    <span className="text-white font-bold text-sm w-6 text-right">{Math.round(day.temp)}°</span>
+                                </div>
                             ))}
                         </div>
                     </div>
+                );
+            }
 
-                    {/* BOTTOM: Next Days List */}
-                    <div className="relative z-10 mt-auto space-y-1.5 border-t border-white/10 pt-3">
-                        {loading ? [1,2,3].map(i => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg"></div>) : 
-                        data?.nextDays?.map((day, i) => (
-                            <div key={i} className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                <span className="text-slate-400 text-xs font-bold uppercase w-8">{day.day}</span>
-                                <div className="flex items-center justify-center scale-75">{day.icon}</div>
-                                <span className="text-white font-bold text-sm w-6 text-right">{Math.round(day.temp)}°</span>
+            return (
+                <div ref={ref} className="h-full flex flex-row p-6 gap-6 relative overflow-hidden">
+                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none"></div>
+                     <div className="flex-1 flex flex-col justify-center gap-2 relative z-10">
+                        <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest"><MapPin size={12} /> Stockholm</div>
+                         <div className="flex items-center gap-6">
+                            <div className="scale-150">{loading ? <Loader2 className="animate-spin text-slate-500" size={48} /> : (data?.icon || <Sun className="text-slate-500" size={48} />)}</div>
+                            <div>
+                                <div className="text-7xl font-bold tracking-tighter text-white leading-none">{loading ? "--" : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°</div>
+                                <div className="text-lg text-slate-200 font-bold">{statusText}</div>
                             </div>
-                        ))}
-                    </div>
+                         </div>
+                     </div>
+                     <div className="flex-1 flex flex-col justify-center border-l border-white/10 pl-6 relative z-10">
+                        <div className="grid grid-cols-4 gap-2 mb-3">
+                             {data?.todayForecast?.map((item, i) => (
+                                <div key={i} className="flex flex-col items-center p-1 bg-white/5 rounded">
+                                    <span className="text-[9px] text-slate-400 uppercase">{item.label.substring(0,3)}</span>
+                                    <div className="scale-75 my-1">{item.icon}</div>
+                                    <span className="text-sm font-bold text-white">{Math.round(item.temp)}°</span>
+                                </div>
+                             ))}
+                        </div>
+                        <div className="space-y-1">
+                             {data?.nextDays?.map((day, i) => (
+                                <div key={i} className="flex justify-between items-center text-sm px-2">
+                                    <span className="text-slate-400 font-bold w-8">{day.day}</span>
+                                    <div className="scale-75">{day.icon}</div>
+                                    <span className="text-white font-bold">{Math.round(day.temp)}°</span>
+                                </div>
+                             ))}
+                        </div>
+                     </div>
                 </div>
             );
         };
 
-        // COMBINED MODULE: Namnsdag + Birthdays
-        const InfoSidebarModule = ({ nameDays, nameDaysLoading, birthdays, birthdaysLoading }) => (
-             <div className="glass-card flex flex-col h-full relative overflow-hidden p-3">
-                 {/* NAMNSDAG - Compact */}
-                 <div className="flex-shrink-0 mb-2 pb-2 border-b border-white/10 flex items-center gap-3">
-                     <div className="w-8 h-8 bg-indigo-500/20 text-indigo-400 rounded-full flex items-center justify-center shrink-0"><Gift size={14} /></div>
-                     <div className="text-sm font-bold text-white truncate">{nameDaysLoading ? "..." : nameDays}</div>
-                 </div>
-
-                 {/* BIRTHDAYS - Compact */}
-                 <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
-                    <div className="flex items-center gap-2 text-pink-400 mb-1.5">
-                        <PartyPopper size={14} />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Födelsedagar</span>
-                    </div>
-                    <div className="space-y-1 overflow-y-auto no-scrollbar">
-                        {birthdaysLoading ? 
-                            <div className="space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> 
-                            : birthdays?.length > 0 ? birthdays.map((b, i) => (
-                            <div key={i} className="flex items-center gap-2 p-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
-                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold shadow-lg shrink-0">{b.name.charAt(0)}</div>
-                                <div className="min-w-0">
-                                    <div className="text-white text-xs font-bold truncate">{b.name}</div>
-                                    <div className="text-pink-300 text-[8px] font-bold uppercase tracking-wide">{b.dateStr} {b.isSoon && "🎂"}</div>
-                                </div>
+        // --- HEADER INFO MODULE ---
+        const HeaderInfoModule = ({ nameDays, birthdays }) => (
+            <div className="flex flex-col items-center md:items-end gap-1.5 w-full">
+                <div className="flex items-center justify-end gap-2 text-right">
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Namnsdag</div>
+                    <div className="text-sm font-bold text-white">{nameDays || "..."}</div>
+                </div>
+                {birthdays && birthdays.length > 0 ? (
+                    <div className="flex flex-wrap justify-center md:justify-end gap-2 mt-1">
+                        {birthdays.map((b, i) => (
+                            <div key={i} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/10">
+                                <span className="text-pink-400 font-bold text-[10px] uppercase">{b.dateStr}</span>
+                                <span className="text-white font-bold text-xs">{b.name.split(' ')[0]}</span>
                             </div>
-                        )) : <div className="h-full flex items-center justify-center text-slate-500 text-[10px] italic">Inga födelsedagar nära.</div>}
+                        ))}
                     </div>
-                 </div>
-             </div>
+                ) : (
+                   <div className="text-[10px] text-slate-500 italic mt-1">Inga födelsedagar nära</div>
+                )}
+            </div>
         );
 
-        const ProductionModule = ({ stats, recent, loading, onOpenDetails }) => {
+        // --- PRODUCTION MODULE ---
+        const ProductionModule = ({ stats, recent, loading, showRevenue, year, onOpenDetails }) => {
             const formatMoney = (amount) => {
                 if (!amount) return "0 kr";
                 return amount.toLocaleString('sv-SE') + " kr";
@@ -454,7 +501,7 @@
                     <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                             <Trophy className="text-orange-400" size={28} />
-                            <h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold uppercase tracking-wide text-white`}>Produktion {DASHBOARD_CONFIG.year}</h2>
+                            <h2 className={`text-xl md:text-2xl font-bold uppercase tracking-wide text-white`}>Produktion {year}</h2>
                         </div>
                         {loading && <Loader2 className="animate-spin text-slate-600" size={20} />}
                     </div>
@@ -463,25 +510,25 @@
                         <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span>
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
-                             {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 mt-1 font-bold">{formatMoney(stats?.budgetActive)}</div>}
+                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 mt-1 font-bold">{formatMoney(stats?.budgetActive)}</div>}
                         </div>
                          <div onClick={() => onOpenDetails(`Levererat (${currentMonthShort})`, stats?.lists?.deliveredMonth)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-2xl md:text-3xl font-black text-emerald-300 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.monthDelivered}</span>
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat ({currentMonthShort})</span>
-                             {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300 mt-1 font-bold shadow-black drop-shadow-md">{formatMoney(stats?.budgetMonth)}</div>}
+                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-300 mt-1 font-bold shadow-black drop-shadow-md">{formatMoney(stats?.budgetMonth)}</div>}
                         </div>
                         <div onClick={() => onOpenDetails('Levererat (År)', stats?.lists?.delivered)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-2xl md:text-3xl font-black text-emerald-600 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span>
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat (År)</span>
-                             {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-700 mt-1 font-bold">{formatMoney(stats?.budgetDelivered)}</div>}
+                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-700 mt-1 font-bold">{formatMoney(stats?.budgetDelivered)}</div>}
                         </div>
                         <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="col-span-1 md:col-span-3 bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
-                             <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{DASHBOARD_CONFIG.year}</span>
+                             <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{year}</span>
                              <div className="flex flex-col items-center mt-0.5 gap-0.5">
                                  <span className="text-sm md:text-base font-bold text-white leading-none">
                                      {loading ? "-" : stats?.totalProjectsCurrentYear} <span className="text-[10px] font-normal text-slate-400 uppercase">st</span>
                                  </span>
-                                 {!loading && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 font-bold">{formatMoney(stats?.budgetTotal)}</div>}
+                                 {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 font-bold">{formatMoney(stats?.budgetTotal)}</div>}
                              </div>
                              <span className="text-[9px] font-bold text-slate-500 uppercase mt-1.5 tracking-widest">Totalt Helår</span>
                         </div>
@@ -511,19 +558,25 @@
             useEffect(() => { const arr = []; for (let i=1; i<=20; i++) { arr.push(`bilder/${i}.jpg`); arr.push(`bilder/${i}.png`); arr.push(`bilder/${i}.jpeg`); } setValidImages(arr); }, []);
             useEffect(() => { if (validImages.length === 0) return; const t = setInterval(() => setIndex((p) => (p + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval); return () => clearInterval(t); }, [validImages]);
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
+            
             return (
                 <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
+                    {/* Render text overlay independently */}
                     <div className="absolute bottom-6 left-6 pointer-events-none z-20">
                          {customText.subtitle && <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={12} /> {customText.subtitle}</div>}
                         <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{customText.title}</h2>
                     </div>
+
                     {validImages.length > 0 ? <>
                             {validImages.map((img, i) => (
                                 <img key={img} src={img} onError={() => err(img)} className="absolute inset-0 w-full h-full object-cover object-center" style={{ opacity: index === i ? 1 : 0, transition: 'opacity 1.5s ease-in-out', willChange: 'opacity' }} alt="Crisp" />
                             ))}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                         </> : (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-600"><Image size={48} /><p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p></div>
+                            <div className="h-full flex flex-col items-center justify-center text-slate-600">
+                                <Image size={48} />
+                                <p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p>
+                            </div>
                         )}
                 </div>
             );
@@ -534,14 +587,19 @@
             useEffect(() => { if (!ref.current) return; const ro = new ResizeObserver(entries => { if (entries[0]) setWidth(entries[0].contentRect.width); }); ro.observe(ref.current); return () => ro.disconnect(); }, []);
             const konfBookings = bookings ? bookings.filter(b => b.roomName === 'Konferensrum') : [];
             const onlineBookings = bookings ? bookings.filter(b => b.roomName === 'Onlinerum') : [];
+
             const renderList = (list, emptyText) => (
                 <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2 min-h-[100px]">
                     {loading && (!bookings || bookings.length === 0) ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
                     : list.length > 0 ? list.map((b, idx) => (
                         <div key={idx} className="flex items-start gap-3 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10">
-                            <div className={`mt-1 p-1.5 rounded-lg shrink-0 ${b.roomColor} ${b.roomBg}`}><DoorOpen size={14} /></div>
+                            <div className={`mt-1 p-1.5 rounded-lg shrink-0 ${b.roomColor} ${b.roomBg}`}>
+                                <DoorOpen size={14} />
+                            </div>
                             <div className="min-w-0 flex-grow">
-                                <div className="flex justify-between items-baseline"><span className="text-[10px] text-slate-500 font-bold">{b.time}</span></div>
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-[10px] text-slate-500 font-bold">{b.time}</span>
+                                </div>
                                 <div className="font-semibold text-white text-sm truncate leading-tight mt-0.5">{b.title}</div>
                                 {b.attendees && <div className="text-[10px] text-slate-400 mt-0.5 truncate flex items-center gap-1"><Users size={10} /> {b.attendees}</div>}
                             </div>
@@ -549,9 +607,11 @@
                     )) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><DoorOpen size={32} strokeWidth={1} /><p className="mt-2 text-xs">{emptyText}</p></div>}
                 </div>
             );
+
             return (
                 <div ref={ref} className="h-full p-4 md:p-6 flex flex-col">
                     <div className="flex items-center justify-between mb-4"><h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Händer & Bokningar</h2>{loading && <Loader2 className="animate-spin text-slate-600" size={20}/>}</div>
+                    
                     {width > 900 ? (
                          <div className="flex flex-row gap-6 h-full min-h-0">
                              <div className="flex-[1.4] flex flex-col min-h-0">
@@ -562,88 +622,142 @@
                                          const isRec = item.type === 'recording';
                                          return (
                                             <div key={idx} className="flex items-center gap-3 md:gap-4 p-2 md:p-2 bg-white/5 rounded-xl border border-white/5 transition-all hover:bg-white/10">
-                                                <div className={`flex flex-col items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}><span className="font-bold text-sm md:text-base leading-none">{item.dateMain}</span><span className="text-[7px] md:text-[8px] font-bold uppercase mt-0.5">{item.dateSub}</span></div>
-                                                <div className="flex-grow min-w-0"><h3 className="text-sm md:text-base font-semibold text-white truncate leading-tight">{item.title}</h3><div className="flex items-center gap-3 mt-0.5">{isRec ? <Video size={12} className="text-red-400"/> : <Star size={12} className="text-indigo-400"/>}<span className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>{item.timeStr && <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1.5 py-0.5 rounded-full ml-2">{item.timeStr}</span>}</div></div>
+                                                <div className={`flex flex-col items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-lg shrink-0 ${isRec ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                    <span className="font-bold text-sm md:text-base leading-none">{item.dateMain}</span>
+                                                    <span className="text-[7px] md:text-[8px] font-bold uppercase mt-0.5">{item.dateSub}</span>
+                                                </div>
+                                                <div className="flex-grow min-w-0">
+                                                    <h3 className="text-sm md:text-base font-semibold text-white truncate leading-tight">{item.title}</h3>
+                                                    <div className="flex items-center gap-3 mt-0.5">
+                                                        {isRec ? <Video size={12} className="text-red-400"/> : <Star size={12} className="text-indigo-400"/>}
+                                                        <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{item.subtitle}</span>
+                                                        {item.timeStr && <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-indigo-500/20 px-1.5 py-0.5 rounded-full ml-2">{item.timeStr}</span>}
+                                                    </div>
+                                                </div>
                                             </div>
                                          );
                                     }) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><Calendar size={48} strokeWidth={1} /><p className="mt-2 text-sm">Inget inbokat</p></div>}
                                 </div>
                              </div>
-                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>{renderList(konfBookings, "Ledigt")}</div>
-                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>{renderList(onlineBookings, "Ledigt")}</div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
+                                {renderList(konfBookings, "Ledigt")}
+                             </div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
+                                {renderList(onlineBookings, "Ledigt")}
+                             </div>
                          </div>
                     ) : width > 550 ? (
                         <div className="flex flex-row gap-6 h-full min-h-0">
-                             <div className="flex-1 flex flex-col min-h-0"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3><div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">{items.length > 0 ? items.map((item, idx) => (<div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10"><div className={`w-10 h-10 rounded-lg shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}><span className="font-bold text-sm leading-none">{item.dateMain}</span><span className="text-[7px] font-bold uppercase">{item.dateSub}</span></div><div className="min-w-0"><h3 className="text-sm font-semibold text-white truncate">{item.title}</h3><span className="text-[10px] text-slate-400">{item.timeStr || item.subtitle}</span></div></div>)) : <div className="text-slate-500 text-sm p-4">Inget inbokat</div>}</div></div>
-                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4"><div className="flex-1 flex flex-col min-h-0 mb-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>{renderList(konfBookings, "Ledigt")}</div><div className="flex-1 flex flex-col min-h-0 border-t border-white/10 pt-2"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>{renderList(onlineBookings, "Ledigt")}</div></div>
+                             <div className="flex-1 flex flex-col min-h-0">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3>
+                                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-2">
+                                     {items.length > 0 ? items.map((item, idx) => (
+                                         <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10">
+                                            <div className={`w-10 h-10 rounded-lg shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                <span className="font-bold text-sm leading-none">{item.dateMain}</span>
+                                                <span className="text-[7px] font-bold uppercase">{item.dateSub}</span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="text-sm font-semibold text-white truncate">{item.title}</h3>
+                                                <span className="text-[10px] text-slate-400">{item.timeStr || item.subtitle}</span>
+                                            </div>
+                                         </div>
+                                     )) : <div className="text-slate-500 text-sm p-4">Inget inbokat</div>}
+                                </div>
+                             </div>
+                             <div className="flex-1 flex flex-col min-h-0 border-l border-white/10 pl-4">
+                                <div className="flex-1 flex flex-col min-h-0 mb-4">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
+                                    {renderList(konfBookings, "Ledigt")}
+                                </div>
+                                <div className="flex-1 flex flex-col min-h-0 border-t border-white/10 pt-2">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
+                                    {renderList(onlineBookings, "Ledigt")}
+                                </div>
+                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col h-full gap-4 overflow-y-auto no-scrollbar"><div className="flex-shrink-0"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3><div className="space-y-1.5">{items.slice(0, 4).map((item, idx) => (<div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5"><div className={`w-8 h-8 rounded shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}><span className="font-bold text-xs leading-none">{item.dateMain}</span></div><div className="min-w-0"><h3 className="text-sm font-semibold text-white truncate">{item.title}</h3></div></div>))}{items.length === 0 && <div className="text-slate-500 text-sm">Inget inbokat</div>}</div></div><div className="flex-shrink-0 border-t border-white/10 pt-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3><div className="space-y-1.5">{konfBookings.length > 0 ? konfBookings.map((b,i) => (<div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>)) : <div className="text-slate-500 text-xs">Ledigt</div>}</div></div><div className="flex-shrink-0 border-t border-white/10 pt-4"><h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3><div className="space-y-1.5">{onlineBookings.length > 0 ? onlineBookings.map((b,i) => (<div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>)) : <div className="text-slate-500 text-xs">Ledigt</div>}</div></div></div>
+                        <div className="flex flex-col h-full gap-4 overflow-y-auto no-scrollbar">
+                             <div className="flex-shrink-0">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Händer Framöver</h3>
+                                <div className="space-y-1.5">
+                                     {items.slice(0, 4).map((item, idx) => (
+                                         <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-xl border border-white/5">
+                                            <div className={`w-8 h-8 rounded shrink-0 flex flex-col items-center justify-center ${item.type === 'recording' ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                <span className="font-bold text-xs leading-none">{item.dateMain}</span>
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h3 className="text-sm font-semibold text-white truncate">{item.title}</h3>
+                                            </div>
+                                         </div>
+                                     ))}
+                                     {items.length === 0 && <div className="text-slate-500 text-sm">Inget inbokat</div>}
+                                </div>
+                             </div>
+                             <div className="flex-shrink-0 border-t border-white/10 pt-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Konferensrum</h3>
+                                <div className="space-y-1.5">
+                                    {konfBookings.length > 0 ? konfBookings.map((b,i) => (
+                                        <div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>
+                                    )) : <div className="text-slate-500 text-xs">Ledigt</div>}
+                                </div>
+                             </div>
+                             <div className="flex-shrink-0 border-t border-white/10 pt-4">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
+                                <div className="space-y-1.5">
+                                    {onlineBookings.length > 0 ? onlineBookings.map((b,i) => (
+                                        <div key={i} className="flex justify-between p-2 bg-white/5 rounded-lg text-xs"><span className="text-white truncate mr-2">{b.title}</span><span className="text-slate-400 font-mono">{b.time}</span></div>
+                                    )) : <div className="text-slate-500 text-xs">Ledigt</div>}
+                                </div>
+                             </div>
+                        </div>
                     )}
                 </div>
             );
         };
 
-        // --- MODALS ---
-        const DetailsModal = ({ title, items, onClose }) => (
-            <div className="modal-overlay open" onClick={onClose}>
-                <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        const HelpModal = ({ onClose }) => (
+            <div className={`modal-overlay open`} onClick={onClose}>
+                <div className="glass-card p-6 max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2">{title} <span className="text-slate-500 text-sm font-normal">({items?.length || 0})</span></h2>
-                        <button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button>
+                        <h2 className="text-xl font-bold text-white">Hjälp & Info</h2>
+                        <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
                     </div>
-                    <div className="overflow-y-auto flex-grow no-scrollbar space-y-2">
+                    <div className="text-slate-300 text-sm space-y-2">
+                        <p>Dra och släpp korten för att flytta dem (på desktop).</p>
+                        <p>Använd handtaget i nedre högra hörnet för att ändra storlek.</p>
+                        <p>Klicka på produktionssiffror för att se detaljer.</p>
+                        <p>Data hämtas från ClickUp, Google Calendar och Google Sheets.</p>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const DetailsModal = ({ title, items, onClose }) => (
+            <div className={`modal-overlay open`} onClick={onClose}>
+                <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-4 shrink-0">
+                        <h2 className="text-xl font-bold text-white">{title}</h2>
+                        <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
+                    </div>
+                    <div className="overflow-y-auto min-h-0 space-y-2 pr-2">
                         {items && items.length > 0 ? items.map((item, i) => (
-                            <div key={i} className="p-3 bg-white/5 rounded-lg border border-white/5 text-sm flex justify-between items-center">
-                                <div className="flex-grow min-w-0 mr-4">
-                                    <div className="flex items-center gap-2">
-                                        {item.type && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wide 
-                                                ${item.type === 'Inspelning' ? 'bg-orange-500/20 text-orange-400' : item.type === 'Stream' ? 'bg-blue-500/20 text-blue-400' : item.type === 'VO' ? 'bg-purple-500/20 text-purple-400' : ''}`}>
-                                                {item.type}
-                                            </span>
-                                        )}
-                                        <div className="text-white font-medium truncate">{item.name}</div>
-                                    </div>
-                                    {item.folder && <div className="text-blue-300 text-xs mt-0.5">{item.folder}</div>}
-                                </div>
-                                <div className="shrink-0 flex flex-col items-end">
-                                    {item.status && <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-[10px] uppercase font-bold">{item.status}</span>}
-                                    {item.date && <div className="text-slate-500 text-[10px] mt-1 text-right">{item.date}</div>}
-                                    {item.budget > 0 && <div className="text-emerald-400 text-[10px] mt-0.5 font-mono">{item.budget.toLocaleString('sv-SE')} kr</div>}
-                                </div>
-                            </div>
-                        )) : <div className="text-slate-500 italic">Ingen data att visa.</div>}
+                             <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10">
+                                 <span className="text-white font-medium truncate mr-4">{item.name || item.project}</span>
+                                 <div className="text-right shrink-0">
+                                     <div className="text-xs text-slate-400 uppercase font-bold">{item.status || item.date}</div>
+                                     {item.budget > 0 && <div className="text-[10px] text-emerald-400 font-mono">{item.budget.toLocaleString()} kr</div>}
+                                 </div>
+                             </div>
+                        )) : <p className="text-slate-500 italic">Ingen data att visa.</p>}
                     </div>
                 </div>
             </div>
         );
 
-        const HelpModal = ({ onClose, onResetLayout }) => (
-            <div className="modal-overlay open" onClick={onClose}>
-                <div className="glass-card p-8 max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-6"><h2 className="text-2xl font-bold text-white flex items-center gap-2"><HelpCircle /> Dashboard Info</h2><button onClick={onClose} className="text-slate-400 hover:text-white"><X /></button></div>
-                    <div className="space-y-4 text-slate-300 text-sm font-medium">
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Layout</strong> sparas automatiskt.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Birthdays</strong> är kopplad till en ClickUp list.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Omsättning</strong> hämtas från fältet "Budget".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Insp.dagar</strong> söker efter exakt ordet "Inspelning".</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Text på slide</strong> hämtas från Google Sheet rad 1 (A1) och uppdateras var 10:e sekund.</div></div>
-                        <div className="flex gap-3"><div className="text-blue-400 shrink-0">•</div><div><strong>Manuell omladdning</strong>: Skriv **RELOAD** i cell **B1** för att tvinga en omladdning (max en gång per 10 min).</div></div>
-                    </div>
-                    <div className="mt-6 pt-4 border-t border-white/10">
-                        <button 
-                            onClick={() => { onResetLayout(); onClose(); }}
-                            className="w-full py-2 px-4 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-                        >
-                            <RotateCcw size={16} /> Återställ Layout till Standard
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-
-        function App() {
+        const App = () => {
             const [time, setTime] = useState(new Date());
             const [weather, setWeather] = useState(null); const [loadingWeather, setLoadingWeather] = useState(true);
             const [birthdays, setBirthdays] = useState([]); const [loadingBirthdays, setLoadingBirthdays] = useState(true);
@@ -655,39 +769,19 @@
             
             const [showHelp, setShowHelp] = useState(false); 
             const [detailModal, setDetailModal] = useState(null); 
+            // För att spåra den senaste tvingade omladdningen
             const lastForcedReloadTime = useRef(0);
+            // 10 minuter i millisekunder
             const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
-            // Default layout for reset
-            const defaultModules = [ 
-                { id: 'weather', colSpan: 3, rowSpan: 5, component: 'WeatherModule' }, 
-                { id: 'infoSidebar', colSpan: 3, rowSpan: 2, component: 'InfoSidebarModule', noGlass: false }, 
-                { id: 'slideshow', colSpan: 6, rowSpan: 2, component: 'SlideshowModule' }, 
-                { id: 'production', colSpan: 9, rowSpan: 3, component: 'ProductionModule' }, 
-                { id: 'timeline', colSpan: 12, rowSpan: 4, component: 'TimelineModule' }, 
-            ];
-
-            // Initialize state from localStorage if available, else default
-            const [modules, setModules] = useState(() => {
-                try {
-                    const saved = localStorage.getItem('crisp_dashboard_layout');
-                    return saved ? JSON.parse(saved) : defaultModules;
-                } catch(e) {
-                    return defaultModules;
-                }
-            });
-            
+            // REMOVED 'infoSidebar' from modules since it's now in the header
+            const [modules, setModules] = useState([ 
+                { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
+                { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
+                { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
+                { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, 
+            ]);
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
-
-            // Save layout whenever it changes
-            useEffect(() => {
-                localStorage.setItem('crisp_dashboard_layout', JSON.stringify(modules));
-            }, [modules]);
-
-            const resetLayout = () => {
-                setModules(defaultModules);
-                localStorage.removeItem('crisp_dashboard_layout');
-            };
 
             const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
             const onDragEnd = (e) => { setDraggedId(null); e.currentTarget.classList.remove('dragging'); };
@@ -708,7 +802,6 @@
                     case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} onOpenDetails={openDetails} />; 
                     case 'SlideshowModule': return <SlideshowModule customText={customText} />; 
                     case 'TimelineModule': return <TimelineModule items={allUpcoming} bookings={bookings} loading={loadingProd} />; 
-                    case 'InfoSidebarModule': return <InfoSidebarModule nameDays={nameDays} nameDaysLoading={loadingNameDays} birthdays={birthdays} birthdaysLoading={loadingBirthdays} />; 
                     default: return null; 
                 }
             };
@@ -727,7 +820,7 @@
                     try { setBirthdays(await getClickUpBirthdays()); } catch(e){}
                     try { setBookings(await getRoomBookings()); } catch(e){}
                     try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
-                    try { setProdStats(await getClickUpProductionData()); } catch(e) { console.error(e); }
+                    try { setProdStats(await getClickUpProductionData(DASHBOARD_CONFIG.year)); } catch(e) { console.error(e); }
 
                     setLoadingWeather(false);
                     setLoadingBirthdays(false);
@@ -741,6 +834,7 @@
                         if(data) {
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
                             
+                            // *** NY OMLADDNINGSLOGIK MED 10 MIN SPÄRR (Persistent) ***
                             if (data.shouldReload === 'RELOAD') {
                                 const now = Date.now();
                                 const lastReload = parseInt(localStorage.getItem('last_reload_timestamp') || '0');
@@ -753,6 +847,7 @@
                                     console.log("Reload ignored due to cooldown.");
                                 }
                             } 
+                            // *** SLUT NY OMLADDNINGSLOGIK ***
                         }
                     } catch(e){}
                 };
@@ -773,20 +868,36 @@
             const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
             return (
-                <div className="min-h-screen p-2 md:p-4 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
-                    <header className="flex flex-col md:flex-row justify-between items-center md:items-end mb-3 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
-                         <div className="flex flex-col items-center md:items-start w-full md:w-auto">
-                             <div className="flex items-center gap-3 mb-2"><img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} /></div>
-                            <p className="text-slate-400 text-lg md:text-xl font-medium tracking-wide uppercase opacity-80">We make brands stronger through film</p>
+                <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
+                    {/* NEW HEADER LAYOUT */}
+                    <header className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center mb-6 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
+                         
+                         {/* LEFT: LOGO */}
+                         <div className="flex flex-col items-center md:items-start order-1">
+                             <div className="flex items-center gap-3">
+                                <img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} />
+                                <img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} />
+                             </div>
                         </div>
-                        <div className="w-full md:w-auto flex flex-col items-center md:items-end mt-4 md:mt-0"><div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div><div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1`}>{dateStr}</div></div>
+
+                        {/* CENTER: CLOCK & TAGLINE */}
+                        <div className="flex flex-col items-center justify-center order-2 md:order-2">
+                            <div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div>
+                            <div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1 mb-2`}>{dateStr}</div>
+                            <p className="text-slate-400 text-sm md:text-base font-medium tracking-wide uppercase opacity-80 whitespace-nowrap">We make brands stronger through film</p>
+                        </div>
+
+                        {/* RIGHT: HEADER INFO (LOCKED) */}
+                        <div className="flex flex-col items-center md:items-end justify-center order-3 md:order-3">
+                             <HeaderInfoModule nameDays={loadingNameDays ? "Laddar..." : nameDays} birthdays={loadingBirthdays ? [] : birthdays} />
+                        </div>
                     </header>
                     
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
-                    {showHelp && <HelpModal onClose={() => setShowHelp(false)} onResetLayout={resetLayout} />}
+                    {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
-                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[120px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
+                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
                             <div 
                                 key={mod.id} 
