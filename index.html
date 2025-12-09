@@ -791,6 +791,14 @@
             </div>
         );
 
+        // --- DEFAULTS ---
+        const DEFAULT_MODULES = [ 
+            { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
+            { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
+            { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
+            { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, 
+        ];
+
         const App = () => {
             const [time, setTime] = useState(new Date());
             const [weather, setWeather] = useState(null); const [loadingWeather, setLoadingWeather] = useState(true);
@@ -803,20 +811,48 @@
             
             const [showHelp, setShowHelp] = useState(false); 
             const [showSettings, setShowSettings] = useState(false);
-            const [showRevenue, setShowRevenue] = useState(false); // Default hidden
+            
+            // --- PERSISTENT STATE LOGIC ---
+            
+            // Settings persistence
+            const [showRevenue, setShowRevenue] = useState(() => {
+                try {
+                    return localStorage.getItem('dashboard_show_revenue') === 'true';
+                } catch(e) { return false; }
+            });
+
+            const toggleRevenueHandler = () => {
+                setShowRevenue(prev => {
+                    const newVal = !prev;
+                    localStorage.setItem('dashboard_show_revenue', String(newVal));
+                    return newVal;
+                });
+            };
+
             const [detailModal, setDetailModal] = useState(null); 
             // För att spåra den senaste tvingade omladdningen
             const lastForcedReloadTime = useRef(0);
             // 10 minuter i millisekunder
             const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
-            // REMOVED 'infoSidebar' from modules since it's now in the header
-            const [modules, setModules] = useState([ 
-                { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
-                { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
-                { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
-                { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, 
-            ]);
+            // Modules persistence
+            const [modules, setModules] = useState(() => {
+                try {
+                    const saved = localStorage.getItem('dashboard_layout_v1');
+                    if (saved) {
+                        return JSON.parse(saved);
+                    }
+                } catch(e) { console.error("Layout load failed", e); }
+                return DEFAULT_MODULES;
+            });
+
+            // Save modules whenever they change
+            useEffect(() => {
+                try {
+                    localStorage.setItem('dashboard_layout_v1', JSON.stringify(modules));
+                } catch(e) {}
+            }, [modules]);
+
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
 
             const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
@@ -933,7 +969,7 @@
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-14 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-                    {showSettings && <SettingsModal showRevenue={showRevenue} toggleRevenue={() => setShowRevenue(!showRevenue)} onClose={() => setShowSettings(false)} />}
+                    {showSettings && <SettingsModal showRevenue={showRevenue} toggleRevenue={toggleRevenueHandler} onClose={() => setShowSettings(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
                     <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
