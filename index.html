@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Centered Clock & Header Info)</title>
+    <title>Crisp Dashboard (Settings & Birthday Icon)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -63,6 +63,10 @@
         .modal-overlay.open { opacity: 1; pointer-events: auto; }
         
         .gpu-accelerate { transform: translateZ(0); backface-visibility: hidden; }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
     </style>
 </head>
 <body>
@@ -473,18 +477,26 @@
                     <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Namnsdag</div>
                     <div className="text-sm font-bold text-white">{nameDays || "..."}</div>
                 </div>
-                {birthdays && birthdays.length > 0 ? (
-                    <div className="flex flex-wrap justify-center md:justify-end gap-2 mt-1">
-                        {birthdays.map((b, i) => (
-                            <div key={i} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/10">
-                                <span className="text-pink-400 font-bold text-[10px] uppercase">{b.dateStr}</span>
-                                <span className="text-white font-bold text-xs">{b.name.split(' ')[0]}</span>
-                            </div>
-                        ))}
+                
+                <div className="flex flex-col items-end gap-1 mt-1">
+                    {/* Birthday Header with Icon is now always visible */}
+                    <div className="flex items-center justify-end gap-2 text-right">
+                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Gift size={12} className="text-pink-400"/> Födelsedagar</div>
                     </div>
-                ) : (
-                   <div className="text-[10px] text-slate-500 italic mt-1">Inga födelsedagar nära</div>
-                )}
+
+                    {birthdays && birthdays.length > 0 ? (
+                        <div className="flex flex-wrap justify-center md:justify-end gap-2">
+                            {birthdays.map((b, i) => (
+                                <div key={i} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/10">
+                                    <span className="text-pink-400 font-bold text-[10px] uppercase">{b.dateStr}</span>
+                                    <span className="text-white font-bold text-xs">{b.name.split(' ')[0]}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-[10px] text-slate-500 italic">Inga födelsedagar nära</div>
+                    )}
+                </div>
             </div>
         );
 
@@ -735,6 +747,28 @@
             </div>
         );
 
+        // --- NEW SETTINGS MODAL ---
+        const SettingsModal = ({ showRevenue, toggleRevenue, onClose }) => (
+            <div className={`modal-overlay open`} onClick={onClose}>
+                <div className="glass-card p-6 max-w-sm w-full m-4" onClick={e => e.stopPropagation()}>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-white flex items-center gap-2"><Settings size={20}/> Inställningar</h2>
+                        <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
+                    </div>
+                    <div className="space-y-4">
+                         <div className="flex items-center justify-between">
+                            <span className="text-slate-300 font-medium">Visa intäkter (SEK)</span>
+                            <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="revenue-toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300" checked={showRevenue} onChange={toggleRevenue}/>
+                                <label htmlFor="revenue-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${showRevenue ? 'bg-green-400' : 'bg-slate-600'}`}></label>
+                            </div>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">Slå på för att visa budget/intäkter i produktionsmodulen.</p>
+                    </div>
+                </div>
+            </div>
+        );
+
         const DetailsModal = ({ title, items, onClose }) => (
             <div className={`modal-overlay open`} onClick={onClose}>
                 <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
@@ -768,6 +802,8 @@
             const [customText, setCustomText] = useState({ title: "Every frame counts", subtitle: "Life at Crisp" });
             
             const [showHelp, setShowHelp] = useState(false); 
+            const [showSettings, setShowSettings] = useState(false);
+            const [showRevenue, setShowRevenue] = useState(false); // Default hidden
             const [detailModal, setDetailModal] = useState(null); 
             // För att spåra den senaste tvingade omladdningen
             const lastForcedReloadTime = useRef(0);
@@ -799,7 +835,7 @@
                 ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
                 switch(mod.component) { 
                     case 'WeatherModule': return <WeatherModule data={weather} loading={loadingWeather} />; 
-                    case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} onOpenDetails={openDetails} />; 
+                    case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} showRevenue={showRevenue} onOpenDetails={openDetails} />; 
                     case 'SlideshowModule': return <SlideshowModule customText={customText} />; 
                     case 'TimelineModule': return <TimelineModule items={allUpcoming} bookings={bookings} loading={loadingProd} />; 
                     default: return null; 
@@ -893,9 +929,11 @@
                         </div>
                     </header>
                     
-                    <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
+                    <button onClick={() => setShowSettings(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><Settings size={24} /></button>
+                    <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-14 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+                    {showSettings && <SettingsModal showRevenue={showRevenue} toggleRevenue={() => setShowRevenue(!showRevenue)} onClose={() => setShowSettings(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
                     <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
