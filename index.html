@@ -349,19 +349,56 @@
                         const item = { name: t.name, status: status, folder: displayFolder };
                         if (isVO) { voCount++; listVO.push({ ...item, type: 'VO' }); } else if (isStream) { streamCount++; listStream.push({ ...item, type: 'Stream' }); } else if (isRec) { recCount++; listRec.push({ ...item, type: 'Inspelning' }); }
                     }
+                    // MODIFIED: Handle date ranges to show all days
                     if ((isVO || isStream || isRec) && !isDone) {
-                        const d = parseInt(t.start_date||t.due_date||0);
-                        if (d >= Date.now() - 86400000) {
-                            let pName = t.folder ? t.folder.name : (t.list ? t.list.name : "Projekt");
-                            if(pName.length>6 && pName.includes('_')) pName = pName.substring(6).replace(/_/g,' ');
-                            upcomingRecs.push({ id: t.id, project: pName, sortDate: d, dateMain: new Date(d).getDate(), dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), isStream: isStream, isVO: isVO });
+                        const start = parseInt(t.start_date);
+                        const due = parseInt(t.due_date);
+                        
+                        let datesToAdd = [];
+                        
+                        // If we have both start and due, and they differ, iterate through the range
+                        if (start && due && due > start) {
+                            let curr = new Date(start);
+                            const end = new Date(due);
+                            // Avoid infinite loops if something is wrong with dates
+                            while (curr <= end && datesToAdd.length < 30) {
+                                datesToAdd.push(curr.getTime());
+                                curr.setDate(curr.getDate() + 1);
+                            }
+                        } else {
+                            // Fallback to single date
+                            datesToAdd.push(start || due || 0);
                         }
+
+                        datesToAdd.forEach(d => {
+                            if (d >= Date.now() - 86400000) {
+                                let pName = t.folder ? t.folder.name : (t.list ? t.list.name : "Projekt");
+                                if(pName.length>6 && pName.includes('_')) pName = pName.substring(6).replace(/_/g,' ');
+                                upcomingRecs.push({ 
+                                    id: t.id, 
+                                    project: pName, 
+                                    sortDate: d, 
+                                    dateMain: new Date(d).getDate(), 
+                                    dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), 
+                                    isStream: isStream, 
+                                    isVO: isVO 
+                                });
+                            }
+                        });
                     }
                 });
 
                 const uniqueRecs = []; const seen = new Set();
                 upcomingRecs.sort((a,b) => a.sortDate - b.sortDate);
-                for(const r of upcomingRecs) { if(!seen.has(r.project)) { seen.add(r.project); uniqueRecs.push(r); } if(uniqueRecs.length>=5) break; }
+                // MODIFIED: Allow same project on different days (key includes date)
+                for(const r of upcomingRecs) { 
+                    const key = r.project + "_" + r.dateMain + "_" + r.dateSub;
+                    if(!seen.has(key)) { 
+                        seen.add(key); 
+                        uniqueRecs.push(r); 
+                    } 
+                    if(uniqueRecs.length>=15) break; 
+                }
 
                 const recentDelSidebar = validProjects.filter(t => t.status.status.toLowerCase() === 'delivered').sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0)).slice(0,20).map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
 
