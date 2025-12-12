@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Settings & Birthday Icon)</title>
+    <title>Crisp Dashboard (Compact Header Weather)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -77,7 +77,6 @@
 
         // --- 1. CONFIGURATION ---
         const DASHBOARD_CONFIG = {
-            year: "2025",
             slideshowInterval: 8000,
             design: {
                 logoSymbolHeightMobile: "h-12", logoSymbolHeightDesktop: "h-16", 
@@ -125,6 +124,8 @@
         const User = createLucideIcon('User'); const Bell = createLucideIcon('Bell'); const Gift = createLucideIcon('Gift');
         const Users = createLucideIcon('Users'); const DoorOpen = createLucideIcon('DoorOpen'); const RotateCcw = createLucideIcon('RotateCcw');
         const Settings = createLucideIcon('Settings');
+        const Target = createLucideIcon('Target');
+        const Moon = createLucideIcon('Moon');
 
         // --- 3. DATA HELPERS ---
         const getNamnsdagar = async () => {
@@ -140,7 +141,8 @@
         
         const getRealWeather = async () => { 
             try { 
-                const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max&timezone=auto&forecast_days=4&wind_speed_unit=ms`); 
+                // ADDED: temperature_2m_min to daily request
+                const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4&wind_speed_unit=ms`); 
                 if (!r.ok) throw new Error("API Err"); 
                 const j = await r.json(); 
                 const { current, hourly, daily } = j; 
@@ -152,7 +154,17 @@
                 const getText = (c) => c===0?"Soligt":c<=3?"Molnigt":c<=48?"Dimmigt":c<=67?"Regn":c<=77?"Snö":c>=80?"Skurar":"Oväder"; 
                 const todayForecast = [8,12,16,20].map((idx, i) => ({ label: ["Morgon","Lunch","Eftermiddag","Kväll"][i], icon: getIcon(hourly.weather_code[idx], 40, hourly.weather_code[idx]===0), text: getText(hourly.weather_code[idx]), temp: hourly.temperature_2m[idx], wind: hourly.wind_speed_10m[idx], rain: hourly.precipitation_probability[idx] })); 
                 const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],32,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] })); 
-                return { temp: current.temperature_2m, condition: getText(current.weather_code), wind: current.wind_speed_10m, icon: getIcon(current.weather_code, 40, current.weather_code===0), todayForecast, nextDays }; 
+                
+                // Return current and today's min (night) temp
+                return { 
+                    temp: current.temperature_2m, 
+                    minTemp: daily.temperature_2m_min[0],
+                    condition: getText(current.weather_code), 
+                    wind: current.wind_speed_10m, 
+                    icon: getIcon(current.weather_code, 40, current.weather_code===0), 
+                    todayForecast, 
+                    nextDays 
+                }; 
             } catch(e) { return null; } 
         };
         
@@ -298,9 +310,13 @@
                 const fullYear = targetYear;
 
                 const listActive = []; const listTotal = []; const listDelivered = []; const listDeliveredMonth = []; 
+                const listSales = []; 
+                const listSold = []; // NEW: Sold projects list
                 const listRec = []; const listStream = []; const listVO = [];
 
                 let activeBudget = 0; let deliveredBudget = 0; let totalBudget = 0; let monthDeliveredBudget = 0;
+                let salesBudget = 0; 
+                let soldBudget = 0; // NEW: Sold budget
                 const budgetFieldId = API_CONFIG.clickUpBudgetFieldId;
                 
                 const validProjects = projects.filter(t => t.name.startsWith(shortYear) || t.name.startsWith(fullYear));
@@ -312,6 +328,19 @@
                     if(t.custom_fields) { const bf = t.custom_fields.find(f => f.id === budgetFieldId); if(bf && bf.value) budget = parseFloat(bf.value) || 0; }
                     const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
                     
+                    // Sales Logic
+                    if(s.includes('sales') || s.includes('sälj')) {
+                        listSales.push(item);
+                        salesBudget += budget;
+                    }
+                    
+                    // NEW: Sold Logic (Status = Done, Stängd, Ej landad, Closed)
+                    // Uppdaterad logik för att fånga fler statusar för avslutade/insålda affärer
+                    if(s === 'done' || s === 'stängd' || s === 'closed' || s === 'won' || s === 'ej landad') {
+                        listSold.push(item);
+                        soldBudget += budget;
+                    }
+
                     if(s === 'production') { listActive.push(item); listTotal.push(item); activeBudget += budget; totalBudget += budget; }
                     if(s === 'delivered') {
                         const d = parseInt(t.date_closed||t.date_updated||0);
@@ -322,6 +351,9 @@
                     }
                 });
                 
+                // Sortera "Levererat (År)" alfabetiskt
+                listDelivered.sort((a, b) => a.name.localeCompare(b.name, 'sv'));
+
                 let recCount = 0; let streamCount = 0; let voCount = 0; const upcomingRecs = [];
                 const ignoreWords = ["genomgång", "brief", "planering", "förberedelse", "casting", "check", "koll", "recce", "schema", "annons", "annonser"];
 
@@ -349,24 +381,20 @@
                         const item = { name: t.name, status: status, folder: displayFolder };
                         if (isVO) { voCount++; listVO.push({ ...item, type: 'VO' }); } else if (isStream) { streamCount++; listStream.push({ ...item, type: 'Stream' }); } else if (isRec) { recCount++; listRec.push({ ...item, type: 'Inspelning' }); }
                     }
-                    // MODIFIED: Handle date ranges to show all days
                     if ((isVO || isStream || isRec) && !isDone) {
                         const start = parseInt(t.start_date);
                         const due = parseInt(t.due_date);
                         
                         let datesToAdd = [];
                         
-                        // If we have both start and due, and they differ, iterate through the range
                         if (start && due && due > start) {
                             let curr = new Date(start);
                             const end = new Date(due);
-                            // Avoid infinite loops if something is wrong with dates
                             while (curr <= end && datesToAdd.length < 30) {
                                 datesToAdd.push(curr.getTime());
                                 curr.setDate(curr.getDate() + 1);
                             }
                         } else {
-                            // Fallback to single date
                             datesToAdd.push(start || due || 0);
                         }
 
@@ -390,7 +418,6 @@
 
                 const uniqueRecs = []; const seen = new Set();
                 upcomingRecs.sort((a,b) => a.sortDate - b.sortDate);
-                // MODIFIED: Allow same project on different days (key includes date)
                 for(const r of upcomingRecs) { 
                     const key = r.project + "_" + r.dateMain + "_" + r.dateSub;
                     if(!seen.has(key)) { 
@@ -404,9 +431,9 @@
 
                 return { 
                     stats: { 
-                        year: listDelivered.length, monthDelivered: listDeliveredMonth.length, occasions: recCount, streams: streamCount, vos: voCount, activeProjects: listActive.length, totalProjectsCurrentYear: listTotal.length,
-                        budgetActive: activeBudget, budgetDelivered: deliveredBudget, budgetMonth: monthDeliveredBudget, budgetTotal: totalBudget,
-                        lists: { active: listActive, total: listTotal, delivered: listDelivered, deliveredMonth: listDeliveredMonth, rec: listRec, stream: listStream, vo: listVO }
+                        year: listDelivered.length, monthDelivered: listDeliveredMonth.length, occasions: recCount, streams: streamCount, vos: voCount, activeProjects: listActive.length, totalProjectsCurrentYear: listTotal.length, salesCount: listSales.length, soldCount: listSold.length,
+                        budgetActive: activeBudget, budgetDelivered: deliveredBudget, budgetMonth: monthDeliveredBudget, budgetTotal: totalBudget, budgetSales: salesBudget, budgetSold: soldBudget,
+                        lists: { active: listActive, total: listTotal, delivered: listDelivered, deliveredMonth: listDeliveredMonth, rec: listRec, stream: listStream, vo: listVO, sales: listSales, sold: listSold }
                     }, 
                     recordings: uniqueRecs, recentDeliveries: recentDelSidebar 
                 };
@@ -415,124 +442,53 @@
 
         // --- COMPONENTS ---
 
-        // --- ADAPTIVE WEATHER MODULE ---
-        const WeatherModule = ({ data, loading }) => {
-            let statusText = "Laddar..."; if (!loading && !data) statusText = "Ingen data"; if (data?.condition) statusText = data.condition;
-            const ref = useRef(null);
-            const [isVertical, setIsVertical] = useState(true);
-
-            useEffect(() => {
-                if(!ref.current) return;
-                const obs = new ResizeObserver(entries => {
-                    const { width, height } = entries[0].contentRect;
-                    setIsVertical(width < height * 1.2);
-                });
-                obs.observe(ref.current);
-                return () => obs.disconnect();
-            }, []);
-            
-            if (isVertical) {
-                return (
-                    <div ref={ref} className="h-full flex flex-col p-5 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none"></div>
-                        <div className="relative z-10 flex flex-col items-center text-center mb-4">
-                            <div className="flex items-center gap-2 text-blue-300 text-[10px] font-bold uppercase tracking-widest mb-2"><MapPin size={12} /> Stockholm</div>
-                            <div className="flex flex-col items-center">
-                                <div className="mb-2 scale-125">{loading ? <Loader2 className="animate-spin text-slate-500" size={48} /> : (data?.icon || <Sun className="text-slate-500" size={48} />)}</div>
-                                <div className={`font-bold tracking-tighter text-white leading-none text-7xl mb-1`}>{loading ? <span className="opacity-50">--</span> : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°</div>
-                                <div className="text-lg text-slate-200 font-bold leading-tight">{statusText}</div>
-                                <div className="flex items-center gap-1 text-xs text-slate-400 font-bold uppercase mt-1"><Wind size={12}/> {data?.wind ? Math.round(data.wind) : "-"} m/s</div>
-                            </div>
-                        </div>
-                        <div className="relative z-10 flex-grow flex flex-col justify-center mb-4">
-                            <div className="grid grid-cols-2 gap-2">
-                                {loading ? [1,2,3,4].map(i => <div key={i} className="h-12 bg-white/5 animate-pulse rounded-lg"></div>) : 
-                                    data?.todayForecast?.map((item, i) => (
-                                        <div key={i} className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5">
-                                            <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wide mb-0.5">{item.label}</span>
-                                            <div className="my-0.5 scale-75">{item.icon}</div>
-                                            <span className="text-white font-bold text-sm">{Math.round(item.temp)}°</span>
-                                        </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="relative z-10 mt-auto space-y-1.5 border-t border-white/10 pt-3">
-                            {loading ? [1,2,3].map(i => <div key={i} className="h-8 bg-white/5 animate-pulse rounded-lg"></div>) : 
-                            data?.nextDays?.map((day, i) => (
-                                <div key={i} className="flex justify-between items-center px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                                    <span className="text-slate-400 text-xs font-bold uppercase w-8">{day.day}</span>
-                                    <div className="flex items-center justify-center scale-75">{day.icon}</div>
-                                    <span className="text-white font-bold text-sm w-6 text-right">{Math.round(day.temp)}°</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            }
+        // --- NEW COMPACT HEADER WEATHER ---
+        const HeaderWeather = ({ weather, loading }) => {
+            if (loading) return <div className="flex items-center gap-2 text-slate-500 text-xs"><Loader2 size={12} className="animate-spin"/> Hämtar väder...</div>;
+            if (!weather) return <div className="text-slate-500 text-xs">Väder saknas</div>;
 
             return (
-                <div ref={ref} className="h-full flex flex-row p-6 gap-6 relative overflow-hidden">
-                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none"></div>
-                     <div className="flex-1 flex flex-col justify-center gap-2 relative z-10">
-                        <div className="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-widest"><MapPin size={12} /> Stockholm</div>
-                         <div className="flex items-center gap-6">
-                            <div className="scale-150">{loading ? <Loader2 className="animate-spin text-slate-500" size={48} /> : (data?.icon || <Sun className="text-slate-500" size={48} />)}</div>
-                            <div>
-                                <div className="text-7xl font-bold tracking-tighter text-white leading-none">{loading ? "--" : (data?.temp !== undefined ? Math.round(data.temp) : "--")}°</div>
-                                <div className="text-lg text-slate-200 font-bold">{statusText}</div>
-                            </div>
-                         </div>
-                     </div>
-                     <div className="flex-1 flex flex-col justify-center border-l border-white/10 pl-6 relative z-10">
-                        <div className="grid grid-cols-4 gap-2 mb-3">
-                             {data?.todayForecast?.map((item, i) => (
-                                <div key={i} className="flex flex-col items-center p-1 bg-white/5 rounded">
-                                    <span className="text-[9px] text-slate-400 uppercase">{item.label.substring(0,3)}</span>
-                                    <div className="scale-75 my-1">{item.icon}</div>
-                                    <span className="text-sm font-bold text-white">{Math.round(item.temp)}°</span>
-                                </div>
-                             ))}
-                        </div>
-                        <div className="space-y-1">
-                             {data?.nextDays?.map((day, i) => (
-                                <div key={i} className="flex justify-between items-center text-sm px-2">
-                                    <span className="text-slate-400 font-bold w-8">{day.day}</span>
-                                    <div className="scale-75">{day.icon}</div>
-                                    <span className="text-white font-bold">{Math.round(day.temp)}°</span>
-                                </div>
-                             ))}
-                        </div>
-                     </div>
+                <div className="flex flex-col items-end gap-0.5">
+                    <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-white leading-none">{Math.round(weather.temp)}°</span>
+                        <div className="text-blue-300 scale-90">{weather.icon}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wide">
+                        <span>STHLM</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1"><Moon size={10} className="text-slate-500"/> {Math.round(weather.minTemp)}°</span>
+                    </div>
                 </div>
             );
         };
 
         // --- HEADER INFO MODULE ---
         const HeaderInfoModule = ({ nameDays, birthdays }) => (
-            <div className="flex flex-col items-center md:items-end gap-1.5 w-full">
-                <div className="flex items-center justify-end gap-2 text-right">
-                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Namnsdag</div>
-                    <div className="text-sm font-bold text-white">{nameDays || "..."}</div>
-                </div>
-                
-                <div className="flex flex-col items-end gap-1 mt-1">
-                    {/* Birthday Header with Icon is now always visible */}
+            <div className="flex flex-col items-center md:items-end gap-3 w-full">
+                <div className="flex flex-col items-end gap-1 w-full">
                     <div className="flex items-center justify-end gap-2 text-right">
-                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Gift size={12} className="text-pink-400"/> Födelsedagar</div>
+                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Namnsdag</div>
+                        <div className="text-sm font-bold text-white">{nameDays || "..."}</div>
                     </div>
-
-                    {birthdays && birthdays.length > 0 ? (
-                        <div className="flex flex-wrap justify-center md:justify-end gap-2">
-                            {birthdays.map((b, i) => (
-                                <div key={i} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/10">
-                                    <span className="text-pink-400 font-bold text-[10px] uppercase">{b.dateStr}</span>
-                                    <span className="text-white font-bold text-xs">{b.name.split(' ')[0]}</span>
-                                </div>
-                            ))}
+                    
+                    <div className="flex flex-col items-end gap-1 mt-1">
+                        <div className="flex items-center justify-end gap-2 text-right">
+                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Gift size={12} className="text-pink-400"/> Födelsedagar</div>
                         </div>
-                    ) : (
-                        <div className="text-[10px] text-slate-500 italic">Inga födelsedagar nära</div>
-                    )}
+
+                        {birthdays && birthdays.length > 0 ? (
+                            <div className="flex flex-wrap justify-center md:justify-end gap-2">
+                                {birthdays.map((b, i) => (
+                                    <div key={i} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/10">
+                                        <span className="text-pink-400 font-bold text-[10px] uppercase">{b.dateStr}</span>
+                                        <span className="text-white font-bold text-xs">{b.name.split(' ')[0]}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-[10px] text-slate-500 italic">Inga födelsedagar nära</div>
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -556,6 +512,7 @@
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 shrink-0">
+                        {/* ROW 1 */}
                         <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span>
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
@@ -571,7 +528,22 @@
                              <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat (År)</span>
                              {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-700 mt-1 font-bold">{formatMoney(stats?.budgetDelivered)}</div>}
                         </div>
-                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="col-span-1 md:col-span-3 bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
+                        
+                        {/* ROW 2 */}
+                        <div onClick={() => onOpenDetails('Sälj / Pipeline', stats?.lists?.sales)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-pink-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
+                             <span className={`text-2xl md:text-3xl font-black text-pink-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.salesCount}</span>
+                             <span className="text-[9px] font-bold text-slate-500 uppercase mt-1 tracking-widest">Sälj (Pipeline)</span>
+                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-pink-300/80 font-bold mt-1">{formatMoney(stats?.budgetSales)}</div>}
+                             
+                             {/* Sold Section */}
+                             <div className="mt-2 pt-2 border-t border-white/10 w-full flex flex-col items-center" onClick={(e) => { e.stopPropagation(); onOpenDetails('Insålda Projekt', stats?.lists?.sold); }}>
+                                 <span className={`text-xl font-bold text-green-400 tracking-tight leading-none ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.soldCount}</span>
+                                 <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Insålda</span>
+                                 {!loading && showRevenue && <div className="text-[9px] font-mono text-green-300/80 font-bold">{formatMoney(stats?.budgetSold)}</div>}
+                             </div>
+                        </div>
+
+                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
                              <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{year}</span>
                              <div className="flex flex-col items-center mt-0.5 gap-0.5">
                                  <span className="text-sm md:text-base font-bold text-white leading-none">
@@ -581,7 +553,7 @@
                              </div>
                              <span className="text-[9px] font-bold text-slate-500 uppercase mt-1.5 tracking-widest">Totalt Helår</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="col-span-1 md:col-span-3 bg-slate-800/50 rounded-xl p-3 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
+                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
                              <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
                              <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
@@ -785,26 +757,45 @@
         );
 
         // --- NEW SETTINGS MODAL ---
-        const SettingsModal = ({ showRevenue, toggleRevenue, onClose }) => (
-            <div className={`modal-overlay open`} onClick={onClose}>
-                <div className="glass-card p-6 max-w-sm w-full m-4" onClick={e => e.stopPropagation()}>
-                    <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-bold text-white flex items-center gap-2"><Settings size={20}/> Inställningar</h2>
-                        <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
-                    </div>
-                    <div className="space-y-4">
-                         <div className="flex items-center justify-between">
-                            <span className="text-slate-300 font-medium">Visa intäkter (SEK)</span>
-                            <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" name="toggle" id="revenue-toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300" checked={showRevenue} onChange={toggleRevenue}/>
-                                <label htmlFor="revenue-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${showRevenue ? 'bg-green-400' : 'bg-slate-600'}`}></label>
+        const SettingsModal = ({ showRevenue, toggleRevenue, currentYear, setYear, onClose }) => {
+            const [localYear, setLocalYear] = useState(currentYear);
+
+            const handleYearChange = (e) => {
+                setLocalYear(e.target.value);
+                setYear(e.target.value);
+            };
+
+            return (
+                <div className={`modal-overlay open`} onClick={onClose}>
+                    <div className="glass-card p-6 max-w-sm w-full m-4" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2"><Settings size={20}/> Inställningar</h2>
+                            <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
+                        </div>
+                        <div className="space-y-6">
+                             <div className="flex items-center justify-between">
+                                <span className="text-slate-300 font-medium">Visa intäkter (SEK)</span>
+                                <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                                    <input type="checkbox" name="toggle" id="revenue-toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300" checked={showRevenue} onChange={toggleRevenue}/>
+                                    <label htmlFor="revenue-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${showRevenue ? 'bg-green-400' : 'bg-slate-600'}`}></label>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label className="text-slate-300 font-medium block">Årtal</label>
+                                <input 
+                                    type="number" 
+                                    value={localYear} 
+                                    onChange={handleYearChange}
+                                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white font-bold tracking-widest focus:outline-none focus:border-white/40 text-center"
+                                />
+                                <p className="text-xs text-slate-500 mt-1">Ändrar vilket år data visas för (t.ex. 2025).</p>
                             </div>
                         </div>
-                        <p className="text-xs text-slate-500 mt-2">Slå på för att visa budget/intäkter i produktionsmodulen.</p>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        };
 
         const DetailsModal = ({ title, items, onClose }) => (
             <div className={`modal-overlay open`} onClick={onClose}>
@@ -830,7 +821,6 @@
 
         // --- DEFAULTS ---
         const DEFAULT_MODULES = [ 
-            { id: 'weather', colSpan: 8, rowSpan: 2, component: 'WeatherModule' }, 
             { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
             { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
             { id: 'slideshow', colSpan: 12, rowSpan: 2, component: 'SlideshowModule' }, 
@@ -851,11 +841,18 @@
             
             // --- PERSISTENT STATE LOGIC ---
             
-            // Settings persistence
+            // Settings persistence (Revenue)
             const [showRevenue, setShowRevenue] = useState(() => {
                 try {
                     return localStorage.getItem('dashboard_show_revenue') === 'true';
                 } catch(e) { return false; }
+            });
+
+            // Settings persistence (Year)
+            const [year, setYear] = useState(() => {
+                try {
+                    return localStorage.getItem('dashboard_year') || new Date().getFullYear().toString();
+                } catch(e) { return new Date().getFullYear().toString(); }
             });
 
             const toggleRevenueHandler = () => {
@@ -866,10 +863,13 @@
                 });
             };
 
+            const setYearHandler = (newYear) => {
+                setYear(newYear);
+                localStorage.setItem('dashboard_year', newYear);
+            };
+
             const [detailModal, setDetailModal] = useState(null); 
-            // För att spåra den senaste tvingade omladdningen
             const lastForcedReloadTime = useRef(0);
-            // 10 minuter i millisekunder
             const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
             // Modules persistence
@@ -883,7 +883,6 @@
                 return DEFAULT_MODULES;
             });
 
-            // Save modules whenever they change
             useEffect(() => {
                 try {
                     localStorage.setItem('dashboard_layout_v1', JSON.stringify(modules));
@@ -908,60 +907,58 @@
                 ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
                 switch(mod.component) { 
                     case 'WeatherModule': return <WeatherModule data={weather} loading={loadingWeather} />; 
-                    case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} showRevenue={showRevenue} onOpenDetails={openDetails} />; 
+                    case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} showRevenue={showRevenue} year={year} onOpenDetails={openDetails} />; 
                     case 'SlideshowModule': return <SlideshowModule customText={customText} />; 
                     case 'TimelineModule': return <TimelineModule items={allUpcoming} bookings={bookings} loading={loadingProd} />; 
                     default: return null; 
                 }
             };
 
+            // Main Data Loader
+            const loadMainData = async () => {
+                setLoadingWeather(true);
+                setLoadingBirthdays(true);
+                setLoadingNameDays(true);
+                setLoadingProd(true); 
+
+                try { setWeather(await getRealWeather()); } catch(e){}
+                try { setEvents(await getGoogleSheetEvents()); } catch(e){}
+                try { setBirthdays(await getClickUpBirthdays()); } catch(e){}
+                try { setBookings(await getRoomBookings()); } catch(e){}
+                try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
+                try { setProdStats(await getClickUpProductionData(year)); } catch(e) { console.error(e); }
+
+                setLoadingWeather(false);
+                setLoadingBirthdays(false);
+                setLoadingNameDays(false);
+                setLoadingProd(false);
+            };
+
+            // Reload data when year changes
+            useEffect(() => {
+                loadMainData();
+            }, [year]);
+
             useEffect(() => {
                 const t = setInterval(() => setTime(new Date()), 1000);
-
-                const loadMainData = async () => {
-                    setLoadingWeather(true);
-                    setLoadingBirthdays(true);
-                    setLoadingNameDays(true);
-                    setLoadingProd(true); 
-
-                    try { setWeather(await getRealWeather()); } catch(e){}
-                    try { setEvents(await getGoogleSheetEvents()); } catch(e){}
-                    try { setBirthdays(await getClickUpBirthdays()); } catch(e){}
-                    try { setBookings(await getRoomBookings()); } catch(e){}
-                    try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
-                    try { setProdStats(await getClickUpProductionData(DASHBOARD_CONFIG.year)); } catch(e) { console.error(e); }
-
-                    setLoadingWeather(false);
-                    setLoadingBirthdays(false);
-                    setLoadingNameDays(false);
-                    setLoadingProd(false);
-                };
 
                 const loadTextOnly = async () => {
                     try {
                         const data = await getGoogleSheetMotto();
                         if(data) {
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
-                            
-                            // *** NY OMLADDNINGSLOGIK MED 10 MIN SPÄRR (Persistent) ***
                             if (data.shouldReload === 'RELOAD') {
                                 const now = Date.now();
                                 const lastReload = parseInt(localStorage.getItem('last_reload_timestamp') || '0');
-                                
                                 if (now - lastReload > RELOAD_COOLDOWN_MS) {
                                     localStorage.setItem('last_reload_timestamp', now.toString());
-                                    console.log("Force Reload Triggered by Google Sheet B1! Reloading.");
                                     window.location.reload();
-                                } else {
-                                    console.log("Reload ignored due to cooldown.");
                                 }
                             } 
-                            // *** SLUT NY OMLADDNINGSLOGIK ***
                         }
                     } catch(e){}
                 };
 
-                loadMainData();
                 loadTextOnly();
 
                 const textInterval = setInterval(loadTextOnly, 10000);
@@ -978,26 +975,21 @@
 
             return (
                 <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
-                    {/* NEW HEADER LAYOUT */}
+                    {/* HEADER */}
                     <header className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center mb-6 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
-                         
-                         {/* LEFT: LOGO */}
                          <div className="flex flex-col items-center md:items-start order-1">
                              <div className="flex items-center gap-3">
                                 <img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} />
                                 <img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} />
                              </div>
                         </div>
-
-                        {/* CENTER: CLOCK & TAGLINE */}
                         <div className="flex flex-col items-center justify-center order-2 md:order-2">
                             <div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div>
                             <div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1 mb-2`}>{dateStr}</div>
                             <p className="text-slate-400 text-sm md:text-base font-medium tracking-wide uppercase opacity-80 whitespace-nowrap">We make brands stronger through film</p>
                         </div>
-
-                        {/* RIGHT: HEADER INFO (LOCKED) */}
-                        <div className="flex flex-col items-center md:items-end justify-center order-3 md:order-3">
+                        <div className="flex flex-col items-center md:items-end justify-center gap-4 order-3 md:order-3">
+                             <HeaderWeather weather={weather} loading={loadingWeather} />
                              <HeaderInfoModule nameDays={loadingNameDays ? "Laddar..." : nameDays} birthdays={loadingBirthdays ? [] : birthdays} />
                         </div>
                     </header>
@@ -1006,7 +998,7 @@
                     <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-14 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-                    {showSettings && <SettingsModal showRevenue={showRevenue} toggleRevenue={toggleRevenueHandler} onClose={() => setShowSettings(false)} />}
+                    {showSettings && <SettingsModal showRevenue={showRevenue} toggleRevenue={toggleRevenueHandler} currentYear={year} setYear={setYearHandler} onClose={() => setShowSettings(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
                     <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
