@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crisp Dashboard (Compact Header Weather)</title>
+    <title>Crisp Dashboard (Fixed)</title>
     
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -16,7 +16,7 @@
     <style>
         body { 
             font-family: 'Outfit', sans-serif; 
-            background-color: #050515; 
+            background-color: #050505; 
             color: #f5f5f7; 
             margin: 0;
             min-height: 100vh;
@@ -33,6 +33,7 @@
             border-radius: 1.5rem;
             overflow: hidden; display: flex; flex-direction: column; position: relative;
             transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            -webkit-mask-image: -webkit-radial-gradient(white, black);
         }
         
         @media (min-width: 768px) {
@@ -141,7 +142,6 @@
         
         const getRealWeather = async () => { 
             try { 
-                // ADDED: temperature_2m_min to daily request
                 const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4&wind_speed_unit=ms`); 
                 if (!r.ok) throw new Error("API Err"); 
                 const j = await r.json(); 
@@ -154,17 +154,7 @@
                 const getText = (c) => c===0?"Soligt":c<=3?"Molnigt":c<=48?"Dimmigt":c<=67?"Regn":c<=77?"Snö":c>=80?"Skurar":"Oväder"; 
                 const todayForecast = [8,12,16,20].map((idx, i) => ({ label: ["Morgon","Lunch","Eftermiddag","Kväll"][i], icon: getIcon(hourly.weather_code[idx], 40, hourly.weather_code[idx]===0), text: getText(hourly.weather_code[idx]), temp: hourly.temperature_2m[idx], wind: hourly.wind_speed_10m[idx], rain: hourly.precipitation_probability[idx] })); 
                 const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],32,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] })); 
-                
-                // Return current and today's min (night) temp
-                return { 
-                    temp: current.temperature_2m, 
-                    minTemp: daily.temperature_2m_min[0],
-                    condition: getText(current.weather_code), 
-                    wind: current.wind_speed_10m, 
-                    icon: getIcon(current.weather_code, 40, current.weather_code===0), 
-                    todayForecast, 
-                    nextDays 
-                }; 
+                return { temp: current.temperature_2m, minTemp: daily.temperature_2m_min[0], condition: getText(current.weather_code), wind: current.wind_speed_10m, icon: getIcon(current.weather_code, 40, current.weather_code===0), todayForecast, nextDays }; 
             } catch(e) { return null; } 
         };
         
@@ -331,6 +321,7 @@
                     const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
                     
                     // Kolla om namnet matchar året (för Aktiva/Sälj/Insålda)
+                    // HÄR VAR FELET: Vi behåller denna rad och tar bort konfliktmarkörerna
                     const matchesName = t.name.startsWith(shortYear) || t.name.startsWith(fullYear);
 
                     // --- LOGIK FÖR LEVERERAT (Går på DATUM, inte namn) ---
@@ -379,7 +370,6 @@
                     }
                 });
                 
-                // Sortera "Levererat (År)" alfabetiskt
                 listDelivered.sort((a, b) => a.name.localeCompare(b.name, 'sv'));
 
                 let recCount = 0; let streamCount = 0; let voCount = 0; const upcomingRecs = [];
@@ -480,7 +470,6 @@
 
         // --- COMPONENTS ---
 
-        // --- NEW COMPACT HEADER WEATHER ---
         const HeaderWeather = ({ weather, loading }) => {
             if (loading) return <div className="flex items-center gap-2 text-slate-500 text-xs"><Loader2 size={12} className="animate-spin"/> Hämtar väder...</div>;
             if (!weather) return <div className="text-slate-500 text-xs">Väder saknas</div>;
@@ -500,7 +489,6 @@
             );
         };
 
-        // --- HEADER INFO MODULE ---
         const HeaderInfoModule = ({ nameDays, birthdays }) => (
             <div className="flex flex-col items-center md:items-end gap-3 w-full">
                 <div className="flex flex-col items-end gap-1 w-full">
@@ -531,7 +519,6 @@
             </div>
         );
 
-        // --- PRODUCTION MODULE ---
         const ProductionModule = ({ stats, recent, loading, showRevenue, year, onOpenDetails }) => {
             const formatMoney = (amount) => {
                 if (!amount) return "0 kr";
@@ -619,19 +606,36 @@
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
             
             return (
-                <div className="h-full w-full relative group overflow-hidden rounded-[2rem] bg-black cursor-grab active:cursor-grabbing flex items-center justify-center gpu-accelerate">
+                <div className="h-full w-full relative group bg-black flex items-center justify-center">
                     {/* Render text overlay independently */}
                     <div className="absolute bottom-6 left-6 pointer-events-none z-20">
                          {customText.subtitle && <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={12} /> {customText.subtitle}</div>}
                         <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{customText.title}</h2>
                     </div>
 
-                    {validImages.length > 0 ? <>
+                    {validImages.length > 0 ? <React.Fragment>
                             {validImages.map((img, i) => (
-                                <img key={img} src={img} onError={() => err(img)} className="absolute inset-0 w-full h-full object-cover object-center" style={{ opacity: index === i ? 1 : 0, transition: 'opacity 1.5s ease-in-out', willChange: 'opacity' }} alt="Crisp" />
+                                // Use a dual-layer approach for dynamic filling without cropping important content
+                                <React.Fragment key={img}>
+                                    {/* Layer 1: Background Blur (Fill the box) */}
+                                    <img 
+                                        src={img} 
+                                        className="absolute inset-0 w-full h-full object-cover blur-xl opacity-50 scale-110" 
+                                        style={{ opacity: index === i ? 0.5 : 0, transition: 'opacity 1.5s ease-in-out' }} 
+                                        alt="" 
+                                    />
+                                    {/* Layer 2: Main Image (Contain within box) */}
+                                    <img 
+                                        src={img} 
+                                        onError={() => err(img)} 
+                                        className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl" 
+                                        style={{ opacity: index === i ? 1 : 0, transition: 'opacity 1.5s ease-in-out', willChange: 'opacity' }} 
+                                        alt="Crisp" 
+                                    />
+                                </React.Fragment>
                             ))}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
-                        </> : (
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                        </React.Fragment> : (
                             <div className="h-full flex flex-col items-center justify-center text-slate-600">
                                 <Image size={48} />
                                 <p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p>
