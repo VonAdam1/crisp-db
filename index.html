@@ -308,46 +308,74 @@
                 
                 const shortYear = targetYear.slice(-2); 
                 const fullYear = targetYear;
+                const targetYearNum = parseInt(fullYear); // Siffra för jämförelse av datum
 
                 const listActive = []; const listTotal = []; const listDelivered = []; const listDeliveredMonth = []; 
                 const listSales = []; 
-                const listSold = []; // NEW: Sold projects list
+                const listSold = []; 
                 const listRec = []; const listStream = []; const listVO = [];
 
                 let activeBudget = 0; let deliveredBudget = 0; let totalBudget = 0; let monthDeliveredBudget = 0;
                 let salesBudget = 0; 
-                let soldBudget = 0; // NEW: Sold budget
+                let soldBudget = 0; 
                 const budgetFieldId = API_CONFIG.clickUpBudgetFieldId;
                 
-                const validProjects = projects.filter(t => t.name.startsWith(shortYear) || t.name.startsWith(fullYear));
                 const now = new Date(); const currentMonth = now.getMonth(); const currentYearNum = now.getFullYear();
 
-                validProjects.forEach(t => {
+                // LOOPAR IGENOM ALLA PROJEKT (Inte bara de som heter rätt år)
+                projects.forEach(t => {
                     const s = t.status.status.toLowerCase();
                     let budget = 0;
                     if(t.custom_fields) { const bf = t.custom_fields.find(f => f.id === budgetFieldId); if(bf && bf.value) budget = parseFloat(bf.value) || 0; }
+                    
                     const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
                     
-                    // Sales Logic
-                    if(s.includes('sales') || s.includes('sälj')) {
-                        listSales.push(item);
-                        salesBudget += budget;
-                    }
-                    
-                    // NEW: Sold Logic (Status = Done, Stängd, Ej landad, Closed)
-                    // Uppdaterad logik för att fånga fler statusar för avslutade/insålda affärer
-                    if(s === 'done' || s === 'stängd' || s === 'closed' || s === 'won' || s === 'ej landad') {
-                        listSold.push(item);
-                        soldBudget += budget;
-                    }
+                    // Kolla om namnet matchar året (för Aktiva/Sälj/Insålda)
+                    const matchesName = t.name.startsWith(shortYear) || t.name.startsWith(fullYear);
 
-                    if(s === 'production') { listActive.push(item); listTotal.push(item); activeBudget += budget; totalBudget += budget; }
+                    // --- LOGIK FÖR LEVERERAT (Går på DATUM, inte namn) ---
                     if(s === 'delivered') {
                         const d = parseInt(t.date_closed||t.date_updated||0);
-                        const dateObj = new Date(d);
-                        const delItem = { ...item, date: d > 0 ? dateObj.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) : '-' };
-                        listDelivered.push(delItem); listTotal.push(delItem); deliveredBudget += budget; totalBudget += budget;
-                        if (d > 0 && dateObj.getMonth() === currentMonth && dateObj.getFullYear() === currentYearNum) { listDeliveredMonth.push(delItem); monthDeliveredBudget += budget; }
+                        if (d > 0) {
+                            const dateObj = new Date(d);
+                            // Om leveransdatumet är samma år som vi visar i dashboarden
+                            if (dateObj.getFullYear() === targetYearNum) {
+                                const delItem = { ...item, date: dateObj.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) };
+                                listDelivered.push(delItem); 
+                                listTotal.push(delItem); // Räknas in i årets total
+                                deliveredBudget += budget; 
+                                totalBudget += budget;
+
+                                // Kolla om det är nuvarande månad (kalenderår)
+                                if (dateObj.getMonth() === currentMonth && dateObj.getFullYear() === currentYearNum) { 
+                                    listDeliveredMonth.push(delItem); 
+                                    monthDeliveredBudget += budget; 
+                                }
+                            }
+                        }
+                    }
+                    
+                    // --- LOGIK FÖR AKTIVA / SÄLJ / INSÅLDA (Går på NAMN) ---
+                    else if (matchesName) {
+                        // Sales Logic
+                        if(s.includes('sales') || s.includes('sälj')) {
+                            listSales.push(item);
+                            salesBudget += budget;
+                        }
+                        
+                        // Sold Logic (Status = Done, Stängd, Ej landad, Closed, Won)
+                        else if(s === 'done' || s === 'stängd' || s === 'closed' || s === 'won' || s === 'ej landad') {
+                            listSold.push(item);
+                            soldBudget += budget;
+                        }
+
+                        // Active Production
+                        else if(s === 'production') { 
+                            listActive.push(item); 
+                            listTotal.push(item); 
+                            activeBudget += budget; 
+                            totalBudget += budget; 
+                        }
                     }
                 });
                 
@@ -427,7 +455,17 @@
                     if(uniqueRecs.length>=15) break; 
                 }
 
-                const recentDelSidebar = validProjects.filter(t => t.status.status.toLowerCase() === 'delivered').sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0)).slice(0,20).map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
+                // NYLIGEN LEVERERAT - SIDEBAR
+                // Här tittar vi på ALLA projekt (inte bara validProjects) som har status delivered
+                // och sorterar strikt på datum.
+                const recentDelSidebar = projects
+                    .filter(t => t.status.status.toLowerCase() === 'delivered')
+                    .sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0))
+                    .slice(0,20)
+                    .map(t => ({ 
+                        name: t.name, 
+                        date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) 
+                    }));
 
                 return { 
                     stats: { 
