@@ -320,9 +320,22 @@
                     
                     const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
                     
+<<<<<<< HEAD
                     // Kolla om namnet matchar året (för Aktiva/Sälj/Insålda)
-                    // HÄR VAR FELET: Vi behåller denna rad och tar bort konfliktmarkörerna
                     const matchesName = t.name.startsWith(shortYear) || t.name.startsWith(fullYear);
+=======
+                    // Sales Logic
+                    if(s.includes('sales') || s.includes('sälj')) {
+                        listSales.push(item);
+                        salesBudget += budget;
+                    }
+                    
+                    // NEW: Sold Logic (Status = Done, Stängd, Ej landad, Closed)
+                    if(s === 'done' || s === 'stängd' || s === 'closed' || s === 'won' || s === 'ej landad') {
+                        listSold.push(item);
+                        soldBudget += budget;
+                    }
+>>>>>>> 01fe46950398630dd477c6752c524f37703162bf
 
                     // --- LOGIK FÖR LEVERERAT (Går på DATUM, inte namn) ---
                     if(s === 'delivered') {
