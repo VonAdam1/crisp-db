@@ -475,6 +475,8 @@
                 </div>
             );
         };
+
+        const HeaderWeather = ({ weather, loading }) => {
             if (loading) return <div className="flex items-center gap-2 text-slate-500 text-xs"><Loader2 size={12} className="animate-spin"/> Hämtar väder...</div>;
             if (!weather) return <div className="text-slate-500 text-xs">Väder saknas</div>;
 
