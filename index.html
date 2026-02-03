@@ -130,16 +130,16 @@
 
         // --- 3. DATA HELPERS ---
         
-        // 1. NAMNSDAGAR (Via Vercel Rewrite)
+        // 1. NAMNSDAGAR (Direkt via api.dryg.net - kräver oftast ingen proxy)
         const getNamnsdagar = async () => {
             try {
-                // Anropar din lokala Vercel-väg istället för extern URL direkt
-                const res = await fetch('/api/holiday/');
+                // Vi går direkt till källan istället för via Vercel-tunneln
+                const res = await fetch('https://api.dryg.net/dagar/v2.1/');
                 if (!res.ok) throw new Error("API Error");
                 const data = await res.json();
                 const names = data.dagar[0]?.namnsdag || [];
                 return names.length > 0 ? names.join(', ') : "Inga namnsdagar";
-            } catch(e) { return "Hämtar..."; }
+            } catch(e) { return "Inga namnsdagar"; }
         };
         
         // 2. VÄDER (Direkt, funkar utan proxy)
