@@ -130,11 +130,11 @@
 
         // --- 3. DATA HELPERS ---
         
-        // 1. NAMNSDAGAR (Använder AllOrigins för att kringgå CORS)
+        // 1. NAMNSDAGAR (Via Vercel Rewrite)
         const getNamnsdagar = async () => {
             try {
-                const url = "https://sholiday.faboul.se/dagar/v2.1/";
-                const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
+                // Anropar din lokala Vercel-väg istället för extern URL direkt
+                const res = await fetch('/api/holiday/');
                 if (!res.ok) throw new Error("API Error");
                 const data = await res.json();
                 const names = data.dagar[0]?.namnsdag || [];
@@ -142,7 +142,7 @@
             } catch(e) { return "Hämtar..."; }
         };
         
-        // 2. VÄDER (Open-Meteo stöder CORS direkt, ingen proxy behövs!)
+        // 2. VÄDER (Direkt, funkar utan proxy)
         const getRealWeather = async () => { 
             try { 
                 const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4&wind_speed_unit=ms`); 
@@ -161,12 +161,15 @@
             } catch(e) { return null; } 
         };
         
-        // 3. GOOGLE SHEETS EVENTS (Använder AllOrigins - Google blockerar ofta corsproxy.io)
+        // 3. GOOGLE SHEETS EVENTS (Via Vercel Rewrite)
         const getGoogleSheetEvents = async () => { 
             if (!API_CONFIG.googleSheetCsvUrl) return []; 
             try { 
-                const target = API_CONFIG.googleSheetCsvUrl + '&t=' + Date.now();
-                const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
+                // Vi strippar domänen och behåller bara path för rewriten
+                const cleanPath = API_CONFIG.googleSheetCsvUrl.replace('https://docs.google.com', '');
+                // Lägg till tidsstämpel för att undvika cache
+                const url = `/api/sheets${cleanPath}&t=${Date.now()}`;
+                
                 const res = await fetch(url); 
                 if (!res.ok) return []; 
                 const rows = (await res.text()).split(/\r\n|\n/); 
@@ -196,16 +199,17 @@
                     } 
                 }); 
                 return events; 
-            } catch(e) { return []; } 
+            } catch(e) { console.error("Sheet error", e); return []; } 
         };
 
-        // 4. GOOGLE SHEETS MOTTO (Använder AllOrigins)
+        // 4. GOOGLE SHEETS MOTTO (Via Vercel Rewrite)
         const getGoogleSheetMotto = async () => {
             if (!API_CONFIG.googleSheetTextUrl) return null;
             try {
+                const cleanPath = API_CONFIG.googleSheetTextUrl.replace('https://docs.google.com', '');
                 const uniqueParam = `nocache=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
-                const target = API_CONFIG.googleSheetTextUrl + '&' + uniqueParam;
-                const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
+                const url = `/api/sheets${cleanPath}&${uniqueParam}`;
+                
                 const res = await fetch(url, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } });
                 if (!res.ok) return null;
                 const textData = await res.text();
@@ -235,7 +239,7 @@
             } catch (e) { return null; }
         };
 
-        // 5. KALENDER (Använder AllOrigins)
+        // 5. KALENDER (Via Vercel Rewrite)
         const getRoomBookings = async () => {
             if (!API_CONFIG.calendars) return [];
             let allBookings = [];
@@ -247,9 +251,8 @@
             };
             for (const cal of API_CONFIG.calendars) {
                 try {
-                    // VIKTIGT: Här använder vi AllOrigins för Google Kalender
-                    const target = 'https://calendar.google.com/calendar/ical/' + cal.cid + '/public/basic.ics';
-                    const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(target)}`;
+                    // Vi använder vår egen tunnel
+                    const url = `/api/calendar/calendar/ical/${cal.cid}/public/basic.ics`;
                     const res = await fetch(url);
                     if (!res.ok) continue;
                     const text = await res.text();
@@ -280,14 +283,13 @@
             return allBookings.sort((a,b) => a.dateObj - b.dateObj).slice(0, 10);
         };
 
-        // 6. CLICKUP - FÖDELSEDAGAR (Måste använda ThingProxy eller Corsproxy, ej AllOrigins)
+        // 6. CLICKUP - FÖDELSEDAGAR (Via Vercel Rewrite)
         const getClickUpBirthdays = async () => { 
             if (!API_CONFIG.clickUpBirthdayListId) return []; 
             try { 
-                // Vi byter till ThingProxy då corsproxy.io ofta blockeras av Vercel
-                const proxy = "https://thingproxy.freeboard.io/fetch/";
-                const target = `https://api.clickup.com/api/v2/list/${API_CONFIG.clickUpBirthdayListId}/task`;
-                const r = await fetch(proxy + target, { headers: { 'Authorization': API_CONFIG.clickUpToken } }); 
+                // Ingen proxy-url, bara vår lokala /api/clickup/...
+                const url = `/api/clickup/list/${API_CONFIG.clickUpBirthdayListId}/task`;
+                const r = await fetch(url, { headers: { 'Authorization': API_CONFIG.clickUpToken } }); 
                 return (await r.json()).tasks.map(t => { 
                     const d = new Date(parseInt(t.due_date)); const today = new Date(); let next = new Date(today.getFullYear(), d.getMonth(), d.getDate()); 
                     if(next<today) next.setFullYear(today.getFullYear()+1); const diff = Math.ceil((next-today)/(86400000)); 
@@ -296,19 +298,19 @@
             } catch(e) { return []; } 
         };
 
-        // 7. CLICKUP - PRODUKTIONSDATA (Måste använda ThingProxy)
+        // 7. CLICKUP - PRODUKTIONSDATA (Via Vercel Rewrite)
         const getClickUpProductionData = async (targetYear) => {
             if (!API_CONFIG.clickUpSpaceId) return {};
             const headers = { 'Authorization': API_CONFIG.clickUpToken };
-            // Vi byter till ThingProxy här också
-            const proxy = "https://thingproxy.freeboard.io/fetch/";
             
             try {
-                const tRes = await fetch(`${proxy}https://api.clickup.com/api/v2/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
+                // Hämta Team ID via tunneln
+                const tRes = await fetch(`/api/clickup/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
                 const startTimestamp = new Date("2023-01-01").getTime(); 
                 
-                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/team/${teamId}/task?space_ids[]=${API_CONFIG.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
-                const getProj = async () => { if (!API_CONFIG.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`${proxy}https://api.clickup.com/api/v2/list/${API_CONFIG.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
+                // Notera hur vi nu anropar /api/clickup istället för https://api.clickup.com
+                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`/api/clickup/team/${teamId}/task?space_ids[]=${API_CONFIG.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
+                const getProj = async () => { if (!API_CONFIG.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`/api/clickup/list/${API_CONFIG.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
 
                 const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
                 const tasks = [...active, ...archived];
@@ -443,9 +445,36 @@
             } catch(e) { return {}; }
         };
 
-        // --- COMPONENTS ---
+        const WeatherModule = ({ data, loading }) => {
+            if (loading) return (
+                <div className="h-full flex items-center justify-center">
+                    <Loader2 className="animate-spin text-slate-600" size={32} />
+                </div>
+            );
+            if (!data) return <div className="h-full flex items-center justify-center text-slate-500">Väderdata saknas</div>;
 
-        const HeaderWeather = ({ weather, loading }) => {
+            return (
+                <div className="h-full p-6 flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <div className="text-5xl font-bold text-white leading-none">{Math.round(data.temp)}°</div>
+                            <div className="text-slate-400 font-medium mt-1">{data.condition}</div>
+                        </div>
+                        <div className="text-blue-400">{data.icon}</div>
+                    </div>
+                    
+                    <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
+                        {data.todayForecast.map((f, i) => (
+                            <div key={i} className="flex flex-col items-center">
+                                <span className="text-[10px] text-slate-500 font-bold uppercase">{f.label}</span>
+                                <div className="scale-75 my-1">{f.icon}</div>
+                                <span className="text-xs font-bold text-white">{Math.round(f.temp)}°</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
             if (loading) return <div className="flex items-center gap-2 text-slate-500 text-xs"><Loader2 size={12} className="animate-spin"/> Hämtar väder...</div>;
             if (!weather) return <div className="text-slate-500 text-xs">Väder saknas</div>;
 
