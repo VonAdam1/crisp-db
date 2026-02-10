@@ -269,12 +269,10 @@
                         // --- FIX START (ADAM FIX) ---
                         // Robust hantering av TZID prefix och VALUE=DATE
                         if (dtStart) {
-                            // 1. Om kolon finns (t.ex. TZID=Europe/Berlin:2025...), ta allt efter sista kolonet
                             if (dtStart.includes(':')) {
                                 const parts = dtStart.split(':');
                                 dtStart = parts[parts.length - 1];
                             }
-                            // 2. Om VALUE=DATE finns (ibland efter split), ta bort det
                             if (dtStart.includes('=')) {
                                 dtStart = dtStart.split('=')[1];
                             }
@@ -296,24 +294,15 @@
                         // --- FIX END ---
 
                         const summary = getField('SUMMARY') || "Bokat";
-						if (dtStart) {
-   							const startDate = parseICSDate(dtStart);
+                        if (dtStart) {
+                            const startDate = parseICSDate(dtStart);
+                            // HÄR TOG VI BORT START-JUSTERINGEN
+
+                            const endDate = dtEnd ? parseICSDate(dtEnd) : null;
+                            
+                            // HÄR TOG VI BORT SLUT-JUSTERINGEN
     
-  						// --- FIX START: JUSTERA TIDEN ---
-  						// Ändra siffran -1 till 1 om tiden går åt fel håll (dvs om den är 1h tidig istället för sen)
-  						startDate.setHours(startDate.getHours() + 2); 
-  						// --- FIX END ---
-  						
-  						const endDate = dtEnd ? parseICSDate(dtEnd) : null;
-  						
-  						// Vi måste justera sluttiden också om den finns
-  						if (endDate) {
-        					endDate.setHours(endDate.getHours() - 1);
-    					}
-    
- 						if (startDate >= cutoff) {
-       
-       						// ...resten av koden (rör inget här nedanför)
+                            if (startDate >= cutoff) {
                                 const isToday = startDate.getDate() === now.getDate() && startDate.getMonth() === now.getMonth();
                                 const timeStr = isToday ? `${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}${endDate ? ' - ' + endDate.getHours().toString().padStart(2,'0') + ':' + endDate.getMinutes().toString().padStart(2,'0') : ''}` : startDate.toLocaleDateString('sv-SE', {weekday:'short', day:'numeric', month:'short'}) + ` ${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}`;
                                 allBookings.push({ roomName: cal.name, roomColor: cal.color, roomBg: cal.bg, title: summary.replace(/\\/g, ''), time: timeStr, dateObj: startDate, attendees: "" });
