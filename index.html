@@ -301,7 +301,7 @@
     
   						// --- FIX START: JUSTERA TIDEN ---
   						// Ändra siffran -1 till 1 om tiden går åt fel håll (dvs om den är 1h tidig istället för sen)
-  						startDate.setHours(startDate.getHours()  0); 
+  						startDate.setHours(startDate.getHours() + 2); 
   						// --- FIX END ---
   						
   						const endDate = dtEnd ? parseICSDate(dtEnd) : null;
