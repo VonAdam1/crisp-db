@@ -81,7 +81,7 @@
             slideshowInterval: 8000,
             design: {
                 logoSymbolHeightMobile: "h-12", logoSymbolHeightDesktop: "h-16", 
-                logoTextHeightMobile: "h-6", logoTextHeightDesktop: "h-8",     
+                logoTextHeightMobile: "h-6", logoTextHeightDesktop: "h-8",      
                 clockSizeMobile: "text-5xl", clockSizeDesktop: "text-7xl", 
                 dateSizeMobile: "text-lg", dateSizeDesktop: "text-2xl",
             }
@@ -263,10 +263,38 @@
                     while ((match = eventRegex.exec(text)) !== null) {
                         const eventBlock = match[1];
                         const getField = (field) => { const r = new RegExp(`${field}[:;](.*)`); const m = eventBlock.match(r); return m ? m[1].trim() : null; };
+                        
                         let dtStart = getField('DTSTART');
-                        if (dtStart && dtStart.includes('VALUE=DATE')) dtStart = dtStart.split(':')[1];
+                        
+                        // --- FIX START (ADAM FIX) ---
+                        // Robust hantering av TZID prefix och VALUE=DATE
+                        if (dtStart) {
+                            // 1. Om kolon finns (t.ex. TZID=Europe/Berlin:2025...), ta allt efter sista kolonet
+                            if (dtStart.includes(':')) {
+                                const parts = dtStart.split(':');
+                                dtStart = parts[parts.length - 1];
+                            }
+                            // 2. Om VALUE=DATE finns (ibland efter split), ta bort det
+                            if (dtStart.includes('=')) {
+                                dtStart = dtStart.split('=')[1];
+                            }
+                        }
+                        // --- FIX END ---
+
                         let dtEnd = getField('DTEND');
-                        if (dtEnd && dtEnd.includes('VALUE=DATE')) dtEnd = dtEnd.split(':')[1];
+                        
+                        // --- FIX START (ADAM FIX) ---
+                        if (dtEnd) {
+                            if (dtEnd.includes(':')) {
+                                const parts = dtEnd.split(':');
+                                dtEnd = parts[parts.length - 1];
+                            }
+                            if (dtEnd.includes('=')) {
+                                dtEnd = dtEnd.split('=')[1];
+                            }
+                        }
+                        // --- FIX END ---
+
                         const summary = getField('SUMMARY') || "Bokat";
                         if (dtStart) {
                             const startDate = parseICSDate(dtStart);
@@ -297,7 +325,6 @@
                 }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3); 
             } catch(e) { return []; } 
         };
-
         // 7. CLICKUP - PRODUKTIONSDATA (Via Vercel Rewrite)
         const getClickUpProductionData = async (targetYear) => {
             if (!API_CONFIG.clickUpSpaceId) return {};
@@ -716,7 +743,7 @@
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Onlinerum</h3>
                                 {renderList(onlineBookings, "Ledigt")}
                              </div>
-                         </div>
+                          </div>
                     ) : width > 550 ? (
                         <div className="flex flex-row gap-6 h-full min-h-0">
                              <div className="flex-1 flex flex-col min-h-0">
