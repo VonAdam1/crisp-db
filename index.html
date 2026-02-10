@@ -296,10 +296,24 @@
                         // --- FIX END ---
 
                         const summary = getField('SUMMARY') || "Bokat";
-                        if (dtStart) {
-                            const startDate = parseICSDate(dtStart);
-                            const endDate = dtEnd ? parseICSDate(dtEnd) : null;
-                            if (startDate >= cutoff) {
+						if (dtStart) {
+   							const startDate = parseICSDate(dtStart);
+    
+  						// --- FIX START: JUSTERA TIDEN ---
+  						// Ändra siffran -1 till 1 om tiden går åt fel håll (dvs om den är 1h tidig istället för sen)
+  						startDate.setHours(startDate.getHours() - 1); 
+  						// --- FIX END ---
+  						
+  						const endDate = dtEnd ? parseICSDate(dtEnd) : null;
+  						
+  						// Vi måste justera sluttiden också om den finns
+  						if (endDate) {
+        					endDate.setHours(endDate.getHours() - 1);
+    					}
+    
+ 						if (startDate >= cutoff) {
+       
+       						// ...resten av koden (rör inget här nedanför)
                                 const isToday = startDate.getDate() === now.getDate() && startDate.getMonth() === now.getMonth();
                                 const timeStr = isToday ? `${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}${endDate ? ' - ' + endDate.getHours().toString().padStart(2,'0') + ':' + endDate.getMinutes().toString().padStart(2,'0') : ''}` : startDate.toLocaleDateString('sv-SE', {weekday:'short', day:'numeric', month:'short'}) + ` ${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}`;
                                 allBookings.push({ roomName: cal.name, roomColor: cal.color, roomBg: cal.bg, title: summary.replace(/\\/g, ''), time: timeStr, dateObj: startDate, attendees: "" });
