@@ -329,75 +329,113 @@
             } catch(e) { return []; } 
         };
         // 7. CLICKUP - PRODUKTIONSDATA (Via Vercel Rewrite)
+        // 7. CLICKUP - PRODUKTIONSDATA (HYBRID-FIX: STATUS + NAMNFILTER)
+        // 7. CLICKUP - PRODUKTIONSDATA (HYBRID v2: STATUS + NAMN + SENASTE MÅNADEN)
         const getClickUpProductionData = async (targetYear) => {
             if (!API_CONFIG.clickUpSpaceId) return {};
             const headers = { 'Authorization': API_CONFIG.clickUpToken };
             
             try {
-                // Hämta Team ID via tunneln
+                // Hämta Team ID
                 const tRes = await fetch(`/api/clickup/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
                 const startTimestamp = new Date("2023-01-01").getTime(); 
                 
-                // Notera hur vi nu anropar /api/clickup istället för https://api.clickup.com
+                // Hämta tasks och projects
                 const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`/api/clickup/team/${teamId}/task?space_ids[]=${API_CONFIG.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
                 const getProj = async () => { if (!API_CONFIG.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`/api/clickup/list/${API_CONFIG.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
 
                 const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
                 const tasks = [...active, ...archived];
                 
-                const shortYear = targetYear.slice(-2); 
-                const fullYear = targetYear;
-
+                // Variabler
                 const listActive = []; const listTotal = []; const listDelivered = []; const listDeliveredMonth = []; 
-                const listSales = []; 
-                const listSold = []; 
+                const listSales = []; const listSold = []; 
                 const listRec = []; const listStream = []; const listVO = [];
 
                 let activeBudget = 0; let deliveredBudget = 0; let totalBudget = 0; let monthDeliveredBudget = 0;
-                let salesBudget = 0; 
-                let soldBudget = 0; 
+                let salesBudget = 0; let soldBudget = 0; 
                 const budgetFieldId = API_CONFIG.clickUpBudgetFieldId;
                 
-                const validProjects = projects.filter(t => t.name.startsWith(shortYear) || t.name.startsWith(fullYear));
-                const now = new Date(); const currentMonth = now.getMonth(); const currentYearNum = now.getFullYear();
+                const now = new Date(); 
+                const currentMonth = now.getMonth(); 
+                const currentYearNum = now.getFullYear(); 
+                const targetYearNum = parseInt(targetYear);
 
-                validProjects.forEach(t => {
-                    const s = t.status.status.toLowerCase();
+                const shortYear = targetYear.slice(-2); 
+                const fullYear = targetYear;
+
+                // --- HUVUDLOOP FÖR KPI-KORTEN (Namnfilter vs Statusfilter) ---
+                projects.forEach(t => {
+                    const s = t.status.status.toLowerCase(); 
+                    
                     let budget = 0;
                     if(t.custom_fields) { const bf = t.custom_fields.find(f => f.id === budgetFieldId); if(bf && bf.value) budget = parseFloat(bf.value) || 0; }
-                    const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
                     
+                    const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
+
+                    // 1. NAMN-FILTER CHECK (För "Totalt Helår" siffran)
+                    const matchesNameFilter = t.name.startsWith(shortYear) || t.name.startsWith(fullYear);
+
+                    // A. TOTALT HELÅR (Kräver Namnfilter)
+                    if (matchesNameFilter) {
+                        listTotal.push(item);
+                        totalBudget += budget; 
+                    }
+                    
+                    // B. SÄLJ (Statusfilter - Oavsett namn)
                     if(s.includes('sales') || s.includes('sälj')) {
                         listSales.push(item);
                         salesBudget += budget;
                     }
                     
-                    if(s === 'done' || s === 'stängd' || s === 'closed' || s === 'won' || s === 'ej landad') {
-                        listSold.push(item);
-                        soldBudget += budget;
+                    // C. AKTIVA (Statusfilter - Oavsett namn)
+                    if(s === 'production') { 
+                        listActive.push(item); 
+                        activeBudget += budget; 
                     }
 
-                    if(s === 'production') { listActive.push(item); listTotal.push(item); activeBudget += budget; totalBudget += budget; }
-                    if(s === 'delivered') {
-                        const d = parseInt(t.date_closed||t.date_updated||0);
-                        const dateObj = new Date(d);
-                        const delItem = { ...item, date: d > 0 ? dateObj.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) : '-' };
-                        listDelivered.push(delItem); listTotal.push(delItem); deliveredBudget += budget; totalBudget += budget;
-                        if (d > 0 && dateObj.getMonth() === currentMonth && dateObj.getFullYear() === currentYearNum) { listDeliveredMonth.push(delItem); monthDeliveredBudget += budget; }
+                    // D. LEVERERAT HELÅR (Statusfilter + Årtal - Oavsett namn)
+                    const isDeliveredStatus = (s === 'delivered' || s === 'closed' || s === 'completed' || s === 'klar' || s === 'done');
+                    if (isDeliveredStatus) {
+                        const closeTs = parseInt(t.date_closed) || parseInt(t.date_updated) || 0;
+                        if (closeTs > 0) {
+                            const closeDate = new Date(closeTs);
+                            
+                            // Måste matcha det valda året i inställningarna
+                            if (closeDate.getFullYear() === targetYearNum) {
+                                const delItem = { ...item, date: closeDate.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) };
+                                listDelivered.push(delItem); 
+                                deliveredBudget += budget; 
+
+                                if (closeDate.getMonth() === currentMonth && closeDate.getFullYear() === currentYearNum) { 
+                                    listDeliveredMonth.push(delItem); 
+                                    monthDeliveredBudget += budget; 
+                                }
+                            }
+                        }
+                    }
+
+                    // E. INSÅLT (Statusfilter - Oavsett namn)
+                    if(s === 'won' || s === 'stängd' || s === 'closed' || s === 'ej landad') {
+                        listSold.push(item);
+                        soldBudget += budget;
                     }
                 });
                 
                 listDelivered.sort((a, b) => a.name.localeCompare(b.name, 'sv'));
 
+                // --- INSPELNINGAR (Kräver Namnfilter för att undvika gammalt skräp) ---
                 let recCount = 0; let streamCount = 0; let voCount = 0; const upcomingRecs = [];
                 const ignoreWords = ["genomgång", "brief", "planering", "förberedelse", "casting", "check", "koll", "recce", "schema", "annons", "annonser"];
 
                 tasks.forEach(t => {
                     const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
+                    
+                    // Namnfilter på inspelningar
                     const isTargetYear = fName.includes(shortYear) || lName.includes(shortYear) || fName.includes(fullYear) || lName.includes(fullYear);
                     const is24185 = (fName.startsWith("24185") || lName.startsWith("24185")) && targetYear === '2025';
 
-                    if (!isTargetYear && !is24185) return;
+                    if (!isTargetYear && !is24185) return; 
 
                     const listNameClean = lName.toLowerCase();
                     if (!listNameClean.includes('production') && !listNameClean.includes('stream') && !listNameClean.includes('live') && !listNameClean.includes('studio')) return; 
@@ -455,14 +493,33 @@
                 upcomingRecs.sort((a,b) => a.sortDate - b.sortDate);
                 for(const r of upcomingRecs) { 
                     const key = r.project + "_" + r.dateMain + "_" + r.dateSub;
-                    if(!seen.has(key)) { 
-                        seen.add(key); 
-                        uniqueRecs.push(r); 
-                    } 
+                    if(!seen.has(key)) { seen.add(key); uniqueRecs.push(r); } 
                     if(uniqueRecs.length>=15) break; 
                 }
 
-                const recentDelSidebar = validProjects.filter(t => t.status.status.toLowerCase() === 'delivered').sort((a,b) => parseInt(b.date_closed||b.date_updated||0) - parseInt(a.date_closed||a.date_updated||0)).slice(0,20).map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
+                // --- NYLIGEN LEVERERAT (SIDOFÄLTET) - FIXAD LOGIK ---
+                // Regel: Status = Delivered/Closed OCH Datum = Senaste 30 dagarna.
+                // Inget namnfilter alls.
+                
+                const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
+                const recentDelSidebarRefined = projects
+                    .filter(t => {
+                        const s = t.status.status.toLowerCase();
+                        // 1. Kolla status
+                        const isDelivered = (s === 'delivered' || s === 'closed' || s === 'completed' || s === 'klar' || s === 'done');
+                        // 2. Kolla datum
+                        const dateTs = parseInt(t.date_closed) || parseInt(t.date_updated) || 0;
+                        const isRecent = dateTs > thirtyDaysAgo;
+
+                        return isDelivered && isRecent;
+                    })
+                    .sort((a,b) => (parseInt(b.date_closed)||parseInt(b.date_updated)) - (parseInt(a.date_closed)||parseInt(a.date_updated)))
+                    .slice(0, 20)
+                    .map(t => ({ 
+                        name: t.name, 
+                        date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) 
+                    }));
 
                 return { 
                     stats: { 
@@ -470,9 +527,9 @@
                         budgetActive: activeBudget, budgetDelivered: deliveredBudget, budgetMonth: monthDeliveredBudget, budgetTotal: totalBudget, budgetSales: salesBudget, budgetSold: soldBudget,
                         lists: { active: listActive, total: listTotal, delivered: listDelivered, deliveredMonth: listDeliveredMonth, rec: listRec, stream: listStream, vo: listVO, sales: listSales, sold: listSold }
                     }, 
-                    recordings: uniqueRecs, recentDeliveries: recentDelSidebar 
+                    recordings: uniqueRecs, recentDeliveries: recentDelSidebarRefined 
                 };
-            } catch(e) { return {}; }
+            } catch(e) { console.error("ClickUp Error", e); return {}; }
         };
 
         const WeatherModule = ({ data, loading }) => {
