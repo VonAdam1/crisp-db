@@ -11,34 +11,50 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.292.0"></script>
     
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     
     <style>
         body { 
             font-family: 'Outfit', sans-serif; 
-            background-color: #050505; 
+            background-color: #030303; 
             color: #f5f5f7; 
             margin: 0;
             min-height: 100vh;
-            background: radial-gradient(circle at 50% 0%, #1c1c1e 0%, #000000 80%);
+            background: radial-gradient(circle at 50% 0%, #121214 0%, #030303 70%);
             -webkit-tap-highlight-color: transparent;
+            /* FIX: Sidan tillåts nu alltid att skrolla vertikalt om innehållet är högre än skärmen */
+            overflow-y: auto;
             overflow-x: hidden;
         }
         
         .glass-card { 
-            background: rgba(20, 20, 22, 0.7); 
-            backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
-            border: 1px solid rgba(255, 255, 255, 0.08); 
-            box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5);
-            border-radius: 1.5rem;
-            overflow: hidden; display: flex; flex-direction: column; position: relative;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            background: rgba(18, 18, 20, 0.75); 
+            backdrop-filter: blur(40px); 
+            -webkit-backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 255, 255, 0.06); 
+            box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7);
+            border-radius: 1.25rem;
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative;
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
             -webkit-mask-image: -webkit-radial-gradient(white, black);
         }
         
         @media (min-width: 768px) {
-            .glass-card:hover { border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.7); z-index: 10; cursor: grab; }
-            .glass-card:active { cursor: grabbing; transform: scale(0.99); }
+            .glass-card:hover { 
+                border-color: rgba(255, 255, 255, 0.15); 
+                box-shadow: 0 35px 80px -20px rgba(0, 0, 0, 0.9); 
+                z-index: 10; 
+                cursor: grab; 
+            }
+            .glass-card:active { 
+                cursor: grabbing; 
+                transform: scale(0.992); 
+            }
         }
         
         .transparent-container {
@@ -50,24 +66,82 @@
             overflow: visible;
         }
         
-        .glass-card.dragging { opacity: 0.5; border: 2px dashed rgba(255,255,255,0.3); background: transparent; box-shadow: none; cursor: grabbing; }
-        .resize-handle { position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; cursor: nwse-resize; z-index: 50; opacity: 0; transition: opacity 0.2s; display: none; }
-        @media (min-width: 768px) { .resize-handle { display: block; } .glass-card:hover .resize-handle { opacity: 1; } }
-        .resize-handle::after { content: ''; position: absolute; bottom: 8px; right: 8px; width: 8px; height: 8px; border-bottom: 2px solid rgba(255,255,255,0.4); border-right: 2px solid rgba(255,255,255,0.4); border-radius: 1px; }
+        .glass-card.dragging { 
+            opacity: 0.4; 
+            border: 2px dashed rgba(255, 255, 255, 0.2); 
+            background: rgba(255, 255, 255, 0.02); 
+            box-shadow: none; 
+            cursor: grabbing; 
+        }
+        
+        .resize-handle { 
+            position: absolute; 
+            bottom: 0; 
+            right: 0; 
+            width: 24px; 
+            height: 24px; 
+            cursor: nwse-resize; 
+            z-index: 50; 
+            opacity: 0; 
+            transition: opacity 0.2s ease; 
+            display: none; 
+        }
+        
+        @media (min-width: 768px) { 
+            .resize-handle { display: block; } 
+            .glass-card:hover .resize-handle { opacity: 0.7; } 
+            .glass-card:hover .resize-handle:hover { opacity: 1; }
+        }
+        
+        .resize-handle::after { 
+            content: ''; 
+            position: absolute; 
+            bottom: 6px; 
+            right: 6px; 
+            width: 6px; 
+            height: 6px; 
+            border-bottom: 2px solid rgba(255, 255, 255, 0.5); 
+            border-right: 2px solid rgba(255, 255, 255, 0.5); 
+            border-radius: 1px; 
+        }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .animate-in { animation: fadeIn 0.6s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
         
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+        .animate-in { 
+            animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(6px) scale(0.99); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+        }
         
-        .gpu-accelerate { transform: translateZ(0); backface-visibility: hidden; }
+        .modal-overlay { 
+            position: fixed; 
+            inset: 0; 
+            background: rgba(2, 2, 3, 0.85); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 100; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            opacity: 0; 
+            pointer-events: none; 
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        .modal-overlay.open { 
+            opacity: 1; 
+            pointer-events: auto; 
+        }
+        
+        .gpu-accelerate { 
+            transform: translateZ(0); 
+            backface-visibility: hidden; 
+        }
 
-        /* Toggle Switch */
-        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+        .toggle-checkbox:checked { right: 0; border-color: #10B981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
     </style>
 </head>
 <body>
@@ -80,10 +154,12 @@
         const DASHBOARD_CONFIG = {
             slideshowInterval: 8000,
             design: {
-                logoSymbolHeightMobile: "h-12", logoSymbolHeightDesktop: "h-16", 
-                logoTextHeightMobile: "h-6", logoTextHeightDesktop: "h-8",      
-                clockSizeMobile: "text-5xl", clockSizeDesktop: "text-7xl", 
-                dateSizeMobile: "text-lg", dateSizeDesktop: "text-2xl",
+                logoSymbolHeightMobile: "h-10", logoSymbolHeightDesktop: "h-14", 
+                logoTextHeightMobile: "h-5", logoTextHeightDesktop: "h-7",      
+                clockSizeMobile: "text-5xl", clockSizeDesktop: "text-6xl", 
+                dateSizeMobile: "text-base", dateSizeDesktop: "text-xl",
+                headersMobile: "text-lg uppercase tracking-wider font-semibold",
+                headersDesktop: "text-xl uppercase tracking-wider font-semibold"
             }
         };
 
@@ -96,18 +172,19 @@
             googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
             googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
             calendars: [
-                { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
-                { name: "Onlinerum", cid: "c_5e0eb5196df089999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10" }
+                { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+                { name: "Onlinerum", cid: "c_5e0eb5196df089999b11010f2fa7d8cc220159894f90a3188543cd20c4802ea5@group.calendar.google.com", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" }
             ]
         };
 
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
         const LOGO_SYMBOL = "./Crisp_symbol.png"; 
 
-        // --- 2. ICONS ---
+        // --- 2. ICONS (LUCIDE ENGINE) ---
         const createLucideIcon = (name) => {
             if (!window.lucide || !window.lucide.icons) return () => null;
             const iconData = window.lucide.icons[name];
+            if (!iconData) return () => null;
             return ({ size = 24, className = "", color = "currentColor", ...props }) => {
                 const [tag, defaultAttrs, children = []] = iconData;
                 const toCamel = (s) => s.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
@@ -124,16 +201,13 @@
         const Loader2 = createLucideIcon('Loader2'); const HelpCircle = createLucideIcon('HelpCircle'); const X = createLucideIcon('X');
         const User = createLucideIcon('User'); const Bell = createLucideIcon('Bell'); const Gift = createLucideIcon('Gift');
         const Users = createLucideIcon('Users'); const DoorOpen = createLucideIcon('DoorOpen'); const RotateCcw = createLucideIcon('RotateCcw');
-        const Settings = createLucideIcon('Settings');
-        const Target = createLucideIcon('Target');
-        const Moon = createLucideIcon('Moon');
+        const Settings = createLucideIcon('Settings'); const Target = createLucideIcon('Target'); const Moon = createLucideIcon('Moon');
+        const Radio = createLucideIcon('Radio'); const Mic = createLucideIcon('Mic');
 
-        // --- 3. DATA HELPERS ---
+        // --- 3. DATA HELPERS & API CORE ---
         
-        // 1. NAMNSDAGAR (Direkt via api.dryg.net - kräver oftast ingen proxy)
         const getNamnsdagar = async () => {
             try {
-                // Vi går direkt till källan istället för via Vercel-tunneln
                 const res = await fetch('https://api.dryg.net/dagar/v2.1/');
                 if (!res.ok) throw new Error("API Error");
                 const data = await res.json();
@@ -142,7 +216,6 @@
             } catch(e) { return "Inga namnsdagar"; }
         };
         
-        // 2. VÄDER (Direkt, funkar utan proxy)
         const getRealWeather = async () => { 
             try { 
                 const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=59.3293&longitude=18.0686&current=temperature_2m,weather_code,wind_speed_10m&hourly=temperature_2m,weather_code,wind_speed_10m,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=4&wind_speed_unit=ms`); 
@@ -150,26 +223,22 @@
                 const j = await r.json(); 
                 const { current, hourly, daily } = j; 
                 const getIcon = (c, s, y) => { 
-                    const P = { size: s, className: y ? "text-yellow-400" : "text-white" }; 
-                    const C = { size: s, className: "text-blue-300" }; 
-                    if(c===0) return <Sun {...P}/>; if(c<=3) return <CloudSun {...C}/>; if(c<=48) return <CloudFog size={s} className="text-slate-400"/>; if(c<=67||(c>=80&&c<=82)) return <CloudRain size={s} className="text-blue-400"/>; if(c<=77||c===85) return <CloudSnow size={s} className="text-white"/>; return <CloudLightning size={s} className="text-purple-400"/>; 
+                    const P = { size: s, className: y ? "text-amber-400" : "text-white" }; 
+                    const C = { size: s, className: "text-sky-300" }; 
+                    if(c===0) return <Sun {...P}/>; if(c<=3) return <CloudSun {...C}/>; if(c<=48) return <CloudFog size={s} className="text-slate-400"/>; if(c<=67||(c>=80&&c<=82)) return <CloudRain size={s} className="text-sky-400"/>; if(c<=77||c===85) return <CloudSnow size={s} className="text-white"/>; return <CloudLightning size={s} className="text-violet-400"/>; 
                 }; 
                 const getText = (c) => c===0?"Soligt":c<=3?"Molnigt":c<=48?"Dimmigt":c<=67?"Regn":c<=77?"Snö":c>=80?"Skurar":"Oväder"; 
-                const todayForecast = [8,12,16,20].map((idx, i) => ({ label: ["Morgon","Lunch","Eftermiddag","Kväll"][i], icon: getIcon(hourly.weather_code[idx], 40, hourly.weather_code[idx]===0), text: getText(hourly.weather_code[idx]), temp: hourly.temperature_2m[idx], wind: hourly.wind_speed_10m[idx], rain: hourly.precipitation_probability[idx] })); 
-                const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],32,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] })); 
+                const todayForecast = [8,12,16,20].map((idx, i) => ({ label: ["Morgon","Lunch","Efterm.","Kväll"][i], icon: getIcon(hourly.weather_code[idx], 32, hourly.weather_code[idx]===0), text: getText(hourly.weather_code[idx]), temp: hourly.temperature_2m[idx], wind: hourly.wind_speed_10m[idx], rain: hourly.precipitation_probability[idx] })); 
+                const nextDays = daily.time.slice(1,4).map((t,i) => ({ day: new Date(t).toLocaleDateString('sv-SE',{weekday:'short'}).replace('.',''), icon: getIcon(daily.weather_code[i+1],28,daily.weather_code[i+1]===0), text: getText(daily.weather_code[i+1]), temp: daily.temperature_2m_max[i+1] })); 
                 return { temp: current.temperature_2m, minTemp: daily.temperature_2m_min[0], condition: getText(current.weather_code), wind: current.wind_speed_10m, icon: getIcon(current.weather_code, 40, current.weather_code===0), todayForecast, nextDays }; 
             } catch(e) { return null; } 
         };
         
-        // 3. GOOGLE SHEETS EVENTS (Via Vercel Rewrite)
         const getGoogleSheetEvents = async () => { 
             if (!API_CONFIG.googleSheetCsvUrl) return []; 
             try { 
-                // Vi strippar domänen och behåller bara path för rewriten
                 const cleanPath = API_CONFIG.googleSheetCsvUrl.replace('https://docs.google.com', '');
-                // Lägg till tidsstämpel för att undvika cache
                 const url = `/api/sheets${cleanPath}&t=${Date.now()}`;
-                
                 const res = await fetch(url); 
                 if (!res.ok) return []; 
                 const rows = (await res.text()).split(/\r\n|\n/); 
@@ -202,18 +271,15 @@
             } catch(e) { console.error("Sheet error", e); return []; } 
         };
 
-        // 4. GOOGLE SHEETS MOTTO (Via Vercel Rewrite)
         const getGoogleSheetMotto = async () => {
             if (!API_CONFIG.googleSheetTextUrl) return null;
             try {
                 const cleanPath = API_CONFIG.googleSheetTextUrl.replace('https://docs.google.com', '');
                 const uniqueParam = `nocache=${Date.now()}_${Math.floor(Math.random() * 100000)}`;
                 const url = `/api/sheets${cleanPath}&${uniqueParam}`;
-                
                 const res = await fetch(url, { cache: 'no-store', headers: { 'Pragma': 'no-cache', 'Cache-Control': 'no-cache' } });
                 if (!res.ok) return null;
                 const textData = await res.text();
-                
                 const parseCSV = (str) => {
                     const arr = []; let quote = false; let row = 0, col = 0;
                     for (let c = 0; c < str.length; c++) {
@@ -239,7 +305,6 @@
             } catch (e) { return null; }
         };
 
-        // 5. KALENDER (Via Vercel Rewrite)
         const getRoomBookings = async () => {
             if (!API_CONFIG.calendars) return [];
             let allBookings = [];
@@ -251,7 +316,6 @@
             };
             for (const cal of API_CONFIG.calendars) {
                 try {
-                    // Vi använder vår egen tunnel
                     const url = `/api/calendar/calendar/ical/${cal.cid}/public/basic.ics`;
                     const res = await fetch(url);
                     if (!res.ok) continue;
@@ -263,49 +327,24 @@
                     while ((match = eventRegex.exec(text)) !== null) {
                         const eventBlock = match[1];
                         const getField = (field) => { const r = new RegExp(`${field}[:;](.*)`); const m = eventBlock.match(r); return m ? m[1].trim() : null; };
-                        
                         let dtStart = getField('DTSTART');
-                        
-                        // --- FIX START (ADAM FIX) ---
-                        // Robust hantering av TZID prefix och VALUE=DATE
                         if (dtStart) {
-                            if (dtStart.includes(':')) {
-                                const parts = dtStart.split(':');
-                                dtStart = parts[parts.length - 1];
-                            }
-                            if (dtStart.includes('=')) {
-                                dtStart = dtStart.split('=')[1];
-                            }
+                            if (dtStart.includes(':')) { const parts = dtStart.split(':'); dtStart = parts[parts.length - 1]; }
+                            if (dtStart.includes('=')) { dtStart = dtStart.split('=')[1]; }
                         }
-                        // --- FIX END ---
-
                         let dtEnd = getField('DTEND');
-                        
-                        // --- FIX START (ADAM FIX) ---
                         if (dtEnd) {
-                            if (dtEnd.includes(':')) {
-                                const parts = dtEnd.split(':');
-                                dtEnd = parts[parts.length - 1];
-                            }
-                            if (dtEnd.includes('=')) {
-                                dtEnd = dtEnd.split('=')[1];
-                            }
+                            if (dtEnd.includes(':')) { const parts = dtEnd.split(':'); dtEnd = parts[parts.length - 1]; }
+                            if (dtEnd.includes('=')) { dtEnd = dtEnd.split('=')[1]; }
                         }
-                        // --- FIX END ---
-
                         const summary = getField('SUMMARY') || "Bokat";
                         if (dtStart) {
                             const startDate = parseICSDate(dtStart);
-                            // HÄR TOG VI BORT START-JUSTERINGEN
-
                             const endDate = dtEnd ? parseICSDate(dtEnd) : null;
-                            
-                            // HÄR TOG VI BORT SLUT-JUSTERINGEN
-    
                             if (startDate >= cutoff) {
                                 const isToday = startDate.getDate() === now.getDate() && startDate.getMonth() === now.getMonth();
                                 const timeStr = isToday ? `${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}${endDate ? ' - ' + endDate.getHours().toString().padStart(2,'0') + ':' + endDate.getMinutes().toString().padStart(2,'0') : ''}` : startDate.toLocaleDateString('sv-SE', {weekday:'short', day:'numeric', month:'short'}) + ` ${startDate.getHours().toString().padStart(2,'0')}:${startDate.getMinutes().toString().padStart(2,'0')}`;
-                                allBookings.push({ roomName: cal.name, roomColor: cal.color, roomBg: cal.bg, title: summary.replace(/\\/g, ''), time: timeStr, dateObj: startDate, attendees: "" });
+                                allBookings.push({ roomName: cal.name, roomColor: cal.color, roomBg: cal.bg, roomBorder: cal.border, title: summary.replace(/\\/g, ''), time: timeStr, dateObj: startDate, attendees: "" });
                             }
                         }
                     }
@@ -314,11 +353,9 @@
             return allBookings.sort((a,b) => a.dateObj - b.dateObj).slice(0, 10);
         };
 
-        // 6. CLICKUP - FÖDELSEDAGAR (Via Vercel Rewrite)
         const getClickUpBirthdays = async () => { 
             if (!API_CONFIG.clickUpBirthdayListId) return []; 
             try { 
-                // Ingen proxy-url, bara vår lokala /api/clickup/...
                 const url = `/api/clickup/list/${API_CONFIG.clickUpBirthdayListId}/task`;
                 const r = await fetch(url, { headers: { 'Authorization': API_CONFIG.clickUpToken } }); 
                 return (await r.json()).tasks.map(t => { 
@@ -328,26 +365,19 @@
                 }).filter(b=>b.diff<40).sort((a,b)=>a.diff-b.diff).slice(0,3); 
             } catch(e) { return []; } 
         };
-        // 7. CLICKUP - PRODUKTIONSDATA (Via Vercel Rewrite)
-        // 7. CLICKUP - PRODUKTIONSDATA (HYBRID-FIX: STATUS + NAMNFILTER)
-        // 7. CLICKUP - PRODUKTIONSDATA (HYBRID v2: STATUS + NAMN + SENASTE MÅNADEN)
+
         const getClickUpProductionData = async (targetYear) => {
             if (!API_CONFIG.clickUpSpaceId) return {};
             const headers = { 'Authorization': API_CONFIG.clickUpToken };
-            
             try {
-                // Hämta Team ID
                 const tRes = await fetch(`/api/clickup/team`, { headers }); const teamId = (await tRes.json()).teams[0].id;
                 const startTimestamp = new Date("2023-01-01").getTime(); 
-                
-                // Hämta tasks och projects
-                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`/api/clickup/team/${teamId}/task?space_ids[]=${API_CONFIG.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
+                const getTasks = async (archived) => { let all = []; let p = 0; while(p < 30) { try { const res = await fetch(`/api/clickup/team/${teamId}/task?space_ids[]=${API_CONFIG.spaceId || API_CONFIG.clickUpSpaceId}&archived=${archived}&include_closed=true&subtasks=true&limit=100&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
                 const getProj = async () => { if (!API_CONFIG.clickUpProjectsListId) return []; let all = []; let p = 0; while(p < 5) { try { const res = await fetch(`/api/clickup/list/${API_CONFIG.clickUpProjectsListId}/task?include_closed=true&date_updated_gt=${startTimestamp}&page=${p}`, { headers }); const j = await res.json(); if(!j.tasks || j.tasks.length===0) break; all.push(...j.tasks); p++; } catch(e) { break; } } return all; };
 
                 const [active, archived, projects] = await Promise.all([getTasks(false), getTasks(true), getProj()]);
                 const tasks = [...active, ...archived];
                 
-                // Variabler
                 const listActive = []; const listTotal = []; const listDelivered = []; const listDeliveredMonth = []; 
                 const listSales = []; const listSold = []; 
                 const listRec = []; const listStream = []; const listVO = [];
@@ -356,85 +386,46 @@
                 let salesBudget = 0; let soldBudget = 0; 
                 const budgetFieldId = API_CONFIG.clickUpBudgetFieldId;
                 
-                const now = new Date(); 
-                const currentMonth = now.getMonth(); 
-                const currentYearNum = now.getFullYear(); 
-                const targetYearNum = parseInt(targetYear);
+                const now = new Date(); const currentMonth = now.getMonth(); const currentYearNum = now.getFullYear(); const targetYearNum = parseInt(targetYear);
+                const shortYear = targetYear.slice(-2); const fullYear = targetYear;
 
-                const shortYear = targetYear.slice(-2); 
-                const fullYear = targetYear;
-
-                // --- HUVUDLOOP FÖR KPI-KORTEN (Namnfilter vs Statusfilter) ---
                 projects.forEach(t => {
                     const s = t.status.status.toLowerCase(); 
-                    
                     let budget = 0;
                     if(t.custom_fields) { const bf = t.custom_fields.find(f => f.id === budgetFieldId); if(bf && bf.value) budget = parseFloat(bf.value) || 0; }
-                    
-                    const item = { name: t.name, status: s, folder: "Project Hub", budget: budget };
-
-                    // 1. NAMN-FILTER CHECK (För "Totalt Helår" siffran)
+                    const item = { name: t.name, status: t.status.status, folder: "Project Hub", budget: budget };
                     const matchesNameFilter = t.name.startsWith(shortYear) || t.name.startsWith(fullYear);
 
-                    // A. TOTALT HELÅR (Kräver Namnfilter)
-                    if (matchesNameFilter) {
-                        listTotal.push(item);
-                        totalBudget += budget; 
-                    }
-                    
-                    // B. SÄLJ (Statusfilter - Oavsett namn)
-                    if(s.includes('sales') || s.includes('sälj')) {
-                        listSales.push(item);
-                        salesBudget += budget;
-                    }
-                    
-                    // C. AKTIVA (Statusfilter - Oavsett namn)
-                    if(s === 'production') { 
-                        listActive.push(item); 
-                        activeBudget += budget; 
-                    }
+                    if (matchesNameFilter) { listTotal.push(item); totalBudget += budget; }
+                    if (s.includes('sales') || s.includes('sälj')) { listSales.push(item); salesBudget += budget; }
+                    if (s === 'production') { listActive.push(item); activeBudget += budget; }
 
-                    // D. LEVERERAT HELÅR (Statusfilter + Årtal - Oavsett namn)
-                    const isDeliveredStatus = (s === 'delivered' || s === 'closed' || s === 'completed' || s === 'klar' || s === 'done');
+                    const isDeliveredStatus = ['delivered', 'closed', 'completed', 'klar', 'done'].includes(s);
                     if (isDeliveredStatus) {
                         const closeTs = parseInt(t.date_closed) || parseInt(t.date_updated) || 0;
                         if (closeTs > 0) {
                             const closeDate = new Date(closeTs);
-                            
-                            // Måste matcha det valda året i inställningarna
                             if (closeDate.getFullYear() === targetYearNum) {
                                 const delItem = { ...item, date: closeDate.toLocaleDateString('sv-SE',{day:'numeric',month:'short'}) };
                                 listDelivered.push(delItem); 
                                 deliveredBudget += budget; 
-
                                 if (closeDate.getMonth() === currentMonth && closeDate.getFullYear() === currentYearNum) { 
-                                    listDeliveredMonth.push(delItem); 
-                                    monthDeliveredBudget += budget; 
+                                    listDeliveredMonth.push(delItem); monthDeliveredBudget += budget; 
                                 }
                             }
                         }
                     }
-
-                    // E. INSÅLT (Statusfilter - Oavsett namn)
-                    if(s === 'won' || s === 'stängd' || s === 'closed' || s === 'ej landad') {
-                        listSold.push(item);
-                        soldBudget += budget;
-                    }
+                    if(['won', 'stängd', 'closed', 'ej landad'].includes(s)) { listSold.push(item); soldBudget += budget; }
                 });
                 
                 listDelivered.sort((a, b) => a.name.localeCompare(b.name, 'sv'));
-
-                // --- INSPELNINGAR (Kräver Namnfilter för att undvika gammalt skräp) ---
                 let recCount = 0; let streamCount = 0; let voCount = 0; const upcomingRecs = [];
                 const ignoreWords = ["genomgång", "brief", "planering", "förberedelse", "casting", "check", "koll", "recce", "schema", "annons", "annonser"];
 
                 tasks.forEach(t => {
                     const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
-                    
-                    // Namnfilter på inspelningar
                     const isTargetYear = fName.includes(shortYear) || lName.includes(shortYear) || fName.includes(fullYear) || lName.includes(fullYear);
                     const is24185 = (fName.startsWith("24185") || lName.startsWith("24185")) && targetYear === '2025';
-
                     if (!isTargetYear && !is24185) return; 
 
                     const listNameClean = lName.toLowerCase();
@@ -451,39 +442,24 @@
 
                     if (isDone) {
                         const displayFolder = fName || lName;
-                        const item = { name: t.name, status: status, folder: displayFolder };
-                        if (isVO) { voCount++; listVO.push({ ...item, type: 'VO' }); } else if (isStream) { streamCount++; listStream.push({ ...item, type: 'Stream' }); } else if (isRec) { recCount++; listRec.push({ ...item, type: 'Inspelning' }); }
+                        const item = { name: t.name, status: t.status.status, folder: displayFolder };
+                        if (isVO) { voCount++; listVO.push({ ...item, type: 'VO' }); } 
+                        else if (isStream) { streamCount++; listStream.push({ ...item, type: 'Stream' }); } 
+                        else if (isRec) { recCount++; listRec.push({ ...item, type: 'Inspelning' }); }
                     }
                     if ((isVO || isStream || isRec) && !isDone) {
-                        const start = parseInt(t.start_date);
-                        const due = parseInt(t.due_date);
-                        
+                        const start = parseInt(t.start_date); const due = parseInt(t.due_date);
                         let datesToAdd = [];
-                        
                         if (start && due && due > start) {
-                            let curr = new Date(start);
-                            const end = new Date(due);
-                            while (curr <= end && datesToAdd.length < 30) {
-                                datesToAdd.push(curr.getTime());
-                                curr.setDate(curr.getDate() + 1);
-                            }
-                        } else {
-                            datesToAdd.push(start || due || 0);
-                        }
+                            let curr = new Date(start); const end = new Date(due);
+                            while (curr <= end && datesToAdd.length < 30) { datesToAdd.push(curr.getTime()); curr.setDate(curr.getDate() + 1); }
+                        } else { datesToAdd.push(start || due || 0); }
 
                         datesToAdd.forEach(d => {
                             if (d >= Date.now() - 86400000) {
                                 let pName = t.folder ? t.folder.name : (t.list ? t.list.name : "Projekt");
                                 if(pName.length>6 && pName.includes('_')) pName = pName.substring(6).replace(/_/g,' ');
-                                upcomingRecs.push({ 
-                                    id: t.id, 
-                                    project: pName, 
-                                    sortDate: d, 
-                                    dateMain: new Date(d).getDate(), 
-                                    dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), 
-                                    isStream: isStream, 
-                                    isVO: isVO 
-                                });
+                                upcomingRecs.push({ id: t.id, project: pName, sortDate: d, dateMain: new Date(d).getDate(), dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), isStream, isVO });
                             }
                         });
                     }
@@ -497,29 +473,17 @@
                     if(uniqueRecs.length>=15) break; 
                 }
 
-                // --- NYLIGEN LEVERERAT (SIDOFÄLTET) - FIXAD LOGIK ---
-                // Regel: Status = Delivered/Closed OCH Datum = Senaste 30 dagarna.
-                // Inget namnfilter alls.
-                
                 const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-
                 const recentDelSidebarRefined = projects
                     .filter(t => {
                         const s = t.status.status.toLowerCase();
-                        // 1. Kolla status
-                        const isDelivered = (s === 'delivered' || s === 'closed' || s === 'completed' || s === 'klar' || s === 'done');
-                        // 2. Kolla datum
+                        const isDelivered = ['delivered', 'closed', 'completed', 'klar', 'done'].includes(s);
                         const dateTs = parseInt(t.date_closed) || parseInt(t.date_updated) || 0;
-                        const isRecent = dateTs > thirtyDaysAgo;
-
-                        return isDelivered && isRecent;
+                        return isDelivered && dateTs > thirtyDaysAgo;
                     })
                     .sort((a,b) => (parseInt(b.date_closed)||parseInt(b.date_updated)) - (parseInt(a.date_closed)||parseInt(a.date_updated)))
                     .slice(0, 20)
-                    .map(t => ({ 
-                        name: t.name, 
-                        date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) 
-                    }));
+                    .map(t => ({ name: t.name, date: new Date(parseInt(t.date_closed||t.date_updated)).toLocaleDateString('sv-SE',{day:'numeric', month:'short'}) }));
 
                 return { 
                     stats: { 
@@ -531,11 +495,12 @@
                 };
             } catch(e) { console.error("ClickUp Error", e); return {}; }
         };
+        // --- 4. INTERFACE MODULES ---
 
         const WeatherModule = ({ data, loading }) => {
             if (loading) return (
                 <div className="h-full flex items-center justify-center">
-                    <Loader2 className="animate-spin text-slate-600" size={32} />
+                    <Loader2 className="animate-spin text-slate-500" size={32} />
                 </div>
             );
             if (!data) return <div className="h-full flex items-center justify-center text-slate-500">Väderdata saknas</div>;
@@ -544,18 +509,18 @@
                 <div className="h-full p-6 flex flex-col justify-between">
                     <div className="flex justify-between items-start">
                         <div>
-                            <div className="text-5xl font-bold text-white leading-none">{Math.round(data.temp)}°</div>
-                            <div className="text-slate-400 font-medium mt-1">{data.condition}</div>
+                            <div className="text-5xl font-bold text-white tracking-tight leading-none">{Math.round(data.temp)}°</div>
+                            <div className="text-slate-400 font-medium mt-1.5 text-sm uppercase tracking-wider">{data.condition}</div>
                         </div>
-                        <div className="text-blue-400">{data.icon}</div>
+                        <div className="text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.2)]">{data.icon}</div>
                     </div>
                     
                     <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
                         {data.todayForecast.map((f, i) => (
-                            <div key={i} className="flex flex-col items-center">
-                                <span className="text-[10px] text-slate-500 font-bold uppercase">{f.label}</span>
-                                <div className="scale-75 my-1">{f.icon}</div>
-                                <span className="text-xs font-bold text-white">{Math.round(f.temp)}°</span>
+                            <div key={i} className="flex flex-col items-center bg-white/[0.02] p-2 rounded-lg border border-white/[0.02]">
+                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{f.label}</span>
+                                <div className="scale-90 my-1.5 text-slate-300">{f.icon}</div>
+                                <span className="text-xs font-semibold text-white">{Math.round(f.temp)}°</span>
                             </div>
                         ))}
                     </div>
@@ -564,18 +529,18 @@
         };
 
         const HeaderWeather = ({ weather, loading }) => {
-            if (loading) return <div className="flex items-center gap-2 text-slate-500 text-xs"><Loader2 size={12} className="animate-spin"/> Hämtar väder...</div>;
+            if (loading) return <div className="flex items-center gap-2 text-slate-500 text-xs font-medium bg-white/5 px-3 py-1.5 rounded-full border border-white/5"><Loader2 size={12} className="animate-spin"/> Hämtar väder...</div>;
             if (!weather) return <div className="text-slate-500 text-xs">Väder saknas</div>;
 
             return (
-                <div className="flex flex-col items-end gap-0.5">
+                <div className="flex flex-col items-center md:items-end gap-1 bg-white/[0.02] border border-white/5 px-4 py-2.5 rounded-xl backdrop-blur-md">
                     <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-white leading-none">{Math.round(weather.temp)}°</span>
-                        <div className="text-blue-300 scale-90">{weather.icon}</div>
+                        <span className="text-2xl font-bold text-white tracking-tight leading-none">{Math.round(weather.temp)}°</span>
+                        <div className="text-sky-300 scale-100 drop-shadow-[0_0_8px_rgba(125,211,252,0.3)]">{weather.icon}</div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wide">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                         <span>STHLM</span>
-                        <span>•</span>
+                        <span className="text-slate-600">•</span>
                         <span className="flex items-center gap-1"><Moon size={10} className="text-slate-500"/> {Math.round(weather.minTemp)}°</span>
                     </div>
                 </div>
@@ -583,29 +548,28 @@
         };
 
         const HeaderInfoModule = ({ nameDays, birthdays }) => (
-            <div className="flex flex-col items-center md:items-end gap-3 w-full">
-                <div className="flex flex-col items-end gap-1 w-full">
-                    <div className="flex items-center justify-end gap-2 text-right">
-                        <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Namnsdag</div>
-                        <div className="text-sm font-bold text-white">{nameDays || "..."}</div>
+            <div className="flex flex-col items-center md:items-end gap-2.5 w-full">
+                <div className="flex flex-col items-center md:items-end gap-1 w-full bg-white/[0.02] border border-white/5 p-3 rounded-xl backdrop-blur-md">
+                    <div className="flex items-center gap-2 flex-wrap justify-center md:justify-end">
+                        <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Namnsdag:</div>
+                        <div className="text-xs font-semibold text-slate-200">{nameDays || "..."}</div>
                     </div>
                     
-                    <div className="flex flex-col items-end gap-1 mt-1">
-                        <div className="flex items-center justify-end gap-2 text-right">
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1"><Gift size={12} className="text-pink-400"/> Födelsedagar</div>
-                        </div>
+                    <div className="w-full border-t border-white/5 my-1.5"></div>
 
+                    <div className="flex flex-col items-center md:items-end gap-1 w-full">
                         {birthdays && birthdays.length > 0 ? (
-                            <div className="flex flex-wrap justify-center md:justify-end gap-2">
+                            <div className="flex flex-wrap justify-center md:justify-end gap-1.5 w-full">
                                 {birthdays.map((b, i) => (
-                                    <div key={i} className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/10">
-                                        <span className="text-pink-400 font-bold text-[10px] uppercase">{b.dateStr}</span>
-                                        <span className="text-white font-bold text-xs">{b.name.split(' ')[0]}</span>
+                                    <div key={i} className="flex items-center gap-1.5 bg-pink-500/5 px-2.5 py-1 rounded-lg border border-pink-500/10">
+                                        <Gift size={10} className="text-pink-400 shrink-0"/>
+                                        <span className="text-pink-400 font-bold text-[9px] uppercase tracking-wider">{b.dateStr}</span>
+                                        <span className="text-slate-200 font-semibold text-xs">{b.name.split(' ')[0]}</span>
                                     </div>
                                 ))}
                             </div>
                         ) : (
-                            <div className="text-[10px] text-slate-500 italic">Inga födelsedagar nära</div>
+                            <div className="text-[10px] text-slate-500 italic flex items-center gap-1"><Gift size={10}/> Inga födelsedagar nära</div>
                         )}
                     </div>
                 </div>
@@ -620,72 +584,96 @@
             const currentMonthShort = new Date().toLocaleDateString('sv-SE', { month: 'short' }).toUpperCase().replace('.', '');
 
             return (
-                <div className="h-full p-4 md:p-6 flex flex-col gap-4 relative overflow-hidden">
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                            <Trophy className="text-orange-400" size={28} />
-                            <h2 className={`text-xl md:text-2xl font-bold uppercase tracking-wide text-white`}>Produktion {year}</h2>
+                <div className="h-full p-5 md:p-6 flex flex-col gap-5 relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                                <Trophy size={20} />
+                            </div>
+                            <h2 className="text-lg md:text-xl font-bold uppercase tracking-wider text-white">Produktion {year}</h2>
                         </div>
-                        {loading && <Loader2 className="animate-spin text-slate-600" size={20} />}
+                        {loading && <Loader2 className="animate-spin text-slate-500" size={18} />}
                     </div>
                     
                     <div className="grid grid-cols-2 md:grid-cols-6 gap-4 shrink-0">
-                        {/* ROW 1 */}
-                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-blue-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
-                             <span className={`text-2xl md:text-3xl font-black text-blue-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.activeProjects}</span>
-                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Aktiva projekt</span>
-                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 mt-1 font-bold">{formatMoney(stats?.budgetActive)}</div>}
+                        {/* AKTIVA PROJEKT */}
+                        <div onClick={() => onOpenDetails('Aktiva projekt', stats?.lists?.active)} className="col-span-1 md:col-span-2 bg-gradient-to-b from-blue-500/[0.02] to-blue-500/[0.05] rounded-xl p-3.5 border border-blue-500/15 flex flex-col items-center justify-center text-center hover:border-blue-500/40 hover:bg-blue-500/[0.08] cursor-pointer transition-all duration-200 group">
+                             <span className={`text-3xl font-black text-blue-400 tracking-tight group-hover:scale-105 transition-transform ${loading ? 'opacity-30' : ''}`}>{loading ? "-" : stats?.activeProjects}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1.5 tracking-widest">Aktiva projekt</span>
+                             {!loading && showRevenue && <div className="text-xs font-mono text-emerald-400 font-bold mt-1 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-500/10">{formatMoney(stats?.budgetActive)}</div>}
                         </div>
-                         <div onClick={() => onOpenDetails(`Levererat (${currentMonthShort})`, stats?.lists?.deliveredMonth)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
-                             <span className={`text-2xl md:text-3xl font-black text-emerald-300 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.monthDelivered}</span>
-                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat ({currentMonthShort})</span>
-                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-300 mt-1 font-bold shadow-black drop-shadow-md">{formatMoney(stats?.budgetMonth)}</div>}
+
+                        {/* LEVERERAT DENNA MÅNAD */}
+                         <div onClick={() => onOpenDetails(`Levererat (${currentMonthShort})`, stats?.lists?.deliveredMonth)} className="col-span-1 md:col-span-2 bg-gradient-to-b from-emerald-500/[0.02] to-emerald-500/[0.05] rounded-xl p-3.5 border border-emerald-500/20 flex flex-col items-center justify-center text-center hover:border-emerald-500/40 hover:bg-emerald-500/[0.08] cursor-pointer transition-all duration-200 group">
+                             <span className={`text-3xl font-black text-emerald-400 tracking-tight group-hover:scale-105 transition-transform ${loading ? 'opacity-30' : ''}`}>{loading ? "-" : stats?.monthDelivered}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1.5 tracking-widest">Levererat ({currentMonthShort})</span>
+                             {!loading && showRevenue && <div className="text-xs font-mono text-emerald-400 font-bold mt-1 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/20 drop-shadow-md">{formatMoney(stats?.budgetMonth)}</div>}
                         </div>
-                        <div onClick={() => onOpenDetails('Levererat (År)', stats?.lists?.delivered)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
-                             <span className={`text-2xl md:text-3xl font-black text-emerald-600 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.year}</span>
-                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1 tracking-widest">Levererat (År)</span>
-                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-700 mt-1 font-bold">{formatMoney(stats?.budgetDelivered)}</div>}
+
+                        {/* LEVERERAT HELÅR */}
+                        <div onClick={() => onOpenDetails('Levererat (År)', stats?.lists?.delivered)} className="col-span-1 md:col-span-2 bg-gradient-to-b from-emerald-600/[0.01] to-emerald-600/[0.04] rounded-xl p-3.5 border border-emerald-500/10 flex flex-col items-center justify-center text-center hover:border-emerald-500/30 hover:bg-emerald-600/[0.06] cursor-pointer transition-all duration-200 group">
+                             <span className={`text-3xl font-black text-emerald-600 tracking-tight group-hover:scale-105 transition-transform ${loading ? 'opacity-30' : ''}`}>{loading ? "-" : stats?.year}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1.5 tracking-widest">Levererat (År)</span>
+                             {!loading && showRevenue && <div className="text-xs font-mono text-slate-400 font-medium mt-1">{formatMoney(stats?.budgetDelivered)}</div>}
                         </div>
                         
-                        {/* ROW 2 */}
-                        <div onClick={() => onOpenDetails('Sälj / Pipeline', stats?.lists?.sales)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-pink-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
-                             <span className={`text-2xl md:text-3xl font-black text-pink-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.salesCount}</span>
-                             <span className="text-[9px] font-bold text-slate-500 uppercase mt-1 tracking-widest">Sälj (Pipeline)</span>
-                             {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-pink-300/80 font-bold mt-1">{formatMoney(stats?.budgetSales)}</div>}
+                        {/* SÄLJ / PIPELINE */}
+                        <div onClick={() => onOpenDetails('Sälj / Pipeline', stats?.lists?.sales)} className="col-span-1 md:col-span-2 bg-gradient-to-b from-pink-500/[0.01] to-pink-500/[0.04] rounded-xl p-3.5 border border-pink-500/15 flex flex-col items-center justify-center text-center hover:border-pink-500/30 hover:bg-pink-500/[0.06] cursor-pointer transition-all duration-200 group">
+                             <span className={`text-3xl font-black text-pink-400 tracking-tight ${loading ? 'opacity-30' : ''}`}>{loading ? "-" : stats?.salesCount}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase mt-1.5 tracking-widest">Sälj (Pipeline)</span>
+                             {!loading && showRevenue && <div className="text-[11px] font-mono text-pink-400/80 mt-0.5">{formatMoney(stats?.budgetSales)}</div>}
                              
-                             {/* Sold Section */}
-                             <div className="mt-2 pt-2 border-t border-white/10 w-full flex flex-col items-center" onClick={(e) => { e.stopPropagation(); onOpenDetails('Insålda Projekt', stats?.lists?.sold); }}>
-                                 <span className={`text-xl font-bold text-green-400 tracking-tight leading-none ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.soldCount}</span>
-                                 <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">Insålda</span>
-                                 {!loading && showRevenue && <div className="text-[9px] font-mono text-green-300/80 font-bold">{formatMoney(stats?.budgetSold)}</div>}
+                             {/* INSÅLDA SUB-SEKTION */}
+                             <div className="mt-2.5 pt-2 border-t border-white/5 w-full flex flex-col items-center hover:bg-white/[0.02] rounded-b-lg p-1" onClick={(e) => { e.stopPropagation(); onOpenDetails('Insålda Projekt', stats?.lists?.sold); }}>
+                                 <span className={`text-lg font-bold text-green-400 tracking-tight leading-none ${loading ? 'opacity-30' : ''}`}>{loading ? "-" : stats?.soldCount}</span>
+                                 <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Insålda</span>
+                                 {!loading && showRevenue && <div className="text-[10px] font-mono text-green-400/70">{formatMoney(stats?.budgetSold)}</div>}
                              </div>
                         </div>
 
-                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-purple-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors relative">
-                             <span className={`text-3xl md:text-4xl font-black text-purple-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{year}</span>
-                             <div className="flex flex-col items-center mt-0.5 gap-0.5">
-                                 <span className="text-sm md:text-base font-bold text-white leading-none">
+                        {/* TOTALT HELÅR */}
+                        <div onClick={() => onOpenDetails('Totalt antal projekt', stats?.lists?.total)} className="col-span-1 md:col-span-2 bg-gradient-to-b from-purple-500/[0.02] to-purple-500/[0.05] rounded-xl p-3.5 border border-purple-500/15 flex flex-col items-center justify-center text-center hover:border-purple-500/30 hover:bg-purple-500/[0.06] cursor-pointer transition-all duration-200 group">
+                             <span className={`text-3xl font-black text-purple-400 tracking-tight ${loading ? 'opacity-30' : ''}`}>{year}</span>
+                             <div className="flex flex-col items-center mt-1">
+                                 <span className="text-sm font-bold text-white leading-none">
                                      {loading ? "-" : stats?.totalProjectsCurrentYear} <span className="text-[10px] font-normal text-slate-400 uppercase">st</span>
                                  </span>
-                                 {!loading && showRevenue && <div className="text-[10px] md:text-xs font-mono text-emerald-300/80 font-bold">{formatMoney(stats?.budgetTotal)}</div>}
+                                 {!loading && showRevenue && <div className="text-[11px] font-mono text-purple-400/80 mt-1">{formatMoney(stats?.budgetTotal)}</div>}
                              </div>
-                             <span className="text-[9px] font-bold text-slate-500 uppercase mt-1.5 tracking-widest">Totalt Helår</span>
+                             <span className="text-[10px] font-bold text-slate-500 uppercase mt-2 tracking-widest">Totalt Helår</span>
                         </div>
-                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[])])} className="col-span-1 md:col-span-2 bg-slate-800/50 rounded-xl p-3 border border-orange-500/20 flex flex-col items-center justify-center text-center hover:bg-slate-800/80 cursor-pointer transition-colors">
-                             <span className={`text-2xl md:text-3xl font-black text-orange-400 tracking-tighter ${loading ? 'opacity-50' : ''}`}>{loading ? "-" : stats?.occasions}</span>
-                             <div className="flex items-center justify-center gap-2 mt-1 flex-wrap">
-                                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Antal inspelningar</span>
-                                 {!loading && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats?.streams || 0} Streams)</span>}
-                                 {!loading && stats?.vos > 0 && <span className="text-[8px] font-bold text-orange-200 uppercase whitespace-nowrap tracking-wider">(+ {stats.vos} VO)</span>}
+
+                        {/* ANTAL INSPELNINGAR */}
+                        <div onClick={() => onOpenDetails('Antal inspelningar', [...(stats?.lists?.rec||[]), ...(stats?.lists?.stream||[]), ...(stats?.lists?.vo||[]).map(x=>({...x, name: "[VO] " + x.name}))])} className="col-span-1 md:col-span-2 bg-gradient-to-b from-orange-500/[0.02] to-orange-500/[0.05] rounded-xl p-3.5 border border-orange-500/15 flex flex-col items-center justify-center text-center hover:border-orange-500/30 hover:bg-orange-500/[0.06] cursor-pointer transition-all duration-200 group">
+                             <span className={`text-3xl font-black text-orange-400 tracking-tight ${loading ? 'opacity-30' : ''}`}>{loading ? "-" : stats?.occasions}</span>
+                             <div className="flex flex-col items-center justify-center gap-0.5 mt-1">
+                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inspelningar</span>
+                                 {!loading && <span className="text-[9px] font-bold text-sky-400 uppercase whitespace-nowrap tracking-wider">({stats?.streams || 0} Streams)</span>}
+                                 {!loading && stats?.vos > 0 && <span className="text-[9px] font-bold text-amber-400 uppercase whitespace-nowrap tracking-wider">({stats.vos} VO)</span>}
                              </div>
                         </div>
                     </div>
-                    <div className="flex-grow flex flex-col min-h-0 animate-in pt-3 border-t border-white/5">
-                        <div className="flex items-center gap-3 mb-3 text-emerald-400 mt-2"><PackageCheck size={16} /><h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat</h3></div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto no-scrollbar flex-grow content-start">
-                            {loading ? <div className="col-span-2 space-y-2"><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div><div className="h-8 bg-white/5 rounded-lg animate-pulse"></div></div> : recent?.length > 0 ? recent.slice(0, 20).map((del, i) => (
-                                <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-white/5 border border-white/5"><span className="text-white font-medium text-sm truncate mr-2">{del.name}</span><span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-1 rounded">{del.date}</span></div>
-                            )) : <p className="col-span-2 text-sm text-slate-500 italic">Inget nyligen.</p>}
+
+                    {/* NYLIGEN LEVERERAT LISTA */}
+                    <div className="flex-grow flex flex-col min-h-0 animate-in pt-4 border-t border-white/5">
+                        <div className="flex items-center gap-2 mb-3 text-emerald-400">
+                            <PackageCheck size={14} />
+                            <h3 className="text-xs font-bold uppercase tracking-widest">Nyligen Levererat (Senaste 30 dagarna)</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto no-scrollbar flex-grow content-start pr-1">
+                            {loading ? (
+                                <div className="col-span-2 space-y-2">
+                                    <div className="h-9 bg-white/[0.02] rounded-lg animate-pulse border border-white/5"></div>
+                                    <div className="h-9 bg-white/[0.02] rounded-lg animate-pulse border border-white/5"></div>
+                                </div>
+                            ) : recent?.length > 0 ? recent.map((del, i) => (
+                                <div key={i} className="flex justify-between items-center py-2 px-3 rounded-lg bg-white/[0.01] border border-white/[0.03] hover:bg-white/[0.03] transition-colors">
+                                    <span className="text-slate-200 font-medium text-sm truncate mr-3">{del.name}</span>
+                                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10 shrink-0">{del.date}</span>
+                                </div>
+                            )) : (
+                                <p className="col-span-2 text-sm text-slate-500 italic py-2 pl-1">Inga slutförda leveranser registrerade de senaste 30 dagarna.</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -699,148 +687,185 @@
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
             
             return (
-                <div className="h-full w-full relative group bg-black flex items-center justify-center">
-                    {/* Render text overlay independently */}
-                    <div className="absolute bottom-6 left-6 pointer-events-none z-20">
-                         {customText.subtitle && <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-widest text-white mb-2"><Image size={12} /> {customText.subtitle}</div>}
-                        <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">{customText.title}</h2>
+                <div className="h-full w-full relative group bg-[#020202] flex items-center justify-center overflow-hidden">
+                    <div className="absolute bottom-6 left-6 pointer-events-none z-20 max-w-[80%] drop-shadow-lg">
+                         {customText.subtitle && (
+                            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[10px] font-bold uppercase tracking-widest text-white mb-2.5">
+                                <Image size={10} className="text-sky-400" /> {customText.subtitle}
+                            </div>
+                         )}
+                        <h2 className="text-xl md:text-2xl font-black text-white tracking-tight leading-tight">{customText.title}</h2>
                     </div>
 
                     {validImages.length > 0 ? <React.Fragment>
                             {validImages.map((img, i) => (
-                                // Use a dual-layer approach for dynamic filling without cropping important content
                                 <React.Fragment key={img}>
-                                    {/* Layer 1: Background Blur (Fill the box) */}
                                     <img 
                                         src={img} 
-                                        className="absolute inset-0 w-full h-full object-cover blur-xl opacity-50 scale-110" 
-                                        style={{ opacity: index === i ? 0.5 : 0, transition: 'opacity 1.5s ease-in-out' }} 
+                                        className="absolute inset-0 w-full h-full object-cover blur-2xl opacity-30 scale-110 gpu-accelerate" 
+                                        style={{ opacity: index === i ? 0.35 : 0, transition: 'opacity 1.5s ease-in-out' }} 
                                         alt="" 
                                     />
-                                    {/* Layer 2: Main Image (Contain within box) */}
                                     <img 
                                         src={img} 
                                         onError={() => err(img)} 
-                                        className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl" 
+                                        className="absolute inset-0 w-full h-full object-contain p-2 drop-shadow-[0_20px_35px_rgba(0,0,0,0.8)] gpu-accelerate" 
                                         style={{ opacity: index === i ? 1 : 0, transition: 'opacity 1.5s ease-in-out', willChange: 'opacity' }} 
-                                        alt="Crisp" 
+                                        alt="Crisp Produktion" 
                                     />
                                 </React.Fragment>
                             ))}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none"></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent pointer-events-none z-10"></div>
                         </React.Fragment> : (
-                            <div className="h-full flex flex-col items-center justify-center text-slate-600">
-                                <Image size={48} />
-                                <p className="mt-4 font-medium">Lägg bilder i mappen "bilder"</p>
+                            <div className="h-full flex flex-col items-center justify-center text-slate-600 p-4">
+                                <Image size={40} strokeWidth={1.5} />
+                                <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-slate-500 text-center">Fyll mappen "bilder" med filer (1-20)</p>
                             </div>
                         )}
                 </div>
             );
         };
 
-        // 5. KALENDER-MODUL (FILTRERAD: BARA INSPELNINGAR + BOKNINGAR)
         const TimelineModule = ({ items, bookings, loading }) => {
             const [width, setWidth] = useState(0); const ref = useRef(null);
             useEffect(() => { if (!ref.current) return; const ro = new ResizeObserver(entries => { if (entries[0]) setWidth(entries[0].contentRect.width); }); ro.observe(ref.current); return () => ro.disconnect(); }, []);
             
-            // HÄR ÄR NYCKELN: Vi filtrerar bort 'event' (Google Sheets) och behåller bara 'recording' (ClickUp)
             const recordings = items ? items.filter(i => i.type === 'recording') : [];
-            
             const konfBookings = bookings ? bookings.filter(b => b.roomName === 'Konferensrum') : [];
             const onlineBookings = bookings ? bookings.filter(b => b.roomName === 'Onlinerum') : [];
 
-            // Hjälpfunktion för att rita rum-listor
-            const renderRoomList = (list, emptyText, colorClass, bgClass) => (
-                <div className="flex-grow space-y-1.5 overflow-y-auto no-scrollbar pr-1 min-h-[80px]">
+            const renderRoomList = (list, emptyText, colorClass, bgClass, borderClass) => (
+                <div className="flex-grow space-y-2 overflow-y-auto no-scrollbar pr-1 min-h-[100px]">
                     {list.length > 0 ? list.map((b, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10 transition-colors">
-                            <div className={`p-1.5 rounded-md shrink-0 ${colorClass} ${bgClass}`}>
+                        <div key={idx} className="flex items-center gap-3 p-2.5 bg-white/[0.01] rounded-xl border border-white/5 hover:bg-white/[0.03] transition-all">
+                            <div className={`p-2 rounded-lg shrink-0 ${colorClass} ${bgClass} border ${borderClass}`}>
                                 <DoorOpen size={14} />
                             </div>
                             <div className="min-w-0 flex-grow">
-                                <div className="flex justify-between items-baseline">
-                                    <span className="font-medium text-white text-xs truncate">{b.title}</span>
-                                    <span className={`text-[10px] font-mono ${colorClass} bg-white/5 px-1.5 rounded ml-2 whitespace-nowrap`}>{b.time}</span>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="font-semibold text-slate-200 text-sm truncate">{b.title}</span>
+                                    <span className={`text-[10px] font-mono font-bold ${colorClass} self-start mt-0.5 bg-white/5 px-1.5 py-0.5 rounded`}>{b.time}</span>
                                 </div>
                             </div>
                         </div>
-                    )) : <div className="h-full flex flex-col items-center justify-center text-slate-500 opacity-60 min-h-[100px]"><DoorOpen size={24} strokeWidth={1} /><p className="mt-2 text-[10px] uppercase font-bold tracking-wider">{emptyText}</p></div>}
+                    )) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-600 bg-white/[0.01] rounded-xl border border-dashed border-white/5 py-8 min-h-[120px]">
+                            <DoorOpen size={20} strokeWidth={1.5} className="opacity-40" />
+                            <p className="mt-1.5 text-[9px] uppercase font-bold tracking-widest text-slate-500">{emptyText}</p>
+                        </div>
+                    )}
                 </div>
             );
 
-            // Hjälpfunktion för inspelningslistan
             const renderRecList = (list) => (
-                <div className="flex-grow space-y-2 overflow-y-auto no-scrollbar pr-2 min-h-[100px]">
-                     {loading && list.length === 0 ? <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 bg-white/5 rounded-xl animate-pulse"></div>)}</div>
-                     : list.length > 0 ? list.map((item, idx) => {
-                         // Ikon-logik
+                <div className="flex-grow space-y-2 overflow-y-auto no-scrollbar pr-1 min-h-[120px]">
+                     {loading && list.length === 0 ? (
+                        <div className="space-y-2">
+                            <div className="h-12 bg-white/[0.02] rounded-xl animate-pulse border border-white/5"></div>
+                            <div className="h-12 bg-white/[0.02] rounded-xl animate-pulse border border-white/5"></div>
+                        </div>
+                     ) : list.length > 0 ? list.map((item, idx) => {
                          const isStream = item.subtitle === 'Stream';
                          const isVO = item.subtitle === 'Voiceover';
-                         let Icon = Video; let color = "text-red-400"; let bg = "bg-red-500/20";
-                         if(isStream) { Icon = Radio; color = "text-blue-400"; bg = "bg-blue-500/20"; } // Radio icon doesn't exist in basic set sometimes, using fallback logic
-                         if(isVO) { Icon = Mic; color = "text-yellow-400"; bg = "bg-yellow-500/20"; }
+                         
+                         let IconComponent = Video; 
+                         let color = "text-red-400"; 
+                         let bg = "bg-red-500/10";
+                         let bdr = "border-red-500/20";
+                         
+                         if(isStream) { 
+                             IconComponent = Radio; 
+                             color = "text-sky-400"; 
+                             bg = "bg-sky-500/10";
+                             bdr = "border-sky-500/20";
+                         }
+                         if(isVO) { 
+                             IconComponent = Mic; 
+                             color = "text-amber-400"; 
+                             bg = "bg-amber-500/10";
+                             bdr = "border-amber-500/20";
+                         }
 
                          return (
-                            <div key={idx} className="flex items-center gap-3 p-2 bg-slate-800/40 rounded-xl border border-white/5 hover:bg-slate-800/80 transition-all group">
-                                <div className={`flex flex-col items-center justify-center w-10 h-10 rounded-lg shrink-0 ${bg} ${color}`}>
+                            <div key={idx} className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.01] border border-white/5 hover:bg-white/[0.03] transition-all group">
+                                <div className={`flex flex-col items-center justify-center w-11 h-11 rounded-lg shrink-0 ${bg} ${color} border ${bdr}`}>
                                     <span className="font-bold text-sm leading-none">{item.dateMain}</span>
-                                    <span className="text-[8px] font-bold uppercase mt-0.5">{item.dateSub}</span>
+                                    <span className="text-[8px] font-bold uppercase mt-1 tracking-wider">{item.dateSub}</span>
                                 </div>
                                 <div className="flex-grow min-w-0">
-                                    <h3 className="text-sm font-semibold text-white truncate leading-tight group-hover:text-blue-200 transition-colors">{item.title}</h3>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${color}`}>{item.subtitle}</span>
+                                    <h3 className="text-sm font-semibold text-slate-200 truncate leading-snug group-hover:text-sky-300 transition-colors">{item.title}</h3>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <div className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${bg} ${color} border ${bdr}`}>
+                                            <IconComponent size={10} />
+                                            <span>{item.subtitle}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                          );
-                     }) : <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-50"><Video size={32} strokeWidth={1} /><p className="mt-2 text-sm">Inga kommande inspelningar</p></div>}
+                     }) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-600 bg-white/[0.01] rounded-xl border border-dashed border-white/5 py-8">
+                            <Video size={24} strokeWidth={1.5} className="opacity-40" />
+                            <p className="mt-1.5 text-xs font-medium text-slate-500">Inga kommande inspelningar</p>
+                        </div>
+                     )}
                 </div>
             );
 
             return (
-                <div ref={ref} className="h-full p-4 md:p-6 flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className={`${DASHBOARD_CONFIG.design.headersMobile} md:${DASHBOARD_CONFIG.design.headersDesktop} font-bold text-white tracking-tight`}>Schema</h2>
-                        {loading && <Loader2 className="animate-spin text-slate-600" size={20}/>}
+                <div ref={ref} className="h-full p-5 md:p-6 flex flex-col">
+                    <div className="flex items-center justify-between mb-4 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                                <Calendar size={20} />
+                            </div>
+                            <h2 className="text-lg md:text-xl font-bold uppercase tracking-wider text-white">Schema & Bokningar</h2>
+                        </div>
+                        {loading && <Loader2 className="animate-spin text-slate-500" size={18} />}
                     </div>
                     
-                    {width > 800 ? (
+                    {width > 700 ? (
                          <div className="flex flex-row gap-6 h-full min-h-0">
-                             {/* VÄNSTER: INSPELNINGAR (40%) */}
-                             <div className="flex-[1.2] flex flex-col min-h-0">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2"><Video size={14}/> Kommande Inspelningar</h3>
-                                {renderRecList(recordings)}
-                             </div>
-                             
-                             {/* HÖGER: RUM (60% delat på två) */}
-                             <div className="flex-[1.5] flex flex-row gap-4 border-l border-white/10 pl-6">
+                             {/* VÄNSTER: RUMSBOKNINGAR (Konferens först, Onlinerum sen) */}
+                             <div className="flex-[1.5] flex flex-row gap-4 border-r border-white/5 pr-5">
                                  <div className="flex-1 flex flex-col min-h-0">
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-3">Konferensrum</h3>
-                                    {renderRoomList(konfBookings, "Ledigt", "text-purple-400", "bg-purple-500/10")}
+                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-3 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-purple-500 rounded-full"></span> Konferensrum
+                                    </h3>
+                                    {renderRoomList(konfBookings, "Ledigt", "text-purple-400", "bg-purple-500/5", "border-purple-500/10")}
                                  </div>
-                                 <div className="flex-1 flex flex-col min-h-0 border-l border-white/5 pl-4">
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-3">Onlinerum</h3>
-                                    {renderRoomList(onlineBookings, "Ledigt", "text-blue-400", "bg-blue-500/10")}
+                                 <div className="flex-1 flex flex-col min-h-0 border-l border-white/[0.03] pl-4">
+                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-sky-400 mb-3 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-sky-500 rounded-full"></span> Onlinerum
+                                    </h3>
+                                    {renderRoomList(onlineBookings, "Ledigt", "text-sky-400", "bg-sky-500/5", "border-sky-500/10")}
                                  </div>
+                             </div>
+
+                             {/* HÖGER: KOMMANDE INSPELNINGAR */}
+                             <div className="flex-[1.1] flex flex-col min-h-0 pl-1">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-1.5">
+                                    <Video size={12} className="text-red-400"/> Klicka för alla / Kommande
+                                </h3>
+                                {renderRecList(recordings)}
                              </div>
                           </div>
                     ) : (
-                        /* MOBIL / LITEN TABLET */
+                        /* RESPONSIV MOBILLAYOUT (Rum överst, Inspelningar underst) */
                         <div className="flex flex-col h-full gap-5 overflow-y-auto no-scrollbar">
-                             <div className="flex-shrink-0">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Kommande Inspelningar</h3>
-                                {renderRecList(recordings.slice(0, 5))}
+                             <div className="grid grid-cols-2 gap-4 border-b border-white/5 pb-4">
+                                 <div>
+                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-2">Konferensrum</h3>
+                                    {renderRoomList(konfBookings, "Ledigt", "text-purple-400", "bg-purple-500/5", "border-purple-500/10")}
+                                 </div>
+                                 <div>
+                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-sky-400 mb-2">Onlinerum</h3>
+                                    {renderRoomList(onlineBookings, "Ledigt", "text-sky-400", "bg-sky-500/5", "border-sky-500/10")}
+                                 </div>
                              </div>
-                             <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-4">
-                                 <div>
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-purple-400 mb-2">Konferensrum</h3>
-                                    {renderRoomList(konfBookings, "Ledigt", "text-purple-400", "bg-purple-500/10")}
-                                 </div>
-                                 <div>
-                                    <h3 className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-2">Onlinerum</h3>
-                                    {renderRoomList(onlineBookings, "Ledigt", "text-blue-400", "bg-blue-500/10")}
-                                 </div>
+                             <div className="flex-shrink-0 pt-1">
+                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2.5">Kommande Inspelningar</h3>
+                                {renderRecList(recordings.slice(0, 5))}
                              </div>
                         </div>
                     )}
@@ -848,24 +873,29 @@
             );
         };
 
+        // --- 5. MODALS & DIALOGS ---
+
         const HelpModal = ({ onClose }) => (
-            <div className={`modal-overlay open`} onClick={onClose}>
-                <div className="glass-card p-6 max-w-md w-full m-4" onClick={e => e.stopPropagation()}>
+            <div className="modal-overlay open" onClick={onClose}>
+                <div className="glass-card p-6 max-w-md w-full m-4 border border-white/10" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold text-white">Hjälp & Info</h2>
-                        <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
+                        <h2 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                            <HelpCircle className="text-sky-400" size={18}/> Hjälp & Info
+                        </h2>
+                        <button onClick={onClose} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-white transition-colors">
+                            <X size={16} />
+                        </button>
                     </div>
-                    <div className="text-slate-300 text-sm space-y-2">
-                        <p>Dra och släpp korten för att flytta dem (på desktop).</p>
-                        <p>Använd handtaget i nedre högra hörnet för att ändra storlek.</p>
-                        <p>Klicka på produktionssiffror för att se detaljer.</p>
-                        <p>Data hämtas från ClickUp, Google Calendar och Google Sheets.</p>
+                    <div className="text-slate-300 text-sm space-y-3 font-medium">
+                        <p className="bg-white/5 p-2.5 rounded-lg border border-white/5">💡 Dra och släpp korten i rubrikområdena för att skräddarsy din layout (Desktop).</p>
+                        <p className="bg-white/5 p-2.5 rounded-lg border border-white/5">📐 Använd handtaget längst ner till höger på varje kort för att ändra storleken.</p>
+                        <p className="bg-white/5 p-2.5 rounded-lg border border-white/5">📊 Klicka på de olika KPI-blocken i produktionsmodulen för djupgående projektspecifikationer.</p>
+                        <p className="text-xs text-slate-500 pt-2 text-center">Dashboard v2.2 • Crisp Film</p>
                     </div>
                 </div>
             </div>
         );
 
-        // --- NEW SETTINGS MODAL ---
         const SettingsModal = ({ showRevenue, toggleRevenue, currentYear, setYear, onClose }) => {
             const [localYear, setLocalYear] = useState(currentYear);
 
@@ -875,30 +905,34 @@
             };
 
             return (
-                <div className={`modal-overlay open`} onClick={onClose}>
-                    <div className="glass-card p-6 max-w-sm w-full m-4" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-white flex items-center gap-2"><Settings size={20}/> Inställningar</h2>
-                            <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
+                <div className="modal-overlay open" onClick={onClose}>
+                    <div className="glass-card p-6 max-w-sm w-full m-4 border border-white/10" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-5">
+                            <h2 className="text-lg font-bold text-white flex items-center gap-2 uppercase tracking-wider">
+                                <Settings size={18} className="text-slate-400"/> Inställningar
+                            </h2>
+                            <button onClick={onClose} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-white transition-colors">
+                                <X size={16} />
+                            </button>
                         </div>
-                        <div className="space-y-6">
-                             <div className="flex items-center justify-between">
-                                <span className="text-slate-300 font-medium">Visa intäkter (SEK)</span>
-                                <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <div className="space-y-5">
+                             <div className="flex items-center justify-between bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                                <span className="text-slate-200 text-sm font-semibold">Visa intäktskalkyler (SEK)</span>
+                                <div className="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
                                     <input type="checkbox" name="toggle" id="revenue-toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300" checked={showRevenue} onChange={toggleRevenue}/>
-                                    <label htmlFor="revenue-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${showRevenue ? 'bg-green-400' : 'bg-slate-600'}`}></label>
+                                    <label htmlFor="revenue-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-300 ${showRevenue ? 'bg-emerald-500' : 'bg-slate-700'}`}></label>
                                 </div>
                             </div>
                             
-                            <div className="space-y-2">
-                                <label className="text-slate-300 font-medium block">Årtal</label>
+                            <div className="space-y-2 bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                                <label className="text-slate-200 text-xs font-bold uppercase tracking-wider block">Synkroniserat Produktionsår</label>
                                 <input 
                                     type="number" 
                                     value={localYear} 
                                     onChange={handleYearChange}
-                                    className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white font-bold tracking-widest focus:outline-none focus:border-white/40 text-center"
+                                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white font-black tracking-widest focus:outline-none focus:border-blue-500/50 text-center text-lg"
                                 />
-                                <p className="text-xs text-slate-500 mt-1">Ändrar vilket år data visas för (t.ex. 2025).</p>
+                                <p className="text-[11px] text-slate-500 leading-normal">Styr årtalsfiltreringen för ClickUp-projekt samt total helårsberäkning.</p>
                             </div>
                         </div>
                     </div>
@@ -907,28 +941,31 @@
         };
 
         const DetailsModal = ({ title, items, onClose }) => (
-            <div className={`modal-overlay open`} onClick={onClose}>
-                <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="modal-overlay open" onClick={onClose}>
+                <div className="glass-card p-6 max-w-2xl w-full m-4 max-h-[80vh] flex flex-col border border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
                     <div className="flex justify-between items-center mb-4 shrink-0">
-                        <h2 className="text-xl font-bold text-white">{title}</h2>
-                        <button onClick={onClose}><X className="text-slate-400 hover:text-white" /></button>
+                        <h2 className="text-base font-bold uppercase tracking-wider text-white border-l-2 border-blue-500 pl-2.5">{title}</h2>
+                        <button onClick={onClose} className="p-1.5 rounded-lg bg-white/5 text-slate-400 hover:text-white transition-colors">
+                            <X size={16} />
+                        </button>
                     </div>
-                    <div className="overflow-y-auto min-h-0 space-y-2 pr-2">
+                    <div className="overflow-y-auto min-h-0 space-y-1.5 pr-1 no-scrollbar">
                         {items && items.length > 0 ? items.map((item, i) => (
-                             <div key={i} className="flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:bg-white/10">
-                                 <span className="text-white font-medium truncate mr-4">{item.name || item.project}</span>
-                                 <div className="text-right shrink-0">
-                                     <div className="text-xs text-slate-400 uppercase font-bold">{item.status || item.date}</div>
-                                     {item.budget > 0 && <div className="text-[10px] text-emerald-400 font-mono">{item.budget.toLocaleString()} kr</div>}
+                             <div key={i} className="flex justify-between items-center p-3 bg-white/[0.01] rounded-xl border border-white/[0.03] hover:bg-white/[0.03] transition-colors gap-4">
+                                 <span className="text-slate-200 font-medium text-sm truncate">{item.name || item.project}</span>
+                                 <div className="text-right shrink-0 flex flex-col gap-0.5">
+                                     <div className="text-[10px] text-slate-400 uppercase font-black tracking-wider bg-white/5 px-2 py-0.5 rounded border border-white/5 inline-block">{item.status || item.date}</div>
+                                     {item.budget > 0 && <div className="text-xs text-emerald-400 font-mono font-bold mt-1">{item.budget.toLocaleString('sv-SE')} kr</div>}
                                  </div>
                              </div>
-                        )) : <p className="text-slate-500 italic">Ingen data att visa.</p>}
+                        )) : <p className="text-slate-500 italic py-4 text-center text-sm">Inga registrerade projekt i denna kategori.</p>}
                     </div>
                 </div>
             </div>
         );
 
-        // --- DEFAULTS ---
+        // --- 6. CORE APPLICATION CONTEXT ---
+
         const DEFAULT_MODULES = [ 
             { id: 'production', colSpan: 12, rowSpan: 3, component: 'ProductionModule' }, 
             { id: 'timeline', colSpan: 12, rowSpan: 3, component: 'TimelineModule' }, 
@@ -948,20 +985,12 @@
             const [showHelp, setShowHelp] = useState(false); 
             const [showSettings, setShowSettings] = useState(false);
             
-            // --- PERSISTENT STATE LOGIC ---
-            
-            // Settings persistence (Revenue)
             const [showRevenue, setShowRevenue] = useState(() => {
-                try {
-                    return localStorage.getItem('dashboard_show_revenue') === 'true';
-                } catch(e) { return false; }
+                try { return localStorage.getItem('dashboard_show_revenue') === 'true'; } catch(e) { return false; }
             });
 
-            // Settings persistence (Year)
             const [year, setYear] = useState(() => {
-                try {
-                    return localStorage.getItem('dashboard_year') || new Date().getFullYear().toString();
-                } catch(e) { return new Date().getFullYear().toString(); }
+                try { return localStorage.getItem('dashboard_year') || new Date().getFullYear().toString(); } catch(e) { return new Date().getFullYear().toString(); }
             });
 
             const toggleRevenueHandler = () => {
@@ -978,24 +1007,18 @@
             };
 
             const [detailModal, setDetailModal] = useState(null); 
-            const lastForcedReloadTime = useRef(0);
             const RELOAD_COOLDOWN_MS = 10 * 60 * 1000; 
 
-            // Modules persistence
             const [modules, setModules] = useState(() => {
                 try {
-                    const saved = localStorage.getItem('dashboard_layout_v1');
-                    if (saved) {
-                        return JSON.parse(saved);
-                    }
+                    const saved = localStorage.getItem('dashboard_layout_v2');
+                    if (saved) return JSON.parse(saved);
                 } catch(e) { console.error("Layout load failed", e); }
                 return DEFAULT_MODULES;
             });
 
             useEffect(() => {
-                try {
-                    localStorage.setItem('dashboard_layout_v1', JSON.stringify(modules));
-                } catch(e) {}
+                try { localStorage.setItem('dashboard_layout_v2', JSON.stringify(modules)); } catch(e) {}
             }, [modules]);
 
             const [draggedId, setDraggedId] = useState(null); const [resizingId, setResizingId] = useState(null);
@@ -1003,19 +1026,16 @@
             const onDragStart = (e, id) => { if (window.innerWidth >= 768 && !resizingId) { setDraggedId(id); e.currentTarget.classList.add('dragging'); } };
             const onDragEnd = (e) => { setDraggedId(null); e.currentTarget.classList.remove('dragging'); };
             const onDrop = (targetId) => { if (window.innerWidth < 768 || !draggedId || draggedId === targetId) return; const n = [...modules]; const d = n.findIndex(m => m.id === draggedId); const t = n.findIndex(m => m.id === targetId); const tmp = n[d]; n.splice(d, 1); n.splice(t, 0, tmp); setModules(n); };
-            const handleResizeStart = (e, id) => { if (window.innerWidth < 768) return; e.preventDefault(); e.stopPropagation(); setResizingId(id); const sx = e.clientX; const sy = e.clientY; const idx = modules.findIndex(m => m.id === id); const sc = modules[idx].colSpan; const sr = modules[idx].rowSpan; const cw = (window.innerWidth - 64) / 12; const ch = 184; const onMM = (me) => { const c = Math.max(3, Math.min(12, sc + Math.round((me.clientX-sx)/cw))); const r = Math.max(1, Math.min(6, sr + Math.round((me.clientY-sy)/ch))); setModules(p => { const nx = [...p]; if(nx[idx].colSpan !== c || nx[idx].rowSpan !== r) nx[idx]={...nx[idx], colSpan:c, rowSpan:r}; return nx; }); }; const onMU = () => { setResizingId(null); document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); }; document.addEventListener('mousemove', onMM); document.addEventListener('mouseup', onMU); };
+            const handleResizeStart = (e, id) => { if (window.innerWidth < 768) return; e.preventDefault(); e.stopPropagation(); setResizingId(id); const sx = e.clientX; const sy = e.clientY; const idx = modules.findIndex(m => m.id === id); const sc = modules[idx].colSpan; const sr = modules[idx].rowSpan; const cw = (window.innerWidth - 64) / 12; const ch = 156; const onMM = (me) => { const c = Math.max(4, Math.min(12, sc + Math.round((me.clientX-sx)/cw))); const r = Math.max(2, Math.min(6, sr + Math.round((me.clientY-sy)/ch))); setModules(p => { const nx = [...p]; if(nx[idx].colSpan !== c || nx[idx].rowSpan !== r) nx[idx]={...nx[idx], colSpan:c, rowSpan:r}; return nx; }); }; const onMU = () => { setResizingId(null); document.removeEventListener('mousemove', onMM); document.removeEventListener('mouseup', onMU); }; document.addEventListener('mousemove', onMM); document.addEventListener('mouseup', onMU); };
 
-            const openDetails = (title, items) => {
-                setDetailModal({ title, items });
-            };
+            const openDetails = (title, items) => { setDetailModal({ title, items }); };
 
             const renderModuleContent = (mod) => {
                  const allUpcoming = [
                     ...(events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
                     ...(prodStats?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: r.isStream ? 'Stream' : (r.isVO ? 'Voiceover' : 'Inspelning') }))
-                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
+                ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 10); 
                 switch(mod.component) { 
-                    case 'WeatherModule': return <WeatherModule data={weather} loading={loadingWeather} />; 
                     case 'ProductionModule': return <ProductionModule stats={prodStats?.stats} recent={prodStats?.recentDeliveries} loading={loadingProd} showRevenue={showRevenue} year={year} onOpenDetails={openDetails} />; 
                     case 'SlideshowModule': return <SlideshowModule customText={customText} />; 
                     case 'TimelineModule': return <TimelineModule items={allUpcoming} bookings={bookings} loading={loadingProd} />; 
@@ -1023,33 +1043,53 @@
                 }
             };
 
-            // Main Data Loader
             const loadMainData = async () => {
-                setLoadingWeather(true);
-                setLoadingBirthdays(true);
-                setLoadingNameDays(true);
-                setLoadingProd(true); 
-
+                setLoadingWeather(true); setLoadingBirthdays(true); setLoadingNameDays(true); setLoadingProd(true); 
                 try { setWeather(await getRealWeather()); } catch(e){}
                 try { setEvents(await getGoogleSheetEvents()); } catch(e){}
                 try { setBirthdays(await getClickUpBirthdays()); } catch(e){}
                 try { setBookings(await getRoomBookings()); } catch(e){}
                 try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
-                try { setProdStats(await getClickUpProductionData(year)); } catch(e) { console.error(e); }
+                
+                try { 
+                    const newStats = await getClickUpProductionData(year); 
+                    setProdStats(newStats); 
+                } catch(e) { console.error(e); }
 
-                setLoadingWeather(false);
-                setLoadingBirthdays(false);
-                setLoadingNameDays(false);
-                setLoadingProd(false);
+                setLoadingWeather(false); setLoadingBirthdays(false); setLoadingNameDays(false); setLoadingProd(false);
             };
 
-            // Reload data when year changes
+            // Övervaka ändringar i prodStats för att trigga konfetti när ett nytt projekt landas
             useEffect(() => {
-                loadMainData();
-            }, [year]);
+                if (prodStats && prodStats.stats) {
+                    const currentSold = prodStats.stats.soldCount;
+                    const prevSold = parseInt(localStorage.getItem('dashboard_prev_sold_count') || '-1');
+                    
+                    if (prevSold !== -1 && currentSold > prevSold) {
+                        // Nytt projekt sålt! Sätt timer för 10 minuter konfetti
+                        const endTime = Date.now() + (10 * 60 * 1000);
+                        localStorage.setItem('dashboard_confetti_end', endTime.toString());
+                    }
+                    localStorage.setItem('dashboard_prev_sold_count', currentSold.toString());
+                }
+            }, [prodStats]);
+
+            useEffect(() => { loadMainData(); }, [year]);
 
             useEffect(() => {
-                const t = setInterval(() => setTime(new Date()), 1000);
+                const t = setInterval(() => {
+                    const now = new Date();
+                    setTime(now);
+
+                    // Konfetti-logik: Spruta lite konfetti varje sekund om timern är aktiv
+                    if (window.confetti) {
+                        const confettiEnd = parseInt(localStorage.getItem('dashboard_confetti_end') || '0');
+                        if (Date.now() < confettiEnd) {
+                            window.confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'] });
+                            window.confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'] });
+                        }
+                    }
+                }, 1000);
 
                 const loadTextOnly = async () => {
                     try {
@@ -1058,9 +1098,9 @@
                             setCustomText(prev => (prev.title === data.title && prev.subtitle === data.subtitle) ? prev : { title: data.title, subtitle: data.subtitle });
                             if (data.shouldReload === 'RELOAD') {
                                 const now = Date.now();
-                                const lastReload = parseInt(localStorage.getItem('last_reload_timestamp') || '0');
+                                const lastReload = parseInt(localStorage.getItem('last_reload_timestamp_v2') || '0');
                                 if (now - lastReload > RELOAD_COOLDOWN_MS) {
-                                    localStorage.setItem('last_reload_timestamp', now.toString());
+                                    localStorage.setItem('last_reload_timestamp_v2', now.toString());
                                     window.location.reload();
                                 }
                             } 
@@ -1069,47 +1109,58 @@
                 };
 
                 loadTextOnly();
-
                 const textInterval = setInterval(loadTextOnly, 10000);
-                const mainInterval = setInterval(() => {
-                    if (new Date().getMinutes() === 0) {
+                
+                // Kontrollera klockan varje minut för att hämta data exakt kl 09, 12, 15 och 17
+                const scheduleInterval = setInterval(() => { 
+                    const now = new Date();
+                    const h = now.getHours();
+                    const m = now.getMinutes();
+                    if ((h === 9 || h === 12 || h === 15 || h === 17) && m === 0) {
                         loadMainData();
                     }
                 }, 60000); 
 
-                return () => { clearInterval(t); clearInterval(textInterval); clearInterval(mainInterval); };
+                return () => { clearInterval(t); clearInterval(textInterval); clearInterval(scheduleInterval); };
             }, []);
 
-            const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
+            const timeStr = time.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }); 
+            const dateStr = time.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
 
             return (
-                <div className="min-h-screen p-4 md:p-8 flex flex-col md:h-screen bg-[#050505] overflow-y-auto md:overflow-hidden relative">
-                    {/* HEADER */}
-                    <header className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center mb-6 px-2 md:px-4 pt-2 animate-in shrink-0 z-50 pointer-events-none h-auto md:h-[140px] text-center md:text-left relative">
-                         <div className="flex flex-col items-center md:items-start order-1">
-                             <div className="flex items-center gap-3">
+                <div className="min-h-screen p-4 md:p-6 flex flex-col md:h-screen bg-[#030303] relative select-none">
+                    {/* HUVUDHEADER */}
+                    <header className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6 px-2 pt-2 animate-in shrink-0 z-40 text-center md:text-left">
+                         <div className="flex flex-col items-center md:items-start">
+                             <div className="flex items-center gap-3 bg-white/[0.01] border border-white/5 px-4 py-2 rounded-xl backdrop-blur-sm shadow-inner">
                                 <img src={LOGO_SYMBOL} alt="Crisp" className={`${DASHBOARD_CONFIG.design.logoSymbolHeightMobile} md:${DASHBOARD_CONFIG.design.logoSymbolHeightDesktop} w-auto object-contain`} onError={(e) => e.target.style.display = 'none'} />
-                                <img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-1`} onError={(e) => e.target.style.display = 'none'} />
+                                <div className="w-px h-8 bg-white/10 mx-1"></div>
+                                <img src={LOGO_TEXT} alt="Crisp Film" className={`${DASHBOARD_CONFIG.design.logoTextHeightMobile} md:${DASHBOARD_CONFIG.design.logoTextHeightDesktop} w-auto object-contain mt-0.5`} onError={(e) => e.target.style.display = 'none'} />
                              </div>
                         </div>
-                        <div className="flex flex-col items-center justify-center order-2 md:order-2">
-                            <div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-semibold text-white tracking-tighter leading-none`}>{timeStr}</div>
-                            <div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-medium mt-1 mb-2`}>{dateStr}</div>
-                            <p className="text-slate-400 text-sm md:text-base font-medium tracking-wide uppercase opacity-80 whitespace-nowrap">We make brands stronger through film</p>
+                        
+                        <div className="flex flex-col items-center justify-center">
+                            <div className={`${DASHBOARD_CONFIG.design.clockSizeMobile} md:${DASHBOARD_CONFIG.design.clockSizeDesktop} font-black text-white tracking-tighter leading-none filter drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]`}>{timeStr}</div>
+                            <div className={`text-slate-400 ${DASHBOARD_CONFIG.design.dateSizeMobile} md:${DASHBOARD_CONFIG.design.dateSizeDesktop} capitalize font-semibold tracking-wide mt-1 mb-1.5`}>{dateStr}</div>
+                            <p className="text-slate-500 text-[11px] md:text-xs font-bold tracking-widest uppercase opacity-90 whitespace-nowrap bg-white/[0.02] px-3 py-1 rounded-full border border-white/[0.03]">We make brands stronger through film</p>
                         </div>
-                        <div className="flex flex-col items-center md:items-end justify-center gap-4 order-3 md:order-3">
+                        
+                        <div className="flex flex-row md:flex-col items-center md:items-end justify-center gap-3 flex-wrap">
                              <HeaderWeather weather={weather} loading={loadingWeather} />
                              <HeaderInfoModule nameDays={loadingNameDays ? "Laddar..." : nameDays} birthdays={loadingBirthdays ? [] : birthdays} />
                         </div>
                     </header>
                     
-                    <button onClick={() => setShowSettings(true)} className="fixed bottom-4 left-4 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><Settings size={24} /></button>
-                    <button onClick={() => setShowHelp(true)} className="fixed bottom-4 left-14 text-slate-600 hover:text-white transition-colors pointer-events-auto z-50"><HelpCircle size={24} /></button>
+                    {/* SYSTEMKNAPPAR */}
+                    <button onClick={() => setShowSettings(true)} className="fixed bottom-5 left-5 text-slate-500 hover:text-white transition-colors z-50 p-2 rounded-xl bg-white/[0.02] hover:bg-white/10 border border-white/5 shadow-lg backdrop-blur-sm"><Settings size={18} /></button>
+                    <button onClick={() => setShowHelp(true)} className="fixed bottom-5 left-16 text-slate-500 hover:text-white transition-colors z-50 p-2 rounded-xl bg-white/[0.02] hover:bg-white/10 border border-white/5 shadow-lg backdrop-blur-sm"><HelpCircle size={18} /></button>
 
                     {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                     {showSettings && <SettingsModal showRevenue={showRevenue} toggleRevenue={toggleRevenueHandler} currentYear={year} setYear={setYearHandler} onClose={() => setShowSettings(false)} />}
                     {detailModal && <DetailsModal title={detailModal.title} items={detailModal.items} onClose={() => setDetailModal(null)} />}
-                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[140px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
+                    
+                    {/* GRID SYSTEM */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 auto-rows-auto md:auto-rows-[136px] gap-4 md:gap-5 flex-grow pb-4 grid-flow-dense relative z-10">
                         {modules.map((mod) => ( 
                             <div 
                                 key={mod.id} 
@@ -1118,7 +1169,7 @@
                                 onDragEnd={onDragEnd} 
                                 onDragOver={(e) => e.preventDefault()} 
                                 onDrop={() => onDrop(mod.id)} 
-                                className={`${mod.noGlass ? 'transparent-container' : 'glass-card'} animate-in col-span-1 md:col-span-${mod.colSpan} md:row-span-${mod.rowSpan} min-h-[300px] md:min-h-0 ${draggedId === mod.id ? 'dragging' : ''} ${resizingId === mod.id ? 'resizing' : ''}`}
+                                className={`glass-card animate-in col-span-1 md:col-span-${mod.colSpan} md:row-span-${mod.rowSpan} min-h-[340px] md:min-h-0 ${draggedId === mod.id ? 'dragging' : ''}`}
                             > 
                                 {renderModuleContent(mod)} 
                                 <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, mod.id)}></div> 
