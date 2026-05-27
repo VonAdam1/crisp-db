@@ -93,7 +93,6 @@
             clickUpBirthdayListId: "901517968972", 
             clickUpProjectsListId: "901515357300",
             clickUpBudgetFieldId: "26f92511-130b-4909-a6e5-b51385752454",
-            googleSheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vTg2K8CukJPbpDaXCSFymNJK67nEIDcciuJSiy8xvibV1cziFBovc9mDPf9vmqyQceIEck6wfy0ly36/pub?gid=0&single=true&output=csv",
             googleSheetTextUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSJwWMDbKsaGDlpxRustDgIzsaygyBFSJURPdKoPVpInMIzxDlHPKElmkcSC-4A9zQDBejWd-r5Jw-i/pub?output=csv",
             calendars: [
                 { name: "Konferensrum", cid: "crispfilm.se_7lejdhj9e5qn2ebbf1qvt6icrk@group.calendar.google.com", color: "text-purple-400", bg: "bg-purple-500/10" },
@@ -103,11 +102,18 @@
 
         const LOGO_TEXT = "./Crisp_text-logo_white.png";
         const LOGO_SYMBOL = "./Crisp_symbol.png"; 
+        const SLIDESHOW_IMAGES = [
+            "bilder/1.jpg", "bilder/2.jpg", "bilder/3.jpg", "bilder/4.jpg", "bilder/5.jpg",
+            "bilder/6.jpg", "bilder/7.jpg", "bilder/8.jpg", "bilder/9.jpg", "bilder/11.jpg",
+            "bilder/12.jpg", "bilder/13.jpg", "bilder/14.jpg", "bilder/15.JPG", "bilder/16.jpg",
+            "bilder/17.jpeg"
+        ].slice(0, 20);
 
         // --- 2. ICONS ---
         const createLucideIcon = (name) => {
             if (!window.lucide || !window.lucide.icons) return () => null;
             const iconData = window.lucide.icons[name];
+            if (!iconData) return () => null;
             return ({ size = 24, className = "", color = "currentColor", ...props }) => {
                 const [tag, defaultAttrs, children = []] = iconData;
                 const toCamel = (s) => s.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
@@ -127,6 +133,8 @@
         const Settings = createLucideIcon('Settings');
         const Target = createLucideIcon('Target');
         const Moon = createLucideIcon('Moon');
+        const Radio = createLucideIcon('Radio');
+        const Mic = createLucideIcon('Mic');
 
         // --- 3. DATA HELPERS ---
         
@@ -161,48 +169,7 @@
             } catch(e) { return null; } 
         };
         
-        // 3. GOOGLE SHEETS EVENTS (Via Vercel Rewrite)
-        const getGoogleSheetEvents = async () => { 
-            if (!API_CONFIG.googleSheetCsvUrl) return []; 
-            try { 
-                // Vi strippar domänen och behåller bara path för rewriten
-                const cleanPath = API_CONFIG.googleSheetCsvUrl.replace('https://docs.google.com', '');
-                // Lägg till tidsstämpel för att undvika cache
-                const url = `/api/sheets${cleanPath}&t=${Date.now()}`;
-                
-                const res = await fetch(url); 
-                if (!res.ok) return []; 
-                const rows = (await res.text()).split(/\r\n|\n/); 
-                const events = []; 
-                const yest = new Date(); yest.setDate(yest.getDate()-1); yest.setHours(0,0,0,0); 
-                const parseDateRobustly = (dateStr) => {
-                    if (!dateStr) return null;
-                    const cleanStr = dateStr.trim().split(' ')[0];
-                    let d = new Date(cleanStr);
-                    if (!isNaN(d.getTime())) return d;
-                    const parts = cleanStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
-                    if (parts) { d = new Date(`${parts[3]}-${parts[2]}-${parts[1]}`); if (!isNaN(d.getTime())) return d; }
-                    return null;
-                };
-                rows.forEach((row, i) => { 
-                    if(i===0) return; 
-                    const c = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/); 
-                    if(c.length>=4){ 
-                        const n = c[2].replace(/^"|"$/g,'').trim(); 
-                        const ds = c[3].replace(/^"|"$/g,'').trim(); 
-                        let timeLabel = "";
-                        const tStart = c[4] ? c[4].replace(/^"|"$/g,'').trim() : "";
-                        const tEnd = c.length > 6 && c[6] ? c[6].replace(/^"|"$/g,'').trim() : "";
-                        if(tStart && tEnd) timeLabel = `${tStart} - ${tEnd}`; else if(tStart) timeLabel = tStart; else if(tEnd) timeLabel = tEnd;
-                        const d = parseDateRobustly(ds);
-                        if(d && d>=yest) { events.push({ name:n, sortDate:d.getTime(), dateMain:d.getDate(), dateSub:d.toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), timeStr: timeLabel }); }
-                    } 
-                }); 
-                return events; 
-            } catch(e) { console.error("Sheet error", e); return []; } 
-        };
-
-        // 4. GOOGLE SHEETS MOTTO (Via Vercel Rewrite)
+        // 3. GOOGLE SHEETS MOTTO (Via Vercel Rewrite)
         const getGoogleSheetMotto = async () => {
             if (!API_CONFIG.googleSheetTextUrl) return null;
             try {
@@ -427,6 +394,13 @@
                 // --- INSPELNINGAR (Kräver Namnfilter för att undvika gammalt skräp) ---
                 let recCount = 0; let streamCount = 0; let voCount = 0; const upcomingRecs = [];
                 const ignoreWords = ["genomgång", "brief", "planering", "förberedelse", "casting", "check", "koll", "recce", "schema", "annons", "annonser"];
+                const getRecordingType = (name) => {
+                    if (!name) return null;
+                    if (/\b(VO|V\.O\.|Röst|Voiceover)\b/i.test(name) || /\bVO[-_\s]*inspelning/i.test(name)) return "Voiceover";
+                    if (/\b(Stream|Live|Livesändning|Livesandning)\b/i.test(name)) return "Stream";
+                    if (/\b(Inspelning|Inspelningsdag|Filmning|Shoot|Studio|Produktionsdag)\b/i.test(name)) return "Inspelning";
+                    return null;
+                };
 
                 tasks.forEach(t => {
                     const fName = t.folder ? t.folder.name : ""; const lName = t.list ? t.list.name : "";
@@ -441,20 +415,21 @@
                     if (!listNameClean.includes('production') && !listNameClean.includes('stream') && !listNameClean.includes('live') && !listNameClean.includes('studio')) return; 
                     const name = t.name;
                     if (ignoreWords.some(w => name.toLowerCase().includes(w))) return; 
-                    const isVO = /\b(VO|Röst|Voiceover)\b/i.test(name);
-                    const isStream = /\b(Stream)\b/i.test(name);
-                    const isRec = /\b(Inspelning)\b/i.test(name);
+                    const recordingType = getRecordingType(name);
                     
-                    if (is24185 && !isStream) return;
+                    if (!recordingType) return;
+                    if (is24185 && recordingType !== "Stream") return;
                     const status = t.status.status.toLowerCase();
                     const isDone = ['complete', 'closed', 'klar', 'done'].includes(status);
 
                     if (isDone) {
                         const displayFolder = fName || lName;
                         const item = { name: t.name, status: status, folder: displayFolder };
-                        if (isVO) { voCount++; listVO.push({ ...item, type: 'VO' }); } else if (isStream) { streamCount++; listStream.push({ ...item, type: 'Stream' }); } else if (isRec) { recCount++; listRec.push({ ...item, type: 'Inspelning' }); }
+                        if (recordingType === "Voiceover") { voCount++; listVO.push({ ...item, type: 'VO' }); }
+                        else if (recordingType === "Stream") { streamCount++; listStream.push({ ...item, type: 'Stream' }); }
+                        else { recCount++; listRec.push({ ...item, type: 'Inspelning' }); }
                     }
-                    if ((isVO || isStream || isRec) && !isDone) {
+                    if (!isDone) {
                         const start = parseInt(t.start_date);
                         const due = parseInt(t.due_date);
                         
@@ -481,8 +456,8 @@
                                     sortDate: d, 
                                     dateMain: new Date(d).getDate(), 
                                     dateSub: new Date(d).toLocaleDateString('sv-SE',{month:'short'}).toUpperCase(), 
-                                    isStream: isStream, 
-                                    isVO: isVO 
+                                    isStream: recordingType === "Stream", 
+                                    isVO: recordingType === "Voiceover" 
                                 });
                             }
                         });
@@ -694,7 +669,7 @@
 
         const SlideshowModule = ({ customText }) => {
             const [index, setIndex] = useState(0); const [validImages, setValidImages] = useState([]);
-            useEffect(() => { const arr = []; for (let i=1; i<=20; i++) { arr.push(`bilder/${i}.jpg`); arr.push(`bilder/${i}.png`); arr.push(`bilder/${i}.jpeg`); } setValidImages(arr); }, []);
+            useEffect(() => { setValidImages(SLIDESHOW_IMAGES); }, []);
             useEffect(() => { if (validImages.length === 0) return; const t = setInterval(() => setIndex((p) => (p + 1) % validImages.length), DASHBOARD_CONFIG.slideshowInterval); return () => clearInterval(t); }, [validImages]);
             const err = (s) => setValidImages(p => p.filter(x => x !== s));
             
@@ -939,7 +914,6 @@
             const [time, setTime] = useState(new Date());
             const [weather, setWeather] = useState(null); const [loadingWeather, setLoadingWeather] = useState(true);
             const [birthdays, setBirthdays] = useState([]); const [loadingBirthdays, setLoadingBirthdays] = useState(true);
-            const [events, setEvents] = useState([]); 
             const [prodStats, setProdStats] = useState(null); const [loadingProd, setLoadingProd] = useState(true);
             const [nameDays, setNameDays] = useState("Laddar..."); const [loadingNameDays, setLoadingNameDays] = useState(true); 
             const [bookings, setBookings] = useState([]);
@@ -1011,7 +985,6 @@
 
             const renderModuleContent = (mod) => {
                  const allUpcoming = [
-                    ...(events || []).map(e => ({ ...e, type: 'event', title: e.name, subtitle: 'Event' })),
                     ...(prodStats?.recordings || []).map(r => ({ ...r, type: 'recording', title: r.project, subtitle: r.isStream ? 'Stream' : (r.isVO ? 'Voiceover' : 'Inspelning') }))
                 ].sort((a, b) => a.sortDate - b.sortDate).slice(0, 8); 
                 switch(mod.component) { 
@@ -1031,7 +1004,6 @@
                 setLoadingProd(true); 
 
                 try { setWeather(await getRealWeather()); } catch(e){}
-                try { setEvents(await getGoogleSheetEvents()); } catch(e){}
                 try { setBirthdays(await getClickUpBirthdays()); } catch(e){}
                 try { setBookings(await getRoomBookings()); } catch(e){}
                 try { setNameDays(await getNamnsdagar()); } catch(e) { setNameDays("Kunde inte hämta"); }
